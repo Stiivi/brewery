@@ -36,13 +36,18 @@ class ConnectionTestCase(unittest.TestCase):
 		datastore_path = os.path.dirname(__file__)
 		brewery.set_brewery_search_paths([datastore_path])
 		brewery.load_default_datastores()
-
-	def test_sqlite(self):
 		store = {"adapter":"sqlite3", "path":":memory:"}
 		brewery.add_datastore("memory", store)
-		connection = brewery.connect_datastore("memory")
-		print("==> Connection: %s" % connection)
 
+	def test_sqlite_connect(self):
+		connection = brewery.connect_datastore("memory")
+		connection.execute("CREATE TABLE FOO (id integer, name string, amount float)")
+		connection.execute("INSERT INTO FOO (id, name, amount) VALUES (1, 'foo', 10)")
+		cursor = connection.cursor()
+		cursor.execute("SELECT * FROM foo")
+		row = cursor.fetchone()
+		self.assertEqual(row[2], 10, "Expected inserted value")
+		
 if __name__ == '__main__':
     unittest.main()
 

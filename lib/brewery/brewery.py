@@ -1,6 +1,7 @@
 # Brewery
 import json
 import os
+import sys
 
 brewery_search_paths = ['/etc/brewery', \
 				 '~/.brewery/datastores.json', \
@@ -79,14 +80,16 @@ def connect_datastore(datastore_name):
 	info = datastore_with_name(datastore_name)
 	adapter_name = info["adapter"]
 	adapter = __datastore_adapter(adapter_name)
+	print(adapter)
 	return adapter.connect(info)
 
-def __datastore_adapter(name):
+def __datastore_adapter(adapter_name):
 	global datastore_adapters
 	if adapter_name in datastore_adapters:
 		adapter = datastore_adapters[adapter_name]
 	else:
-		module_name = "brewery.datastores." + adapter
-		adapter = __import__(module_name)
-		datastore_adapters[name] = adapter
+		module_name = "brewery.datastores." + adapter_name
+		__import__(module_name)
+		adapter = sys.modules[module_name]
+		datastore_adapters[adapter_name] = adapter
 	return adapter
