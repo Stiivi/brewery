@@ -4,12 +4,11 @@ import os
 import sys
 
 brewery_search_paths = ['/etc/brewery', \
-				 '~/.brewery/datastores.json', \
-				 './config/datastores.json']
+						'~/.brewery/', \
+						'./brewery/']
 default_datastores_file_name = "datastores.json"
 
 datastores = {}
-
 datastore_adapters = {}
 
 def set_brewery_search_paths(paths):
@@ -80,8 +79,11 @@ def connect_datastore(datastore_name):
 	info = datastore_with_name(datastore_name)
 	adapter_name = info["adapter"]
 	adapter = __datastore_adapter(adapter_name)
-	print(adapter)
-	return adapter.connect(info)
+
+	cinfo = info.copy()
+	del cinfo["adapter"]
+
+	return adapter.connect(cinfo)
 
 def __datastore_adapter(adapter_name):
 	global datastore_adapters
