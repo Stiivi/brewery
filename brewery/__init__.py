@@ -1,3 +1,8 @@
+import cubes
+# from brewery.datastore_manager import *
+
+__version__ = '0.5.0'
+
 # Brewery
 import json
 import os
@@ -76,6 +81,14 @@ def datastore_with_name(name):
 		raise KeyError("No datastore with name '%s'" % name)
 		
 def connect_datastore(datastore_name):
+	"""Create a connection to datastore. The datastore information dictionary should contain adapter
+	specific connection information.
+	
+	Args:
+		name: datastore name
+
+	Returns:
+		DB API 2.0 Connection object."""
 	info = datastore_with_name(datastore_name)
 	adapter_name = info["adapter"]
 	adapter = __datastore_adapter(adapter_name)

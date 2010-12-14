@@ -1,4 +1,4 @@
-# sqlite3 module
+# PostgreSQL module
 import postgresql.driver.dbapi20
 
 def connect(info):
