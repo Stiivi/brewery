@@ -41,6 +41,10 @@ class Dimension(object):
             return
 
         for hier_name, hier_info in info.items():
-            hier = Level(hier_name, hier_info)
+            hier = Hierarchy(hier_name, hier_info)
             hier.dimension = self
             self.hierarchies[hier_name] = hier
+
+    @property
+    def default_hierarchy(self):
+        return self.hierarchies["default"]

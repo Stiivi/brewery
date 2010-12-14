@@ -24,6 +24,20 @@ class ModelTestCase(unittest.TestCase):
                                         "invalid levels %s" % dim.levels.keys())
         self.assertItemsEqual(dim.hierarchies.keys(), ["default", "ymd"],
                                         "invalid hierarchies %s" % dim.hierarchies.keys())
+        self.assertEqual(dim.hierarchies["default"], dim.default_hierarchy, "Default hierarchy does not match")
+
+        hlevels = dim.default_hierarchy.levels
+        self.assertEqual(len(hlevels), 2, "Default hierarchy level count is not 2 (%s)" % hlevels)
+        
+
+        dlevels = dim.levels
+        hlevels = dim.hierarchies["default"].levels
+        self.assertTrue(issubclass(dlevels["year"].__class__, brewery.cubes.Level), "Level should be subclass of Level")
+        self.assertTrue(issubclass(hlevels[0].__class__, brewery.cubes.Level), "Level should be subclass of Level")
+        
+        self.assertEqual(dlevels["year"], hlevels[0], "Level should be equal")
+
+
 
     def test_cube_from_file(self):
         info = self._model_file_dict("cube_contracts.json")

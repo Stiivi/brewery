@@ -3,3 +3,6 @@
 *.egg-info/*
 sandbox/*
 .DS_Store
+build/*
+env/
+dist/
