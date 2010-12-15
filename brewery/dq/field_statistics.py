@@ -17,7 +17,8 @@ class FieldStatistics(object):
         * null_value_ratio: ratio of records
         * unique_storage_type: if there is only one storage type, then this is set to that type
         * distinct_threshold: number of distict values to collect, if distinct values is greather than threshold,
-            no more values are being collected and distinct_overflow will be set
+            no more values are being collected and distinct_overflow will be set. Set to 0 to get all values.
+            Default is 10.
     """    
     def __init__(self, key, distinct_threshold = 10):
         self.field = key
@@ -35,6 +36,7 @@ class FieldStatistics(object):
         self.empty_string_count = 0
         
         self.distinct_threshold = distinct_threshold
+        
         self.unique_storage_type = None
         
     def probe(self, value):
@@ -64,15 +66,15 @@ class FieldStatistics(object):
                     or issubclass(storage_type, list):
             return
 
-        if len(self.distinct_values) < self.distinct_threshold:
+        if self.distinct_threshold == 0 or len(self.distinct_values) < self.distinct_threshold:
             self.distinct_values.add(value)
         else:
             self.distinct_overflow = True
             
     def finalize(self):
-        self.value_ratio = self.value_count / self.record_count
-        self.null_value_ratio = self.null_count / self.value_count
-        self.null_record_ratio = self.null_count / self.record_count
+        self.value_ratio = float(self.value_count) / float(self.record_count)
+        self.null_value_ratio = float(self.null_count) / float(self.value_count)
+        self.null_record_ratio = float(self.null_count) / float(self.record_count)
 
         if len(self.storage_types) == 1:
             self.unique_storage_type = list(self.storage_types)[0]
