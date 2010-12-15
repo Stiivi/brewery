@@ -1,17 +1,28 @@
+"""Cube dimension"""
+
 from hierarchy import *
 from level import *
 
 class Dimension(object):
     """
+    Cube dimension.
+    
     Attributes:
-    	model: logical model
-    	name: dimension name
-    	label: dimension name that will be displayed (human readable)
-    	levels: list of dimension levels
-    	hierarchies: list of dimension hierarchies
-    	default_hierarchy_name: name of a hierarchy that will be used when no hierarchy is explicitly specified
+    	* model: logical model
+    	* name: dimension name
+    	* label: dimension name that will be displayed (human readable)
+    	* levels: list of dimension levels (see: :class:`brewery.cubes.Level`)
+    	* hierarchies: list of dimension hierarchies
+    	* default_hierarchy_name: name of a hierarchy that will be used when no hierarchy is explicitly specified
     """
+    
     def __init__(self, name, info = {}):
+        """Create a new dimension
+        
+        Args:
+            name (str): dimension name
+            info (dict): dict object containing keys label, description, levels, hierarchies, default_hierarchy, key_field
+        """
         self.name = name
 
         self.label = info.get("label", "")
@@ -35,6 +46,7 @@ class Dimension(object):
             self.levels[level_name] = level
 
     def __init_hierarchies(self, info):
+        """booo bar"""
         self.hierarchies = {}
 
         if info == None:
@@ -47,4 +59,9 @@ class Dimension(object):
 
     @property
     def default_hierarchy(self):
-        return self.hierarchies["default"]
+        """Get default hierarchy specified by ``default_hierarchy_name``, if the variable is not set then
+        get a hierarchy with name *default*"""
+        if self.default_hierarchy_name:
+            return self.hierarchies[self.default_hierarchy_name]
+        else:
+            return self.hierarchies["default"]

@@ -1,3 +1,5 @@
+"""OLAP Cubes"""
+
 # empty
 from brewery.cubes.dimension import *
 from brewery.cubes.hierarchy import *

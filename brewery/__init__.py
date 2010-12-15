@@ -1,16 +1,18 @@
-import cubes
-# from brewery.datastore_manager import *
+"""Brewery"""
 
-__version__ = '0.5.0'
-
-# Brewery
 import json
 import os
 import sys
 
+import brewery.cubes
+import brewery.dq
+
+__version__ = '0.5.0'
+
 brewery_search_paths = ['/etc/brewery', \
 						'~/.brewery/', \
 						'./brewery/']
+
 default_datastores_file_name = "datastores.json"
 
 datastores = {}
@@ -54,12 +56,12 @@ def load_datastores_file(path):
 
 def add_datastore(name, info):
 	"""Add datastore 'info' into managed data stores
-
+    
 	Args:
-		name: name of datastore
-		info: dictionary containing datastore information. For example, relational database connection
-			information would contain keys: adapter, database, host, port, user, password
-	"""
+        name: name of datastore
+        info: dictionary containing datastore information. For example, relational database connection
+            	information would contain keys: adapter, database, host, port, user, password
+    """
 	if not issubclass(info.__class__, dict):
 		raise TypeError("Datastore info for '" + name + "' sohould be a dictionary")
 	datastores[name] = info
