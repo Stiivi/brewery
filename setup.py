@@ -14,7 +14,7 @@ setup(
         # If any package contains *.txt or *.rst files, include them:
         '': ['*.txt', '*.rst'],
     },
-    scripts = ['bin/brewaudit'],
+    scripts = ['bin/mongoaudit'],
     
     test_suite = "brewery.tests.test_model",
 

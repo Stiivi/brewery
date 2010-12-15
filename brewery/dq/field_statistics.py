@@ -15,9 +15,10 @@ class FieldStatistics(object):
         * value_ratio: ratio of value count to record count, 1 for relational databases
         * null_count: number of records where field is null
         * null_value_ratio: ratio of records
+        * unique_storage_type: if there is only one storage type, then this is set to that type
         * distinct_threshold: number of distict values to collect, if distinct values is greather than threshold,
             no more values are being collected and distinct_overflow will be set
-    """
+    """    
     def __init__(self, key, distinct_threshold = 10):
         self.field = key
         self.value_count = 0
@@ -34,6 +35,7 @@ class FieldStatistics(object):
         self.empty_string_count = 0
         
         self.distinct_threshold = distinct_threshold
+        self.unique_storage_type = None
         
     def probe(self, value):
         storage_type = value.__class__
@@ -71,13 +73,16 @@ class FieldStatistics(object):
         self.value_ratio = self.value_count / self.record_count
         self.null_value_ratio = self.null_count / self.value_count
         self.null_record_ratio = self.null_count / self.record_count
-        
-    def to_dict(self):
+
+        if len(self.storage_types) == 1:
+            self.unique_storage_type = list(self.storage_types)[0]
+
+    def dict(self):
         d = {}
         d["key"]= self.field
         d["value_count"]= self.value_count
-        d["value_ratio"]= self.value_ratio
         d["record_count"]= self.record_count
+        d["value_ratio"]= self.value_ratio
         if self.distinct_overflow:
             d["distinct_overflow"] = self.distinct_overflow,
             d["distinct_values"] = []
@@ -91,5 +96,7 @@ class FieldStatistics(object):
         d["null_record_ratio"] = self.null_record_ratio
         d["empty_string_count"] = self.empty_string_count
 
+        d["unique_storage_type"] = self.unique_storage_type
+        
         return d
     
