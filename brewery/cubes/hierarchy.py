@@ -5,7 +5,7 @@ class Hierarchy(object):
         self.label = info.get("label", "")
         self.level_names = info.get("levels", [])
         self.dimension = dimension
-        
+
     @property
     def dimension(self):
         return self._dimension

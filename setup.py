@@ -21,7 +21,7 @@ setup(
     # metadata for upload to PyPI
     author = "Stefan Urbanek",
     author_email = "stefan.urbanek@gmail.com",
-    description = "Data analysis framework",
+    description = "OLAP and Data analysis framework",
     license = "GPL",
     keywords = "data analysis olap quality",
     url = "http://www.databrewery.org"
