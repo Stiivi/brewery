@@ -1,0 +1,113 @@
+"""MongoDB Auditing tool
+
+    For more information run: mongoaudit --help
+    
+    Author: Stefan Urbanek <stefan.urbanek@gmail.com>
+    Date: 2010-12
+"""
+
+import argparse
+import pymongo
+import json
+import argparse
+import sys
+import brewery
+
+key_stats = {}
+
+def connect(database, collection, connection = None):
+    """Audit a collection in a database"""
+    global mongo_collection
+    
+    if not connection:
+        connection = pymongo.Connection("localhost", 27017)
+    elif issubclass(connection.__class__, dict):
+        host = connection.get("host", "localhost")
+        port = connection.get("port", 27017)
+        try:
+            connection = pymongo.Connection(host, port)
+        except pymongo.errors.AutoReconnect:
+            print "Unable to connect to '%s:%s'" % (host, port)
+            return
+        
+    _database = connection[database]
+    return _database[collection]
+
+def audit(collection, threshold = None):
+    count = 0
+    for record in collection.find():
+        count += 1
+        for key, value in record.items():
+            if not key in key_stats:
+                stat = brewery.dq.FieldStatistics(key, distinct_threshold = threshold)
+                key_stats[key] = stat
+            else:
+                stat = key_stats[key]
+            stat.probe(value)
+
+    key_audit = {}
+    for key, stat in key_stats.items():
+        stat.record_count = count
+        stat.finalize()
+        key_audit[key] = stat
+    
+    result = {}
+    result["keys"] = key_audit
+    result["record_count"] = count
+
+    return result
+
+################################################################################
+# Output dump
+
+def dump_text(result):
+    print "record count: %i" % result["record_count"]
+    for key, stat in result["keys"].items():
+        print "%s:" % stat.field
+        if stat.unique_storage_type:
+            print "\tstorage type: %s" % stat.unique_storage_type
+        else:
+            print "\tstorage types:"
+            for stype in stat.storage_types:
+                print "\t\t'%s'" % stype
+
+        print "\tpresent values: %d (%.2f%%)" % (stat.value_count, stat.value_ratio * 100)
+        print "\tnull: %d (%.2f%% of records, %.2f%% of values)" % \
+                                    (stat.null_count, stat.null_record_ratio * 100, stat.null_value_ratio * 100)
+
+        print "\tempty strings: %d" % (stat.empty_string_count)
+
+        if stat.distinct_overflow:
+            print "\tdistinct overflow"
+        elif len(stat.distinct_values) > 0:
+            print "\tdistinct values:"
+            for value in stat.distinct_values:
+                print "\t\t'%s'" % value
+
+def dump_json(result):
+    json_dict = result.copy()
+    del json_dict["keys"]
+    for key, stat in result["keys"].items():
+        json_dict[key] = stat.dict()
+    json.dump(json_dict, sys.stdout)    
+
+################################################################################
+# Main code
+
+parser = argparse.ArgumentParser(description='Audit a MongoDB collection')
+parser.add_argument('-H', '--host', help='host')
+parser.add_argument('-p', '--port', help='port', type =int)
+parser.add_argument('-t', '--threshold', help='threshold for number of distinct values (default is 10)', \
+                                         type = int, default = 10)
+parser.add_argument('-f', '--format', help='output format (default is text)', 
+                                      default ='text', choices = ['text', 'json'])
+parser.add_argument('database')
+parser.add_argument('collection')
+args = parser.parse_args(sys.argv[1:])
+
+collection = connect(args.database, args.collection, connection = {'host': args.host, 'port': args.port})
+result = audit(collection, threshold = args.threshold)
+if args.format == 'text':
+    dump_text(result)
+else:
+    dump_json(result)
