@@ -5,6 +5,8 @@ OLAP Cubes
     :members:
     :undoc-members:
     
+    .. autoclass:: brewery.cubes.Model
+        :members:
     .. autoclass:: brewery.cubes.Dimension
         :members:
     .. autoclass:: brewery.cubes.Level

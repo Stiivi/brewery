@@ -3,9 +3,10 @@ Introduction
 
 ABOUT
 
-Brewery is a ruby framework for:
+Brewery is a data framework for:
 
-* creating ETL processes
 * OLAP and multidimensional analysis
-* data mining
+* creating a multidimensional data browser
 * data quality monitoring
+* data streams
+* data mining

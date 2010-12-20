@@ -8,8 +8,9 @@ setup(
     # installed or upgraded on the target machine
     install_requires = [],
 
-    packages = ['brewery'],
-	package_dir = { 'brewery': 'brewery'},
+    packages=find_packages(exclude=['ez_setup']),
+    # packages = ['brewery'],
+	# package_dir = { 'brewery': 'brewery'},
     package_data = {
         # If any package contains *.txt or *.rst files, include them:
         '': ['*.txt', '*.rst'],
