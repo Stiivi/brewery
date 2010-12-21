@@ -16,5 +16,9 @@ class Hierarchy(object):
         self.levels = []
         if a_dimension != None:
             for level_name in self.level_names:
-                level = self.dimension.levels[level_name]
+                level = self.dimension.levels.get(level_name)
+
+                if not level:
+                    raise KeyError("No level %s in dimension %s" % (level_name, a_dimension.name))
+                    
                 self.levels.append(level)

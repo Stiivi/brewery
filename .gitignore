@@ -6,3 +6,6 @@ sandbox/*
 build/*
 env/
 dist/
+*.tmproj
+doc/_build
+

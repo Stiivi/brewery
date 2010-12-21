@@ -37,16 +37,26 @@ class ModelTestCase(unittest.TestCase):
         
         self.assertEqual(dlevels["year"], hlevels[0], "Level should be equal")
 
-
-
     def test_cube_from_file(self):
         info = self._model_file_dict("cube_contracts.json")
         self.skipTest("Cubes are not yet implemented")
 
     def test_model_from_path(self):
-        self.skipTest("Model from path is not yet implemented")
-        # model = brewery.cubes.model_from_path(model_path)
+        # model = brewery.cubes.model_from_path(self.model_path)
+        file_path = os.path.join(self.model_path, "cube_contracts.json")
+        self.assertRaises(RuntimeError, brewery.cubes.model_from_path, file_path)
+        
+        model = brewery.cubes.model_from_path(self.model_path)
+        self.assertEqual(model.name, "public_procurements", "Model was not properely loaded")
+        self.assertEqual(len(model.dimensions), 6, "Model dimensions were not properely loaded")
+        self.assertEqual(len(model.cubes), 1, "Model cubes were not loaded")
+        cube = model.cubes.get("contracts")
+        self.assertNotEqual(None, cube, 'No expected "contracts" cube found')
+        self.assertEqual(cube.name, "contracts", "Model cube was not properely loaded")
 
+        result = model.validate()
+        self.assertEqual(0, len(result), 'Model validation failed')
+        
     def model_validation(self):
         self.skipTest("Model validation is not yet implemented")
 		

@@ -90,7 +90,8 @@ def connect_datastore(datastore_name):
 		name: datastore name
 
 	Returns:
-		DB API 2.0 Connection object."""
+		DB API 2.0 Connection object.
+	"""
 	info = datastore_with_name(datastore_name)
 	adapter_name = info["adapter"]
 	adapter = __datastore_adapter(adapter_name)

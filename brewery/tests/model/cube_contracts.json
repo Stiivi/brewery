@@ -1,8 +1,8 @@
 {
-	"name": "zmluvy",
+	"name": "contracts",
 	"label": "Uzatvorené zmluvy verejného obstarávania",
 	"description": "Uzatvorené zmluvy verejného obstarávania Slovenskej Republiky",
-	"fact_dataset": "zmluvy",
+
 	"dimensions": [ "date",
 					"cpv",
 					"procurer",
