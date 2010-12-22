@@ -40,9 +40,11 @@ class Cube(object):
         if not self.mappings:
             results.append( ('error', "No mappings for cube '%s'" % self.name) )
 
-        # if not mappings:
-        #     results.append('error', "No mappings for cube '%s'" % self.name)
-        # 
+        # 1. collect all fields(attributes) and check whether there is a mapping for that
+        # 2. check whether dimension attributes are unique
+        # 3. check whether dimension has valid keys
+        
+
         # if !fact_dataset
         #     results << [:error, "Unable to find fact dataset '#{fact_dataset_name}' for cube '#{name}'"]
         # end
