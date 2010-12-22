@@ -65,7 +65,8 @@ class Cube(object):
             results.append( ('error', "No mappings for cube '%s'" % self.name) )
 
         if not self.fact:
-            results.append( ('warning', "No fact specified for cube '%s'" % self.name) )
+            results.append( ('warning', "No fact specified for cube '%s' (factless cubes are not yet supported, "
+                                        "using 'fact' as default dataset/table name)" % self.name) )
             
         # 1. collect all fields(attributes) and check whether there is a mapping for that
         for measure in self.measures:
@@ -150,3 +151,17 @@ class Cube(object):
             mapped = reference
 
         return mapped
+
+    def mapped_field(self, logical_field):
+        """Return physical field name"""
+        split = logical_field.split('.')
+        if len(split) == 1:
+            return self.measure_mapping(logical_field)
+        elif split[0] == 'fact':
+            return self.measure_mapping(logical_field[1])
+        else:
+            mapping = self.mappings.get(reference)
+            if not mapping:
+                mapping = logical_field
+            return mapping
+            
