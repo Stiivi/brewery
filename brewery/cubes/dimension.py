@@ -17,7 +17,7 @@ class Dimension(object):
     	* default_hierarchy_name: name of a hierarchy that will be used when no hierarchy is explicitly specified
     """
     
-    def __init__(self, name, info = {}):
+    def __init__(self, name, desc = {}):
         """Create a new dimension
         
         Args:
@@ -26,34 +26,34 @@ class Dimension(object):
         """
         self.name = name
 
-        self.label = info.get("label", "")
-        self.description = info.get("description", "")
+        self.label = desc.get("label", "")
+        self.description = desc.get("description", "")
 
-        self.__init_levels(info.get("levels", None))
-        self.__init_hierarchies(info.get("hierarchies", None))
+        self.__init_levels(desc.get("levels", None))
+        self.__init_hierarchies(desc.get("hierarchies", None))
 
-        self.default_hierarchy_name = info.get("default_hierarchy", None)
-        self.key_field = info.get("key_field")
+        self.default_hierarchy_name = desc.get("default_hierarchy", None)
+        self.key_field = desc.get("key_field")
 
-    def __init_levels(self, info):
+    def __init_levels(self, desc):
         self.levels = {}
 
-        if info == None:
+        if desc == None:
             return
 
-        for level_name, level_info in info.items():
+        for level_name, level_info in desc.items():
             level = Level(level_name, level_info)
             level.dimension = self
             self.levels[level_name] = level
 
-    def __init_hierarchies(self, info):
+    def __init_hierarchies(self, desc):
         """booo bar"""
         self.hierarchies = {}
 
-        if info == None:
+        if desc == None:
             return
 
-        for hier_name, hier_info in info.items():
+        for hier_name, hier_info in desc.items():
             hier = Hierarchy(hier_name, hier_info)
             hier.dimension = self
             self.hierarchies[hier_name] = hier

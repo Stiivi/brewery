@@ -66,7 +66,9 @@ class Cube(object):
         out.setnoempty("measures", self.measures)
         
         dims = [dim.name for dim in self.dimensions]
-        out.setnoempty("dimensions", dims)
+
+        # Give sorted list so we can nicely compare dictionaries
+        out.setnoempty("dimensions", dims.sort())
 
         out.setnoempty("mappings", self.mappings)
         out.setnoempty("fact", self.fact)

@@ -9,6 +9,20 @@ from brewery.cubes.hierarchy import *
 from brewery.cubes.model import *
 from brewery.cubes.view_builder import *
 
+def model_from_url(url):
+    """Load logical model from a URL.
+    
+    Argrs:
+        url: URL with json representation of the model.
+        
+    Returs:
+        instance of Model
+        
+    .. warning::
+        Not implemented yet
+    """
+    raise NotImplementedError
+
 def model_from_path(path):
     """Load logical model from a directory specified by path
     
@@ -28,18 +42,26 @@ def model_from_path(path):
         raise RuntimeError('main model info %s does not exist' % info_path)
 
     a_file = open(info_path)
-    model_info = json.load(a_file)
+    model_desc = json.load(a_file)
     a_file.close()
     
-    if not "name" in model_info:
+    if not "name" in model_desc:
         raise KeyError("model has no name")
-
-    model = Model(model_info["name"], model_info)
 
     # Find model object files and load them
     
     dimensions_to_load = []
     cubes_to_load = []
+    
+    if not "dimensions" in model_desc:
+        model_desc["dimensions"] = {}
+    elif type(model_desc["dimensions"]) != dict:
+        raise ValueError("dimensions object in model file be a dictionary")
+        
+    if not "cubes" in model_desc:
+        model_desc["cubes"] = {}
+    elif type(model_desc["cubes"]) != dict:
+        raise ValueError("cubes object in model file should be a dictionary")
     
     for dirname, dirnames, filenames in os.walk(path):
         for filename in filenames:
@@ -48,25 +70,31 @@ def model_from_path(path):
             split = re.split('_', filename)
             prefix = split[0]
 
-            full_path = os.path.join(dirname, filename)
+            obj_path = os.path.join(dirname, filename)
             if prefix == 'dim' or prefix == 'dimension':
-                dimensions_to_load.append(full_path)
+                desc = _model_desc_from_json_file(obj_path)
+                if "name" not in desc:
+                    raise KeyError("Dimension file '%s' has no name key" % obj_path)
+                model_desc["dimensions"][desc["name"]] = desc
             elif prefix == 'cube':
-                cubes_to_load.append(full_path)
+                desc = _model_desc_from_json_file(obj_path)
+                if "name" not in desc:
+                    raise KeyError("Cube file '%s' has no name key" % obj_path)
+                model_desc["cubes"][desc["name"]] = desc
 
-    for obj_path in dimensions_to_load:
-        info_dict = _model_json_dict(obj_path)
-        dim = Dimension(info_dict['name'], info_dict)
-        model.add_dimension(dim)
-
-    for obj_path in cubes_to_load:
-        info_dict = _model_json_dict(obj_path)
-        cube = model.create_cube(info_dict['name'], info_dict)
-        model.cubes[info_dict['name']] = cube
-
-    return model
+    return model_from_dict(model_desc)
     
-def _model_json_dict(object_path):
+def model_from_dict(desc):
+    """Create a model from description dictionary
+    
+    Arguments:
+        desc: model dictionary
+    """
+    
+    model = Model(desc["name"], desc)
+    return model
+        
+def _model_desc_from_json_file(object_path):
     """Get a dictionary from reading model json file
     
     Args:
@@ -77,11 +105,11 @@ def _model_json_dict(object_path):
     """
     a_file = open(object_path)
     try:
-        info_dict = json.load(a_file)
+        desc = json.load(a_file)
     except ValueError as e:
         raise SyntaxError("Syntaxt error in %s: %s" % (full_path, e.args))
     finally:
         a_file.close()
         
-    return info_dict
+    return desc
     

@@ -75,7 +75,32 @@ class ModelTestCase(unittest.TestCase):
         if error_count > 0:
             self.fail("Model validation failed")
         
+class ModelFromDictionaryTestCase(unittest.TestCase):
+    def setUp(self):
+        self.model_path = os.path.join(brewery.tests.tests_path, 'model')
+        self.model = cubes.model_from_path(self.model_path)
 
+    def test_model_from_dictionary(self):
+        model_dict = self.model.to_dict()
+        new_model = cubes.model_from_dict(model_dict)
+        new_model_dict = new_model.to_dict()
+        
+        # Break-down comparison to see where the difference is
+        self.assertEqual(model_dict.keys(), new_model_dict.keys(), 'model dictionaries should have same keys')
+
+        for key in model_dict.keys():
+            old_value = model_dict[key]
+            new_value = new_model_dict[key]
+
+            self.assertEqual(type(old_value), type(new_value), "model part '%s' type should be the same" % key)
+            if type(old_value) == dict:
+                self.assertDictEqual(old_value, new_value, "model part '%s' should be the same" % key)
+                pass
+            else:
+                self.assertEqual(old_value, new_value, "model part '%s' should be the same" % key)
+
+        self.assertDictEqual(model_dict, new_model_dict, 'model dictionaries should be the same')
+    
 class ModelValidatorTestCase(unittest.TestCase):
 
     def setUp(self):

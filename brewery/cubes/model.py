@@ -10,21 +10,26 @@ class Model(object):
     cubes (logical objects). For more information see Cube.
     """
 
-    def __init__(self, name, info = {}):
+    def __init__(self, name, desc = {}):
     	self.name = name
-    	self.label = info.get('label','')
-    	self.description = info.get('description','')
+    	self.label = desc.get('label','')
+    	self.description = desc.get('description','')
 
     	self._dimensions = {}
 
-    	dims = info.get('dimensions','')
+    	dimensions = desc.get('dimensions', None)
+    	if dimensions:
+    	    for dim_name, dim_desc in dimensions.items():
+    	        dim = Dimension(dim_name, dim_desc)
+                self.add_dimension(dim)
 
-    	if dims:
-    	    for dim_name, dim_info in dims.items():
-    	        dim = Dimension(dim_name, dim_info)
-                self._dimensions[dim_name] = dim
-    	        
     	self.cubes = {}
+
+    	cubes = desc.get('cubes', None)
+    	if cubes:
+    	    for cube_name, cube_desc in cubes.items():
+                self.create_cube(cube_name, cube_desc)
+    	        
 
     def create_cube(self, cube_name, info ={}):
         """Create a Cube instance for the model. This is designated factory method for cubes as it
