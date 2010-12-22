@@ -16,6 +16,7 @@ class Cube(object):
     	* measures: list of fact measures
     	* dimensions: list of fact dimensions
     	* mappings: map logical attributes to physical dataset fields (table columns)
+    	* joins
         * fact: dataset containing facts (fact table)
     """
     
@@ -36,6 +37,7 @@ class Cube(object):
         self._dimensions = {}
         self.mappings = info.get("mappings", {})
         self.fact = info.get("fact", None)
+        self.joins = info.get("joins", [])
     
     def add_dimension(self, dimension):
         """Add dimension to cube. Replace dimension with same name"""
@@ -72,6 +74,7 @@ class Cube(object):
 
         out.setnoempty("mappings", self.mappings)
         out.setnoempty("fact", self.fact)
+        out.setnoempty("joins", self.joins)
         
         return out
 
@@ -89,11 +92,11 @@ class Cube(object):
         # 1. collect all fields(attributes) and check whether there is a mapping for that
         for measure in self.measures:
             try:
-                mapping = self.measure_mapping(measure)
+                mapping = self.fact_field_mapping(measure)
             except KeyError:
                 results.append( ('error', "No mapping for measure '%s' in cube '%s'" % (measure, self.name)) )
             else:
-                split = brewery.split_field(mapping)
+                split = brewery.split_field(mapping[0])
                 if len(split) <= 1:
                     results.append( ('error', "Mapping '%s' for measure '%s' in cube '%s' " \
                                               "has no table/dataset name" % (mapping, measure, self.name)) )
@@ -102,12 +105,12 @@ class Cube(object):
             attributes = dimension.all_attributes()
             for attribute in attributes:
                 try:
-                    mapping = self.dimension_attribute_mapping(dimension, attribute)
+                    mapping = self.dimension_field_mapping(dimension, attribute)
                 except KeyError:
                     results.append( ('warning', "No mapping for dimension '%s' attribute '%s' in cube '%s' " \
                                                 "(using default mapping)" % (dimension.name, attribute, self.name)) )
                 else:
-                    split = brewery.split_field(mapping)
+                    split = brewery.split_field(mapping[0])
                     if len(split) <= 1:
                         results.append( ('error', "Mapping '%s' for dimension '%s' attribute '%s' in cube '%s' " \
                                                   "has no table/dataset name" 
@@ -154,7 +157,7 @@ class Cube(object):
 
         return mapped
 
-    def dimension_attribute_mapping(self, dimension, attribute):
+    def dimension_field_mapping(self, dimension, attribute):
         """Return mapping for a dimension attribute. If there is no mapping defined return default mapping where
         table/dataset name is same as dimension name and column/field name is same as dimension attribute
         
@@ -162,24 +165,24 @@ class Cube(object):
         """
 
         reference = "%s.%s" % (dimension.name, attribute)
-        mapped = self.mappings.get(reference)
+        physical = self.mappings.get(reference)
 
         # If there is no mapping, use default mapping
-        if not mapped:
-            mapped = reference
+        if not physical:
+            physical = reference
 
-        return mapped
+        return (physical, reference)
 
-    def mapped_field(self, logical_field):
+    def fact_field_mapping(self, field):
         """Return physical field name"""
-        split = logical_field.split('.')
+        split = field.split('.')
+        logical = field
+
         if len(split) == 1:
-            return self.measure_mapping(logical_field)
+            physical = self.measure_mapping(field)
         elif split[0] == 'fact':
-            return self.measure_mapping(logical_field[1])
+            physical = self.measure_mapping(field[1])
         else:
-            mapping = self.mappings.get(reference)
-            if not mapping:
-                mapping = logical_field
-            return mapping
+            raise ValueError("Invalid mapping of field '%s' in cube '%s'" % (field, self.name))
+        return (physical, logical)
             

@@ -49,13 +49,13 @@ class ViewBuilder(object):
 
     def _create_select_statement(self):
         self._create_select_expression()
-        # self._create_join_expression()
+        self._create_join_expression()
 
         exprs = []
         exprs.append("SELECT %s" % self.select_expression)
-        exprs.append("FROM %s AS %s " % (self.tables, "boo"))
-        # exprs.append("FROM %s AS %s " % (fact_table_name, fact_alias))
-        # exprs.append(self.join_expression)
+        # exprs.append("FROM %s AS %s " % (self.tables, "boo"))
+        exprs.append("FROM %s AS %s" % (self.fact_table, self.fact_alias))
+        exprs.append(self.join_expression)
 
         self.select_statement = "\n".join(exprs)
 
@@ -64,28 +64,55 @@ class ViewBuilder(object):
         
         fields = []
         for measure in self.cube.measures:
-            fields.append(self.cube.mapped_field(measure) )
+            fields.append( self.cube.fact_field_mapping(measure) )
         
         # FIXME: use hierarchy
         for dimension in self.cube.dimensions:
             for field in dimension.all_attributes():
-                mapping = self.cube.dimension_attribute_mapping(dimension, field) 
-                fields.append( (field, mapping) )
+                mapping = self.cube.dimension_field_mapping(dimension, field) 
+                fields.append( mapping )
 
         self.selected_fields = fields
         
-        self.tables = []
-        
-        for field in fields:
-            split = field[1].split('.')
-            table_name = split[0]
-            if not table_name in self.tables:
-                self.tables.append(table_name)
+        aliases = ["%s AS %s" % (field[0], self.quote_field(field[1])) for field in fields]
+        self.select_expression = ', '.join(aliases)
+
             
     def _create_select_expression(self):
         self._collect_selection()
+        if not self.cube.fact:
+            raise ValueError("Factless cubes not supported, please specify fact name in cube '%s'" % self.cube.name)
+        self.fact_table = self.cube.fact
+        self.fact_alias = self.cube.fact
         # self.select_expression = ', '.join([field[1] in  self.selected_fields)
+
+    def _create_join_expression(self):
+        expressions = []
+
+        joins = self.cube.joins
+
+        for join in joins:
+            master_split = join["master"].split('.')
+            detail_split = join["detail"].split('.')
+            master_table = master_split[0]
+            detail_table = detail_split[0]
+            master_key = master_split[1]
+            detail_key = master_split[1]
+            if "alias" in join:
+                alias = join["alias"]
+            else:
+                alias = detail_table
+
+            expr = "JOIN %s AS %s ON (%s.%s = %s.%s)" \
+                % (detail_table, alias, alias, detail_key, master_table, master_key)
+            expressions.append(expr)
+
+        self.join_expression = "\n".join(expressions)
 
     def physical_field(self, logical_field):
         """Return physical field reference from logical field"""
         return self.cube.mapped_field(logical_field)
+
+    def quote_field(self, field):
+        """Quote field name"""
+        return '"%s"' % field
