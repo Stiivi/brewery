@@ -5,7 +5,18 @@ Create a model::
 
     model = brewery.cubes.model_from_path(path)
 
-The *path* is a directory with following contents:
+The *path* is a directory with logical model description files.
+
+.. note::
+    Currently only models in a directory are supported, however this will change in the future
+    where models will be represented as json files containing all model objects. There are two
+    reasons for directory based models: first: easier copying of model objects from model to model
+    without any special tools (just filesystem copy), second: original design decision in Ruby
+    version of brewery.
+
+Logical Model description
+=========================
+
 
 ========================== =============================================
 File                       Description
@@ -15,15 +26,6 @@ cube_*cube_name*.json      Cube description, one file per cube
 dim_*dimension_name*.json  Dimension description, one file per dimension
 ========================== =============================================
 
-.. note::
-    Currently only models in a directory are supported, however this will change in the future
-    where models will be represented as json files containing all model objects. There are two
-    reasons for directory based models: first: easier copying of model objects from model to model
-    without any special tools (just filesystem copy), second: original design decision in Ruby
-    version of brewery.
-
-Model files
-===========
 
 model.json
 ----------
