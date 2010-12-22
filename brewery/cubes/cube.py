@@ -7,7 +7,7 @@ import brewery
 
 class Cube(object):
     """
-    OLAP Cube
+    OLAP Cube - Logical Representation
     
     Attributes:
     	* model: logical model
@@ -15,6 +15,8 @@ class Cube(object):
     	* label: name that will be displayed (human readable)
     	* measures: list of fact measures
     	* dimensions: list of fact dimensions
+    	* mappings: map logical attributes to physical dataset fields (table columns)
+        * fact: dataset containing facts (fact table)
     """
     
     def __init__(self, name, info = {}):
@@ -33,6 +35,7 @@ class Cube(object):
         self.model = None
         self._dimensions = {}
         self.mappings = info.get("mappings", {})
+        self.fact = info.get("fact", None)
     
     def add_dimension(self, dimension):
         """Add dimension to cube. Replace dimension with same name"""
@@ -61,6 +64,9 @@ class Cube(object):
         if not self.mappings:
             results.append( ('error', "No mappings for cube '%s'" % self.name) )
 
+        if not self.fact:
+            results.append( ('warning', "No fact specified for cube '%s'" % self.name) )
+            
         # 1. collect all fields(attributes) and check whether there is a mapping for that
         for measure in self.measures:
             try:
@@ -72,6 +78,22 @@ class Cube(object):
                 if len(split) <= 1:
                     results.append( ('error', "Mapping '%s' for measure '%s' in cube '%s' " \
                                               "has no table/dataset name" % (mapping, measure, self.name)) )
+
+        for dimension in self.dimensions:
+            attributes = dimension.all_attributes()
+            for attribute in attributes:
+                try:
+                    mapping = self.dimension_attribute_mapping(dimension, attribute)
+                except KeyError:
+                    results.append( ('warning', "No mapping for dimension '%s' attribute '%s' in cube '%s' " \
+                                                "(using default mapping)" % (dimension.name, attribute, self.name)) )
+                else:
+                    split = brewery.split_field(mapping)
+                    if len(split) <= 1:
+                        results.append( ('error', "Mapping '%s' for dimension '%s' attribute '%s' in cube '%s' " \
+                                                  "has no table/dataset name" 
+                                                  % (mapping, dimension.name, attribute, self.name)) )
+
 
         # 2. check whether dimension attributes are unique
         # 3. check whether dimension has valid keys
@@ -110,5 +132,21 @@ class Cube(object):
 
         if not mapped:
             raise KeyError("Cube '%s' has no mapping for measure '%s'" % (self.name, measure))
+
+        return mapped
+
+    def dimension_attribute_mapping(self, dimension, attribute):
+        """Return mapping for a dimension attribute. If there is no mapping defined return default mapping where
+        table/dataset name is same as dimension name and column/field name is same as dimension attribute
+        
+        Return: string
+        """
+
+        reference = "%s.%s" % (dimension.name, attribute)
+        mapped = self.mappings.get(reference)
+
+        # If there is no mapping, use default mapping
+        if not mapped:
+            mapped = reference
 
         return mapped

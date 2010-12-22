@@ -27,7 +27,12 @@ class QueryGeneratorTestCase(unittest.TestCase):
         self.cube.add_dimension(date_dim)
         
         self.cube.measures = ["amount"]
-        self.cube.mappings = { "amount": "fact.amount"}
+        self.cube.mappings = {
+                                "amount": "fact.amount",
+                                "date.year": "dm_date.year",
+                                "date.month": "dm_date.month",
+                                "date.month_name": "dm_date.month_name",
+                             }
 
     def test_star(self):
         print "\nVALIDATION: %s\n" % self.model.validate()
