@@ -1,5 +1,30 @@
 Command Line Tools
-++++++++++++++++++
+******************
+
+brewery
+=======
+
+Tool for performing brewery framework functionality from command line.
+
+Usage::
+
+    brewery command [command_options]
+    
+Commands are:
+
+======================= ==============================================
+Command                 Description
+======================= ==============================================
+validate_model          Validates logical model for OLAP cubes
+======================= ==============================================
+
+validate_model
+--------------
+
+Usage::
+
+    brewery validate_model /path/to/model/directory
+
 
 mongoaudit
 ==========

@@ -17,7 +17,7 @@ setup(
     },
     scripts = ['bin/mongoaudit', 'bin/brewery'],
     
-    test_suite = "brewery.tests.test_model",
+    test_suite = "brewery.tests.test_suite",
 
     # metadata for upload to PyPI
     author = "Stefan Urbanek",

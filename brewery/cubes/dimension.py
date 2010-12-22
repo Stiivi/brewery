@@ -62,6 +62,43 @@ class Dimension(object):
         """Get default hierarchy specified by ``default_hierarchy_name``, if the variable is not set then
         get a hierarchy with name *default*"""
         if self.default_hierarchy_name:
-            return self.hierarchies[self.default_hierarchy_name]
+            hierarchy_name = self.default_hierarchy_name
         else:
-            return self.hierarchies["default"]
+            hierarchy_name = "default"
+
+        hierarchy = self.hierarchies.get(hierarchy_name)
+
+        if not hierarchy:
+            if len(self.hierarchies) == 1:
+                hierarchy = self.hierarchies.values()[0]
+            else:
+                if not self.hierarchies:
+                    msg = "are no hierarchies defined"
+                else:
+                    msg = "is more (%d) than one hierarchy defined" % len(self.hierarchies)
+                raise KeyError("No default hierarchy specified in dimension '%s' " \
+                               "and there %s" % (self.name, msg))
+
+        return hierarchy
+        
+    def validate(self):
+        """Validate dimension. See Model.validate() for more information. """
+        results = []
+
+        if not self.levels:
+            results.append( ('error', "No levels in dimension %s" % self.name) )
+
+        if not self.hierarchies:
+            results.append( ('error', "No hierarchies in dimension %s" % self.name) )
+
+        if not self.default_hierarchy_name:
+            results.append( ('warning', "No default hierarchy name specified in dimension %s" % self.name) )
+            if len(self.hierarchies) > 1 and not "default" in self.hierarchies:
+                results.append( ('error', "No defaut hierarchy specified, there is "\
+                                          "more than one hierarchy in dimension %s" % self.name) )
+
+        if self.default_hierarchy_name and not self.hierarchies.get(self.default_hierarchy_name):
+            results.append( ('warning', "Default hierarchy %s does not exist in dimension %s" % 
+                            (self.default_hierarchy_name, self.name)) )
+
+        return results

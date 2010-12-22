@@ -62,19 +62,18 @@ class Model(object):
         
         ################################################################
         # 1. Chceck dimensions
-        enough = False
+        is_fatal = False
         for dim_name, dim in self.dimensions.items():
             if not issubclass(dim.__class__, Dimension):
-                results << ('error', "Dimension '%s' is not a subclass of Dimension class" % dim_name)
-                enough = True
+                results.append(('error', "Dimension '%s' is not a subclass of Dimension class" % dim_name))
+                is_fatal = True
 
         # We are not going to continue if there are no valid dimension objects, as more errors migh emerge
-        if enough:
+        if is_fatal:
             return results
 
-        for dim_name, dim in self.dimensions.items():
-            if not dim.default_hierarchy:
-                results << ('warning', "No default hirerarchy specified for dimension '%s'" % dim_name)
+        for dim in self.dimensions.values():
+            results.extend(dim.validate())
 
         ################################################################
         # 2. Chceck cubes
