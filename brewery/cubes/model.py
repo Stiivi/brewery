@@ -1,5 +1,7 @@
 from dimension import *
 from cube import *
+import brewery.utils
+import json
 
 class Model(object):
     """
@@ -69,6 +71,39 @@ class Model(object):
     def dimension(self, name):
         """Get dimension by name"""
         return self._dimensions[name]
+
+    def to_dict(self):
+        """Return dictionary representation of the model. All object references within the dictionary are
+        name based"""
+
+        def add_value(d, key, value):
+            if value:
+                d[key] = value
+                
+        
+        out = brewery.utils.IgnoringDictionary()
+
+        out.setnoempty("name", self.name)
+        out.setnoempty("label", self.label)
+        out.setnoempty("description", self.description)
+
+        dims = {}
+        for dim in self.dimensions:
+            dims[dim.name] = dim.to_dict()
+
+        out.setnoempty("dimensions", dims)
+
+        cubes = {}
+        for cube in self.cubes.values():
+            cubes[cube.name] = cube.to_dict()
+
+        out.setnoempty("cubes", cubes)
+
+        return out
+
+    def to_json(self):
+        """Return json representation of the model"""
+        return json.dumps(self.to_dict())
 
     def validate(self):
         """Validate the model, check for model consistency. Validation result is array of tuples in form:

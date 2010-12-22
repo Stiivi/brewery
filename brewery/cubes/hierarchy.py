@@ -1,4 +1,14 @@
+import brewery.utils
+
 class Hierarchy(object):
+    """Dimension hierarchy
+    
+    Attributes:
+        name: hierarchy name
+        label: human readable name
+        levels: ordered list of levels from dimension
+    """
+
     def __init__(self, name, info = {}, dimension = None):
         self.name = name
         self._dimension = None
@@ -22,3 +32,13 @@ class Hierarchy(object):
                     raise KeyError("No level %s in dimension %s" % (level_name, a_dimension.name))
                     
                 self.levels.append(level)
+
+    def to_dict(self):
+        """Convert to dictionary"""
+
+        out = brewery.utils.IgnoringDictionary()
+        out.setnoempty("name", self.name)
+        out.setnoempty("label", self.label)
+        out.setnoempty("levels", self.level_names)
+
+        return out

@@ -57,6 +57,22 @@ class Cube(object):
         """Get dimension by name"""
         return self._dimensions[dimension.name]
         
+    def to_dict(self):
+        """Convert to dictionary"""
+
+        out = brewery.utils.IgnoringDictionary()
+        out.setnoempty("name", self.name)
+        out.setnoempty("label", self.label)
+        out.setnoempty("measures", self.measures)
+        
+        dims = [dim.name for dim in self.dimensions]
+        out.setnoempty("dimensions", dims)
+
+        out.setnoempty("mappings", self.mappings)
+        out.setnoempty("fact", self.fact)
+        
+        return out
+
     def validate(self):
         """Validate cube. See Model.validate() for more information. """
         results = []

@@ -2,6 +2,7 @@
 
 from hierarchy import *
 from level import *
+import brewery.utils
 
 class Dimension(object):
     """
@@ -95,6 +96,27 @@ class Dimension(object):
 
         return attributes
         
+    def to_dict(self):
+        out = brewery.utils.IgnoringDictionary()
+        out.setnoempty("name", self.name)
+        out.setnoempty("label", self.label)
+        out.setnoempty("default_hierarchy_name", self.default_hierarchy_name)
+
+        levels_dict = {}
+        for level in self.levels.values():
+            levels_dict[level.name] = level.to_dict()
+        out["levels"] = levels_dict
+
+        hier_dict = {}
+        for hier in self.hierarchies.values():
+            hier_dict[hier.name] = hier.to_dict()
+        out["hierarchies"] = hier_dict
+            
+
+    	# * levels: list of dimension levels (see: :class:`brewery.cubes.Level`)
+    	# * hierarchies: list of dimension hierarchies
+
+        return out
         
     def validate(self):
         """Validate dimension. See Model.validate() for more information. """

@@ -1,3 +1,5 @@
+import brewery.utils
+
 class Level(object):
     """Hierarchy level
 
@@ -14,3 +16,14 @@ class Level(object):
         self.key = info.get("key", None)
         self.attributes = info.get("attributes", [])
         self.dimension = dimension
+
+    def to_dict(self):
+        """Convert to dictionary"""
+        
+        out = brewery.utils.IgnoringDictionary()
+        out.setnoempty("name", self.name)
+        out.setnoempty("label", self.label)
+        out.setnoempty("key", self.key)
+        out.setnoempty("attributes", self.attributes)
+
+        return out

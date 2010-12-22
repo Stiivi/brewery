@@ -45,6 +45,11 @@ def validate_model(args):
             print "%s: %s" % result
     print "%d errors, %d warnings" % (error_count, warning_count)
 
+def model_to_json(args):
+    """docstring for validate_model"""
+    model = brewery.cubes.model_from_path(args.path)
+    print json.dumps(model.to_dict())
+
 ################################################################################
 # Main code
 
@@ -59,6 +64,13 @@ subparsers = parser.add_subparsers(title='commands', help='additional help')
 parser_validate = subparsers.add_parser('validate_model')
 parser_validate.add_argument('path', help='path to model directory')
 parser_validate.set_defaults(func=validate_model)
+
+################################################################################
+# Command: model_to_json
+
+parser_validate = subparsers.add_parser('model_to_json')
+parser_validate.add_argument('path', help='path to model directory')
+parser_validate.set_defaults(func=model_to_json)
 
 args = parser.parse_args(sys.argv[1:])
 
