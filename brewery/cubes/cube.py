@@ -3,6 +3,7 @@
 from dimension import *
 from hierarchy import *
 from level import *
+import brewery
 
 class Cube(object):
     """
@@ -30,8 +31,28 @@ class Cube(object):
         self.measures = info.get("measures", [])
 
         self.model = None
-        self.dimensions = {}
-        self.mappings = info.get("mappings", [])
+        self._dimensions = {}
+        self.mappings = info.get("mappings", {})
+    
+    def add_dimension(self, dimension):
+        """Add dimension to cube. Replace dimension with same name"""
+        
+        # FIXME: Do not allow to add dimension if one already exists
+        self._dimensions[dimension.name] = dimension
+        if self.model:
+            self.model.add_dimension(dimension)
+
+    def remove_dimension(self, dimension):
+        """Remove a dimension from receiver"""
+        del self._dimensions[dimension.name]
+
+    @property
+    def dimensions(self):
+        return self._dimensions.values()
+        
+    def dimension(self, name):
+        """Get dimension by name"""
+        return self._dimensions[dimension.name]
         
     def validate(self):
         """Validate cube. See Model.validate() for more information. """
@@ -41,6 +62,17 @@ class Cube(object):
             results.append( ('error', "No mappings for cube '%s'" % self.name) )
 
         # 1. collect all fields(attributes) and check whether there is a mapping for that
+        for measure in self.measures:
+            try:
+                mapping = self.measure_mapping(measure)
+            except KeyError:
+                results.append( ('error', "No mapping for measure '%s' in cube '%s'" % (measure, self.name)) )
+            else:
+                split = brewery.split_field(mapping)
+                if len(split) <= 1:
+                    results.append( ('error', "Mapping '%s' for measure '%s' in cube '%s' " \
+                                              "has no table/dataset name" % (mapping, measure, self.name)) )
+
         # 2. check whether dimension attributes are unique
         # 3. check whether dimension has valid keys
         
@@ -67,3 +99,16 @@ class Cube(object):
         # }
         # 
         return results
+
+    def measure_mapping(self, measure):
+        """Return mapping for a measure"""
+        
+        mapped = self.mappings.get("fact.%s" % measure)
+        if not mapped:
+            # FIXME: this should be depreciated
+            mapped = self.mappings.get("%s" % measure)
+
+        if not mapped:
+            raise KeyError("Cube '%s' has no mapping for measure '%s'" % (self.name, measure))
+
+        return mapped

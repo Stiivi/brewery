@@ -7,6 +7,7 @@ from brewery.cubes.cube import *
 from brewery.cubes.dimension import *
 from brewery.cubes.hierarchy import *
 from brewery.cubes.model import *
+from brewery.cubes.view_builder import *
 
 def model_from_path(path):
     """Load logical model from a directory specified by path
@@ -56,7 +57,7 @@ def model_from_path(path):
     for obj_path in dimensions_to_load:
         info_dict = _model_json_dict(obj_path)
         dim = Dimension(info_dict['name'], info_dict)
-        model.dimensions[info_dict['name']] = dim
+        model.add_dimension(dim)
 
     for obj_path in cubes_to_load:
         info_dict = _model_json_dict(obj_path)

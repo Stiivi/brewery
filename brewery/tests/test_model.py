@@ -140,23 +140,7 @@ class ModelValidatorTestCase(unittest.TestCase):
             if re.match(expected, result[1]):
                 return
         self.fail(message)
-        
-    def boo(self):
-
-        hiers = { "ym": { "levels": ["year", "month"] } }
-        dim_desc = { "name": "date", "levels": levels , "hierarchies": hiers }
-        dim = cubes.Dimension('date', dim_desc)
-        model.dimensions["date"] = dim
-
-        mapping = { "date.year", }
-        cube_desc = {"name": "testcube", "dimensions": ["date"] }
-        
-        cube = model.create_cube("testcube", cube_desc)
-
-        results = model.validate()
-        self.assertEqual(0, len(results), 'Model is not valid (%s)' % results)
-        pass
-		
+        		
 if __name__ == '__main__':
     unittest.main()
 

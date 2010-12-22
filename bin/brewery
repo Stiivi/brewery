@@ -24,18 +24,26 @@ def validate_model(args):
         print "    %s" % cube_name
         
     print "dimensions: %d" % len(model.dimensions)
-    for dim_name, dim in model.dimensions.items():
-        print "    %s" % dim_name
+    for dim in model.dimensions:
+        print "    %s" % dim.name
 
     print "-------------------------"
+    error_count = 0
+    warning_count = 0
     results = model.validate()
+
     if not results:
         print "model is valid"
     else:
-        print "found %d issues" % len(result)
+        print "found %d issues" % len(results)
         print "validation results:"
         for result in results:
+            if result[0] == "error":
+                error_count += 1
+            elif result[0] == "warning":
+                warning_count += 1
             print "%s: %s" % result
+    print "%d errors, %d warnings" % (error_count, warning_count)
 
 ################################################################################
 # Main code
@@ -51,7 +59,6 @@ subparsers = parser.add_subparsers(title='commands', help='additional help')
 parser_validate = subparsers.add_parser('validate_model')
 parser_validate.add_argument('path', help='path to model directory')
 parser_validate.set_defaults(func=validate_model)
-
 
 args = parser.parse_args(sys.argv[1:])
 

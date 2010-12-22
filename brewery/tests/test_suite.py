@@ -7,8 +7,9 @@ import json
 import re
 
 from test_model import *
+from test_query_generator import *
 
-test_cases = [ModelValidatorTestCase, ModelTestCase]
+test_cases = [ModelValidatorTestCase, ModelTestCase, QueryGeneratorTestCase]
 
 def load_tests(loader, tests, pattern):
     suite = unittest.TestSuite()

@@ -111,3 +111,17 @@ def __datastore_adapter(adapter_name):
 		adapter = sys.modules[module_name]
 		datastore_adapters[adapter_name] = adapter
 	return adapter
+
+def split_field(field):
+    """Split field reference.
+    
+    Example: "fact.amount" will be split into ("fact", "amount")
+    
+    Args:
+        field: field reference to be split
+        
+    Return:
+        tuple of field parts"""
+        
+    return field.split('.')
+    

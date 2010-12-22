@@ -80,25 +80,52 @@ class Dimension(object):
                                "and there %s" % (self.name, msg))
 
         return hierarchy
+    
+    def all_attributes(self, hierarchy = None):
+        if not hierarchy:
+            hier = self.default_hierarchy
+        elif type(hierarchy) == str:
+            hier = self.hierarchies[hierarchy]
+        else:
+            hier = hierarchy
+        
+        attributes = []
+        for level in hier.levels:
+            attributes.extend(level.attributes)
+
+        return attributes
+        
         
     def validate(self):
         """Validate dimension. See Model.validate() for more information. """
         results = []
 
         if not self.levels:
-            results.append( ('error', "No levels in dimension %s" % self.name) )
+            results.append( ('error', "No levels in dimension '%s'" % self.name) )
 
         if not self.hierarchies:
-            results.append( ('error', "No hierarchies in dimension %s" % self.name) )
+            results.append( ('error', "No hierarchies in dimension '%s'" % self.name) )
 
         if not self.default_hierarchy_name:
-            results.append( ('warning', "No default hierarchy name specified in dimension %s" % self.name) )
+            results.append( ('warning', "No default hierarchy name specified in dimension '%s'" % self.name) )
             if len(self.hierarchies) > 1 and not "default" in self.hierarchies:
                 results.append( ('error', "No defaut hierarchy specified, there is "\
-                                          "more than one hierarchy in dimension %s" % self.name) )
+                                          "more than one hierarchy in dimension '%s'" % self.name) )
 
         if self.default_hierarchy_name and not self.hierarchies.get(self.default_hierarchy_name):
-            results.append( ('warning', "Default hierarchy %s does not exist in dimension %s" % 
+            results.append( ('warning', "Default hierarchy '%s' does not exist in dimension '%s'" % 
                             (self.default_hierarchy_name, self.name)) )
+
+        for level_name, level in self.levels.items():
+            if not level.key:
+                results.append( ('warning', "Level '%s' in dimension '%s' has no key attribute specified "\
+                                            "(first in list will be used)" % (level.name, self.name)) )
+            
+            if not level.attributes:
+                results.append( ('error', "Level '%s' in dimension '%s' has no attributes" % (level.name, self.name)) )
+
+            if level.attributes and level.key and level.key not in level.attributes:
+                results.append( ('error', "Key '%s' in level '%s' in dimension '%s' in not in attribute list"
+                                                % (level.key, level.name, self.name)) )
 
         return results
