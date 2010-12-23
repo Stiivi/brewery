@@ -20,8 +20,8 @@ class ViewBuilder(object):
         """Create a denormalized SQL view.
         
         Args:
-            connection: db2 API connection
-            view_name: name of a view to be created
+            * connection: db2 API connection
+            * view_name: name of a view to be created
         """
         
         self._create_select_statement()
@@ -33,8 +33,8 @@ class ViewBuilder(object):
         views are faster than normal views as there are no joins involved.
         
         Args:
-            connection: db2 API connection
-            view_name: name of a view (table) to be created
+            * connection: db2 API connection
+            * view_name: name of a view (table) to be created
         """
 
         self._create_select_statement()

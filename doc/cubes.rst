@@ -7,12 +7,11 @@ Create a model::
 
 The *path* is a directory with logical model description files.
 
-.. note::
-    Currently only models in a directory are supported, however this will change in the future
-    where models will be represented as json files containing all model objects. There are two
-    reasons for directory based models: first: easier copying of model objects from model to model
-    without any special tools (just filesystem copy), second: original design decision in Ruby
-    version of brewery.
+Model can be represented also as a single json file containing all model objects. 
+
+Original design decision for directory based models was because of easier copying of model
+objects (dimensions, cubes) from one model to another without requirements for any special
+tools - filesystem copy would be sufficient.
 
 Logical Model description
 =========================
@@ -158,23 +157,112 @@ To validate a model do::
     results = model.validate()
     
 This will return a list of tuples (result, message) where result might be 'warning' or 'error'.
+If validation contains errors, the model can not be used without resulting in failure. If there
+are warnings, some functionalities might or might not fail or might not work as expected.
+
+You can validate model from command line::
+
+    brewery validate_model /path/to/model
+
+Errors
+------
+
++----------------------------------------+----------------------------------------------------+
+| Error                                  | Resolution                                         |
++========================================+====================================================+
+| No mappings for cube *a cube*          | Provide mappings dictionary for cube               |
++----------------------------------------+----------------------------------------------------+
+| No mapping for measure *a measure* in  | Add mapping for *a measure* into mappings          |
+| cube *a cube*                          | dictionary                                         |
++----------------------------------------+----------------------------------------------------+
+| No levels in dimension *a dimension*   | Define at least one dimension level.               |
++----------------------------------------+----------------------------------------------------+
+| No hierarchies in dimension            | Define at least one hierarchy.                     |
+| *a dimension*                          |                                                    |
++----------------------------------------+----------------------------------------------------+
+| No defaut hierarchy specified, there is| Specify a default hierarchy name or name one       |
+| more than one hierarchy in dimension   | hierarchy as ``default``                           |
+| *a dimension*                          |                                                    |
++----------------------------------------+----------------------------------------------------+
+| Level *a level* in dimension           | Provide level attributes. At least one - the level |
+| *a dimension* has no attributes        | key.                                               |
++----------------------------------------+----------------------------------------------------+
+| Key *a key* in level *a level* in      | Add key attribute into attribute list or check     |
+| dimension *a dimension* is not in      | the key name.                                      |
+| attribute list                         |                                                    |
++----------------------------------------+----------------------------------------------------+
+| Dimension *a dimension* is not a       | This might happen when model was constructed       |
+| subclass of Dimension class            | programatically. Check your model construction     |
+|                                        | code.                                              |
++----------------------------------------+----------------------------------------------------+
 
 
-Classes
+Warnings
+--------
+
++----------------------------------------+----------------------------------------------------+
+| Warning                                | Resolution                                         |
++========================================+====================================================+
+| No fact specified for cube *a cube*    | Specify a fact table/dataset, otherwise table with |
+| (factless cubes are not yet supported, | name ``fact`` will be used. View builder will fail |
+| using 'fact'  as default dataset/table | if such table does not exist.                      |
+| name                                   |                                                    |
++----------------------------------------+----------------------------------------------------+
+| No mapping for dimension *a dimension* | Provide mapping for dimension, otherwise identity  |
+| attribute *an attribute* in cube       | mapping will be used (``dimension.attribute``)     |
+| *a cube* (using default mapping)       |                                                    |
++----------------------------------------+----------------------------------------------------+
+| No default hierarchy name specified in | Provide ``default_hierarchy_name``. If there is    |
+| dimension *a dimension*, using         | only one hierarchy for dimension, the only one     |
+| *some autodetect default name*         | will be used. If there are more hierarchies,       |
+|                                        | the one with name ``default`` will be used.        |
++----------------------------------------+----------------------------------------------------+
+| Default hierarchy *a hierarchy* does   | Check that ``default_hierarchy`` refers to existing|
+| not exist in dimension *a dimension*   | hierarchy within that dimension.                   |
++----------------------------------------+----------------------------------------------------+
+| Level *a level* in dimension           |  Specify ``key`` attribute in the dimension level. |
+| *a dimension* has no key attribute     |                                                    |
+| specified, first attribute will        |                                                    |
+| be used: *first attribute name*        |                                                    |
++----------------------------------------+----------------------------------------------------+
+| No cubes defined                       | Define at least one cube.                          |
++----------------------------------------+----------------------------------------------------+
+
+
+Module and Classes
 =======
 
 .. automodule:: brewery.cubes
     :members:
     :undoc-members:
+
+Model
+-----
     
-    .. autoclass:: brewery.cubes.Model
-        :members:
-    .. autoclass:: brewery.cubes.Cube
-        :members:
-    .. autoclass:: brewery.cubes.Dimension
-        :members:
-    .. autoclass:: brewery.cubes.Level
-        :members:
-    .. autoclass:: brewery.cubes.Hierarchy
-        :members:
+.. autoclass:: brewery.cubes.Model
+    :members:
+
+Cube
+-----
+
+.. autoclass:: brewery.cubes.Cube
+    :members:
+
+Dimension
+---------
+
+.. autoclass:: brewery.cubes.Dimension
+    :members:
+
+Dimension Level
+---------------
+
+.. autoclass:: brewery.cubes.Level
+    :members:
+
+Dimension Hierarchy
+-------------------
+
+.. autoclass:: brewery.cubes.Hierarchy
+    :members:
     

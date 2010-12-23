@@ -36,11 +36,11 @@ class Model(object):
         properrely creates references to dimension objects
         
         Args:
-            cube_name: name of a cube to be created
-            info: dict object with cube information
+            * cube_name: name of a cube to be created
+            * info: dict object with cube information
 
         Returns:
-            freshly created and initialized Cube instance
+            * freshly created and initialized Cube instance
         """
 
         cube = Cube(cube_name, info)
@@ -150,7 +150,7 @@ class Model(object):
         to be sure that there are no warnings as well, set *strict* to ``True``.
         
         Args:
-            strict: If ``False`` only errors are considered fatal, if ``True`` also warnings will make model invalid.
+            * strict: If ``False`` only errors are considered fatal, if ``True`` also warnings will make model invalid.
             
         Returns:
             boolean flag whether model is valid or not.

@@ -13,9 +13,10 @@ Contents:
    
    introduction
    install
-   tools
-   data_quality
    cubes
+   streams
+   data_quality
+   tools
    module
 
 Indices and tables

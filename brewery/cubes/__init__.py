@@ -113,3 +113,26 @@ def _model_desc_from_json_file(object_path):
         
     return desc
     
+def create_cube_view(cube, connection, name):
+    """Create denormalized cube view in relational database in a DB2 API compatible connection
+    
+    Args:
+        cube: cube object
+        connection: DB2 API connection
+        name: view name
+    """
+    
+    builder = ViewBuilder(cube)
+    builder.create_view(connection, name)
+
+def create_materialized_cube_view(cube, connection, name):
+    """Create denormalized cube view in relational database in a DB2 API compatible connection
+
+    Args:
+        cube: cube object
+        connection: DB2 API connection
+        name: materialized view (table) name
+    """
+
+    builder = ViewBuilder(cube)
+    builder.create_materialized_view(connection, name)

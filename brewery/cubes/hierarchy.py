@@ -4,9 +4,9 @@ class Hierarchy(object):
     """Dimension hierarchy
     
     Attributes:
-        name: hierarchy name
-        label: human readable name
-        levels: ordered list of levels from dimension
+        * name: hierarchy name
+        * label: human readable name
+        * levels: ordered list of levels from dimension
     """
 
     def __init__(self, name, info = {}, dimension = None):

@@ -21,8 +21,8 @@ class Dimension(object):
         """Create a new dimension
         
         Args:
-            name (str): dimension name
-            info (dict): dict object containing keys label, description, levels, hierarchies, default_hierarchy, key_field
+            * name (str): dimension name
+            * desc (dict): dict object containing keys label, description, levels, hierarchies, default_hierarchy, key_field
         """
         self.name = name
 

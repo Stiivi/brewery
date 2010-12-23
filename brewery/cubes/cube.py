@@ -24,8 +24,8 @@ class Cube(object):
         """Create a new cube
         
         Args:
-            name (str): dimension name
-            info (dict): dict object containing keys label, description, dimensions, ...
+            * name (str): dimension name
+            * desc (dict): dict object containing keys label, description, dimensions, ...
         """
         self.name = name
 
@@ -95,11 +95,6 @@ class Cube(object):
                 mapping = self.fact_field_mapping(measure)
             except KeyError:
                 results.append( ('error', "No mapping for measure '%s' in cube '%s'" % (measure, self.name)) )
-            else:
-                split = brewery.split_field(mapping[0])
-                if len(split) <= 1:
-                    results.append( ('error', "Mapping '%s' for measure '%s' in cube '%s' " \
-                                              "has no table/dataset name" % (mapping, measure, self.name)) )
 
         for dimension in self.dimensions:
             attributes = dimension.all_attributes()
@@ -109,12 +104,6 @@ class Cube(object):
                 except KeyError:
                     results.append( ('warning', "No mapping for dimension '%s' attribute '%s' in cube '%s' " \
                                                 "(using default mapping)" % (dimension.name, attribute, self.name)) )
-                else:
-                    split = brewery.split_field(mapping[0])
-                    if len(split) <= 1:
-                        results.append( ('error', "Mapping '%s' for dimension '%s' attribute '%s' in cube '%s' " \
-                                                  "has no table/dataset name" 
-                                                  % (mapping, dimension.name, attribute, self.name)) )
 
 
         # 2. check whether dimension attributes are unique
