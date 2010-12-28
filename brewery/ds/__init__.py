@@ -24,8 +24,10 @@ Optional (for performance):
 """
 
 import sys
-from brewery.ds.csv_data_source import *
-from brewery.ds.rdb_data_source import *
+import brewery
+
+# from brewery.ds.csv_data_source import *
+# from brewery.ds.rdb_data_source import *
 
 datastore_dictionary = {}
 datastore_adapters = {}
@@ -99,8 +101,41 @@ def fieldlist(fields):
     
     
     """
-    pass
-    
+    a_list = []
+    for obj in fields:
+        d = {}
+        d["storage_type"] = "unknown"
+        d["analytical_type"] = "typeless"
+
+        if type(obj) == str:
+            d["name"] = obj
+        elif type(obj) == tuple:
+            d["name"] = obj[0]
+            if len(obj) > 1:
+                d["storage_type"] = obj[1]
+                if len(obj) > 2:
+                    d["analytical_type"] = obj[2]
+        elif type(obj) == dict:
+            d["name"] = obj["name"]
+            if "label" in obj:
+                d["label"] = obj["label"]
+            if "storage_type" in obj:
+                d["storage_type"] = obj["storage_type"]
+            if "analytical_type" in obj:
+                d["analytical_type"] = obj["analytical_type"]
+            if "adapter_storage_type" in obj:
+                d["adapter_storage_type"] = obj["adapter_storage_type"]
+        else:
+            raise ValueError("Unknown type of field object '%s'" % obj)
+        
+        if "analytical_type" not in d:
+            deftype = brewery.Field.default_analytical_types[d["storage_type"]]
+            d["analytical_type"] = deftype
+        
+        a_list.append(brewery.Field(**d))
+    return list(a_list)
+        
+        
 class Datastore(object):
     """Object representing container such as relational database table, document based collection, CSV
     file or directory with structured files
@@ -148,6 +183,23 @@ class Dataset(object):
         """Return names of fields in the dataset"""
         names = [column.name for column in self.table.columns]
         return names
+
+    def read_fields(self, limit = None):
+        """Read field descriptions from dataset. You should use this for datasets that do not provide
+        metadata directly, such as CSV files or document bases databases. Does nothing for relational
+        databases, as fields are represented by table columns and table metadata can obtained from
+        database easily. 
+        
+        Note that this method can be quite costly, as by default all records within dataset are read
+        and analysed.
+        
+        After executing this method, dataset ``fields`` is set to the newly read field list.
+        
+        Arguments:
+            * limit: read only specified number of records from dataset to guess field properties
+            
+        Returns: tuple with Field objects. Order of fields is datastore adapter specific.
+        """
 
     def rows(self):
         """Return iterable object with tuples."""

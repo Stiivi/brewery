@@ -72,9 +72,12 @@ class FieldStatistics(object):
             self.distinct_overflow = True
             
     def finalize(self):
-        self.value_ratio = float(self.value_count) / float(self.record_count)
-        self.null_value_ratio = float(self.null_count) / float(self.value_count)
-        self.null_record_ratio = float(self.null_count) / float(self.record_count)
+        if self.record_count:
+            self.value_ratio = float(self.value_count) / float(self.record_count)
+            self.null_record_ratio = float(self.null_count) / float(self.record_count)
+
+        if self.value_count:
+            self.null_value_ratio = float(self.null_count) / float(self.value_count)
 
         if len(self.storage_types) == 1:
             self.unique_storage_type = list(self.storage_types)[0]

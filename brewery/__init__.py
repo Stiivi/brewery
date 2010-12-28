@@ -9,6 +9,8 @@ import brewery.dq
 import brewery.utils
 import brewery.ds
 
+from brewery.field import *
+
 __version__ = '0.5.0'
 
 brewery_search_paths = ['/etc/brewery', \
