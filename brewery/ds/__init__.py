@@ -128,10 +128,7 @@ class Datastore(object):
 
     def has_dataset(self, name):
         """Return True if dataset with given name exists"""
-        if name in self.dataset_names:
-            return True
-        else:
-            return False
+        return name in self.dataset_names
 
 class Dataset(object):
     """Object representing a dataset in a datastore"""
