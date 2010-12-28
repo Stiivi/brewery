@@ -1,11 +1,20 @@
 OLAP Cubes
 **********
 
+Note: For Cubes API see :mod:`brewery.cubes`.
+
+Logical Model
+=============
+
+.. figure:: logical_model.png
+
+   The logical model entities and relationships.
+   
 Create a model::
 
     model = brewery.cubes.model_from_path(path)
 
-The *path* is a directory with logical model description files.
+The ``path`` is a directory with logical model description files.
 
 Model can be represented also as a single json file containing all model objects. 
 
@@ -14,7 +23,7 @@ objects (dimensions, cubes) from one model to another without requirements for a
 tools - filesystem copy would be sufficient.
 
 Logical Model description
-=========================
+-------------------------
 
 
 ========================== =============================================
@@ -27,9 +36,9 @@ dim_*dimension_name*.json  Dimension description, one file per dimension
 
 
 model.json
-----------
+++++++++++
 
-The ``model.json`` is main model description and looks like this::
+The ``model.json`` contains main model description dictionary. The file looks like this::
 
     {
     	"name": "public_procurements",
@@ -37,9 +46,24 @@ The ``model.json`` is main model description and looks like this::
     	"description": "Contracts of public procurement winners in Slovakia"
     }
 
+============== ===================================================
+Key            Description
+============== ===================================================
+name           dimension name
+label          human readable name - can be used in an application
+description    longer human-readable description of the model
+============== ===================================================
 
-Dimension descriptions in dim_*.json
-------------------------------------
+Dimension descriptions
+++++++++++++++++++++++
+
+Dimension descriptions are stored in json files with prefix ``dim_`` like ``dim_supplier``, or as
+a dictionary for key ``dimensions`` in the model description dictionary.
+
+.. figure:: dimension_desc.png
+
+   Dimension description - attributes.
+
 
 The dimension description contains keys:
 
@@ -126,8 +150,11 @@ Example::
     }
 
 
-Cube descriptions in cube_*.json
---------------------------------
+Cube descriptions
++++++++++++++++++
+
+Cube descriptions are stored in json files with prefix ``cube_`` like ``cube_contracts``, or as
+a dictionary for key ``cubes`` in the model description dictionary.
 
 ============== ====================================================
 Key            Description
@@ -227,42 +254,3 @@ Warnings
 +----------------------------------------+----------------------------------------------------+
 | No cubes defined                       | Define at least one cube.                          |
 +----------------------------------------+----------------------------------------------------+
-
-
-Module and Classes
-=======
-
-.. automodule:: brewery.cubes
-    :members:
-    :undoc-members:
-
-Model
------
-    
-.. autoclass:: brewery.cubes.Model
-    :members:
-
-Cube
------
-
-.. autoclass:: brewery.cubes.Cube
-    :members:
-
-Dimension
----------
-
-.. autoclass:: brewery.cubes.Dimension
-    :members:
-
-Dimension Level
----------------
-
-.. autoclass:: brewery.cubes.Level
-    :members:
-
-Dimension Hierarchy
--------------------
-
-.. autoclass:: brewery.cubes.Hierarchy
-    :members:
-    

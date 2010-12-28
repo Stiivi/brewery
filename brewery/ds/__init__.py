@@ -1,27 +1,24 @@
 """Data stores, data sets and data sources
-
-Some code is from okfn/swiss project by Open Knowledge Foundation
-
-Data sources
-============
-
-Should implement:
-* fields
-* prepare()
-* rows() - returns iterable with value tuples
-* records() - returns iterable with dictionaries of key-value pairs
-
-Data targets
-============
-Should implement:
-* fields
-* prepare()
-* append(object) - appends object as row or record depending whether it is a dictionary or a list
-Optional (for performance):
-* append_row(row) - row is tuple of values, raises exception if there are more values than fields
-* append_record(record) - record is a dictionary, raises exception if dict key is not in field list
-
 """
+
+# Data sources
+# ============
+# 
+# Should implement:
+# * fields
+# * prepare()
+# * rows() - returns iterable with value tuples
+# * records() - returns iterable with dictionaries of key-value pairs
+# 
+# Data targets
+# ============
+# Should implement:
+# * fields
+# * prepare()
+# * append(object) - appends object as row or record depending whether it is a dictionary or a list
+# Optional (for performance):
+# * append_row(row) - row is tuple of values, raises exception if there are more values than fields
+# * append_record(record) - record is a dictionary, raises exception if dict key is not in field list
 
 import sys
 import brewery
@@ -63,20 +60,19 @@ def datastore(description):
     return adapter.datastore(adapter_desc)
 
 def __datastore_adapter(adapter_name):
-	global datastore_adapters
-	if adapter_name in datastore_adapters:
-		adapter = datastore_adapters[adapter_name]
-	else:
-		module_name = "brewery.ds.adapters." + adapter_name
+    global datastore_adapters
+    if adapter_name in datastore_adapters:
+    	adapter = datastore_adapters[adapter_name]
+    else:
+        module_name = "brewery.ds.adapters." + adapter_name
+        try:
+            __import__(module_name)
+        except ImportError:
+            raise KeyError("Adapter '%s' not found" % adapter_name)
 
-		try:
-		    __import__(module_name)
-		except ImportError:
-		    raise KeyError("Adapter '%s' not found" % adapter_name)
-		    
-		adapter = sys.modules[module_name]
-		datastore_adapters[adapter_name] = adapter
-	return adapter
+        adapter = sys.modules[module_name]
+        datastore_adapters[adapter_name] = adapter
+    return adapter
 
 def split_table_schema(table_name):
     """Get schema and table name from table reference.
@@ -137,8 +133,26 @@ def fieldlist(fields):
         
         
 class Datastore(object):
-    """Object representing container such as relational database table, document based collection, CSV
+    """Object representing container such as relational database, document based collection, CSV
     file or directory with structured files
+    
+    Functionality of a datastore is provided by datastore adapter.
+    
+    Built-in adapters:
+    
+    +----------------+------------------------------------------------+-----------------------------+
+    | Adapter        | Description                                    | Parameter keys              |
+    +================+================================================+=============================+
+    | sqlalchemy     | Many relational databases with SQL, based on   | ``url`` (sqlalchemy         |
+    |                | sqlalchemy_                                    | connection URL)             |
+    +----------------+------------------------------------------------+-----------------------------+
+    | mongodb        | Document based database - MongoDB_             | ``host``, ``port``,         |
+    |                |                                                | ``database``                |
+    +----------------+------------------------------------------------+-----------------------------+
+    
+    .. _MongoDB: http://www.mongodb.org/
+    .. _sqlalchemy: http://www.sqlalchemy.org/
+    
     """
     def __init__(self, arg):
         super(Datastore, self).__init__()
@@ -159,11 +173,31 @@ class Datastore(object):
 
     @property
     def dataset_names(self):
+        """Return list of dataset names"""
         raise NotImplementedError()
 
     def has_dataset(self, name):
         """Return True if dataset with given name exists"""
         return name in self.dataset_names
+
+    def create_dataset(self, name, fields, replace = False):
+        """Create a new dataset
+        
+        Arguments:
+            * name: new dataset name
+            * fields: list of Field objects
+        """
+        raise NotImplementedError()
+
+    def destroy_dataset(self, name, checkfirst = False):
+        """Destroy dataset in the receiving datastore.
+        
+        Arguments:
+            * name: dataset name to be destroyed
+            * checkfirst: if ``False`` and dataset does not exist an exception is raised. Set to ``True``
+                if you want to destroy dataset whether it exists or not (``checkfirst = True`` is 
+                equivalent to ``DROP TABLE IF EXISTS`` in SQL datastores)
+        """
 
 class Dataset(object):
     """Object representing a dataset in a datastore"""

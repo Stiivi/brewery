@@ -17,7 +17,7 @@ Contents:
    streams
    data_quality
    tools
-   module
+   api/index
 
 Indices and tables
 ==================

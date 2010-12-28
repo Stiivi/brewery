@@ -59,16 +59,16 @@ def load_datastores_file(path):
 	datastores.update(new_stores)
 
 def add_datastore(name, info):
-	"""Add datastore 'info' into managed data stores
-    
-	Args:
+    """Add datastore 'info' into managed data stores
+
+    Arguments:
         name: name of datastore
         info: dictionary containing datastore information. For example, relational database connection
-            	information would contain keys: adapter, database, host, port, user, password
+            information would contain keys: adapter, database, host, port, user, password
     """
-	if not issubclass(info.__class__, dict):
-		raise TypeError("Datastore info for '" + name + "' sohould be a dictionary")
-	datastores[name] = info
+    if not issubclass(info.__class__, dict):
+        raise TypeError("Datastore info for '" + name + "' sohould be a dictionary")
+    datastores[name] = info
 
 def remove_datastore(name):
 	del datastores[name]
