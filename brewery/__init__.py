@@ -7,6 +7,7 @@ import sys
 import brewery.cubes
 import brewery.dq
 import brewery.utils
+import brewery.ds
 
 __version__ = '0.5.0'
 

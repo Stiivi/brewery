@@ -8,8 +8,15 @@ import re
 
 from test_model import *
 from test_query_generator import *
+from test_data_source import *
 
-test_cases = [ModelValidatorTestCase, ModelTestCase, ModelFromDictionaryTestCase, QueryGeneratorTestCase]
+test_cases = [DataStoreTestCase,
+              DatasetTestCase,
+              ModelValidatorTestCase,
+              ModelFromDictionaryTestCase, 
+              ModelTestCase,
+              QueryGeneratorTestCase,
+                ]
 
 def load_tests(loader, tests, pattern):
     suite = unittest.TestSuite()
