@@ -23,8 +23,7 @@
 import sys
 import brewery
 
-# from brewery.ds.csv_data_source import *
-# from brewery.ds.rdb_data_source import *
+from brewery.ds.csv_streams import *
 
 datastore_dictionary = {}
 datastore_adapters = {}
@@ -73,19 +72,6 @@ def __datastore_adapter(adapter_name):
         adapter = sys.modules[module_name]
         datastore_adapters[adapter_name] = adapter
     return adapter
-
-def split_table_schema(table_name):
-    """Get schema and table name from table reference.
-    
-    Returns: Tuple in form (schema, table)
-    """
-
-    split = table_name.split('.')
-    if len(split) > 1:
-        return (split[0], split[1])
-    else:
-        return (None, split[0])
-    
     
 def fieldlist(fields):
     """Create a list of :class:`Field` objects from a list of strings, dictionaries or tuples

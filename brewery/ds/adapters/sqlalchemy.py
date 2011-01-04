@@ -23,6 +23,18 @@ def datastore(description):
     ds = SQLAlchemyDatastore(url, options)
     return ds
 
+def split_table_schema(table_name):
+    """Get schema and table name from table reference.
+
+    Returns: Tuple in form (schema, table)
+    """
+
+    split = table_name.split('.')
+    if len(split) > 1:
+        return (split[0], split[1])
+    else:
+        return (None, split[0])
+
 class SQLAlchemyDatastore(brewery.ds.Datastore):
     def __init__(self, url, options = None):
         
@@ -70,7 +82,7 @@ class SQLAlchemyDatastore(brewery.ds.Datastore):
         return dataset
 
     def _table(self, name, autoload = True):
-        split = brewery.ds.split_table_schema(name)
+        split = split_table_schema(name)
         schema = split[0]
         table_name = split[1]
 
