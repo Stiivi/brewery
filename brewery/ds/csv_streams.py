@@ -19,12 +19,12 @@ class UTF8Recoder:
     def next(self):
         return self.reader.next().encode('utf-8')
 
-class CSVDataSource(object):
+class CSVDataSource(ds.DataSource):
     """docstring for ClassName
     
     Some code taken from OKFN Swiss library.
     """
-    def __init__(self, cvsobject, read_header = True, encoding=None, detect_encoding = False, 
+    def __init__(self, fileobj, read_header = True, encoding=None, detect_encoding = False, 
                 detect_header = False, sample_size = 200, **kwargs):
         """Creates a CSV data source stream.
         
@@ -49,7 +49,7 @@ class CSVDataSource(object):
         self._autodetection = detect_encoding or detect_header
         
         self.sample_size = sample_size
-        self.file = cvsobject
+        self.fileobj = fileobj
         self.kwargs = kwargs
         self.reader = None
         
@@ -63,9 +63,16 @@ class CSVDataSource(object):
             3.   read CSV headers if requested and initialize stream fields
         
         """
+
+        if type(self.fileobj) == str:
+            self.file = file(self.fileobj, "r")
+        else:
+            self.file = fileobj
+
         
         if self._autodetection:
-            sample = self.fileobj.read(self.sample_size)
+            
+            sample = self.file.read(self.sample_size)
 
             # Encoding test
             if self.detect_encoding:
@@ -79,6 +86,9 @@ class CSVDataSource(object):
                 sample = sample.encode('utf-8')
                 sniffer = csv.Sniffer()
                 self.read_header = sniffer.has_header(sample)
+
+            self.file.seek(0)
+            
         
         if not handle:
             handle = UTF8Recoder(self.file, self.encoding)
@@ -92,3 +102,29 @@ class CSVDataSource(object):
         
     def rows(self):
         yield self.reader.next()
+
+class CSVDataTarget(ds.DataTarget):
+    def __init__(self, fileobj, write_headers = True, truncate = False):
+        self.fileobj = fileobj
+        self.write_headers = write_headers
+        self.truncate = truncate
+    def initialize():
+        if type(self.fileobj) == str:
+            if self.truncate:
+                self.file = file(self.fileobj, "w")
+            else:
+                self.file = file(self.fileobj, "a")
+        else:
+            self.file = fileobj
+        
+        self.writer = csv.writer(self.file)
+        
+        if self.write_headers:
+            self.writer.writerow(self.field_names)
+        
+    def append(obj):
+        
+        
+        
+        
+    
