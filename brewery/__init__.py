@@ -15,7 +15,7 @@ __version__ = '0.5.0'
 
 brewery_search_paths = ['/etc/brewery', \
 						'~/.brewery/', \
-						'./brewery/']
+						'./.brewery/']
 
 default_datastores_file_name = "datastores.json"
 

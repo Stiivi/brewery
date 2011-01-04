@@ -9,7 +9,6 @@
 import argparse
 import pymongo
 import json
-import argparse
 import sys
 import brewery
 
