@@ -20,23 +20,7 @@ class DataStoreTestCase(unittest.TestCase):
 
         desc = {"adapter":"sqlalchemy", "url":"sqlite:///:memory:"}
         ds = brewery.ds.datastore(desc)
-    	self.assertEqual("sqlite3", ds.adapter_name)
-    
-class DatasetTestCase(unittest.TestCase):
-    def setUp(self):
-        desc = {"adapter":"sqlalchemy", "url":"sqlite:///:memory:"}
-        self.datastore = brewery.ds.datastore(desc)
-
-    def test_connection(self):
-        self.assertFalse(self.datastore.has_dataset("test"))
-        self.assertRaises(Exception, self.datastore.dataset, "test")
-        # self.datastore.create_dataset("test")
-    
-    # def test_connection(self):
-    #   desc = {"adapter":"sqlite3", "path":":memory:"}
-    #   datastore = brewery.ds.datastore(desc)
-    #   assertIsNotNone(datastore)
-    #   assertEqual("sqlite3", datastore.adapter)
+    	self.assertEqual("sqlalchemy", ds.adapter_name)
  		
 class DataSourceTestCase(unittest.TestCase):
 	
