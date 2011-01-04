@@ -3,14 +3,14 @@ Brewery - Data Manipulation and Data Mining Framework for Python
 ABOUT
 
 Brewery is a ruby framework for:
-* creating ETL processes
+* Data streams
 * OLAP and multidimensional analysis
 * data mining
 * data quality monitoring
 
 AUTHOR
 
-Stefan Urbanek <stefan@knowerce.sk>
+Stefan Urbanek <stefan.urbanek@gmail.com>
 
 
 COPYRIGHT
