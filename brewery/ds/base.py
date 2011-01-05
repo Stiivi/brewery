@@ -21,7 +21,8 @@
 # * append_record(record) - record is a dictionary, raises exception if dict key is not in field list
 
 import sys
-# import brewery
+import urllib2
+import urlparse
 
 datastore_dictionary = {}
 datastore_adapters = {}
@@ -120,7 +121,36 @@ def fieldlist(fields):
         
         a_list.append(Field(**d))
     return list(a_list)
-        
+    
+def open_resource(resource, mode = None):
+    """Get file-like handle for a resource. Conversion:
+    
+    * if resource is a string and it is not URL or it is file:// URL, then opens a file
+    * if resource is URL then opens urllib2 handle
+    * otherwise assume that resource is a file-like handle
+    
+    Returns tuple: (handle, should_close) where `handle` is file-like object and `should_close` is
+        a flag whether returned handle should be closed or not. Closed should be resources which
+        where opened by this method, that is resources referenced by a string or URL.
+    """
+    handle = None
+    should_close = False
+    if type(resource) == str or type(resource) == unicode:
+        parts = urlparse.urlparse(resource)
+        if parts.scheme == '' or parts.scheme == 'file':
+            if mode:
+                handle = file(resource, mode)
+                should_close = True
+            else:
+                handle = file(resource)
+                should_close = True
+        else:
+            handle = urllib2.urlopen(resource)
+            should_close = True
+    else:
+        handle = resource
+    return (handle, should_close)
+    
 class Field(object):
     """Metadata - information about a field in a dataset or in a datastream.
 

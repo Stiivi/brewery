@@ -13,30 +13,28 @@ class XLSDataSource(base.DataSource):
 
     Based on the OKFN Swiss library.
     """
-    def __init__(self, fileobj, sheet = None, read_header = True):
+    def __init__(self, resource, sheet = None, read_header = True):
         """Creates a XLS spreadsheet data source stream.
         
         :Attributes:
-            * fileobj: file reference
+            * resource: file name, URL or file-like object
             * sheet: sheet index number (as int) or sheet name (as str)
             * read_header: flag determining whether first line contains header or not. 
                 ``True`` by default.
         """
-        self.fileobj = fileobj
+        self.resource = resource
         self.sheet_reference = sheet
         self.read_header = read_header
         self.header_row = 0
         self.skip_rows = 0
         self._fields = None
+        self.close_file = True
         
     def initialize(self):
         """Initialize XLS source stream:
         """
 
-        if type(self.fileobj) == str:
-            self.file = file(self.fileobj, "r")
-        else:
-            self.file = fileobj
+        self.file, self.close_file = base.open_resource(self.resource)
 
         self.workbook = xlrd.open_workbook(file_contents=self.file.read())
 
@@ -51,6 +49,10 @@ class XLSDataSource(base.DataSource):
         self.row_count = self.sheet.nrows
         
         self._read_fields()
+
+    def finalize(self):
+        if self.file and self.close_file:
+            self.file.close()
         
     def rows(self):
         if not self.sheet:

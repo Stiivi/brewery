@@ -25,12 +25,12 @@ class CSVDataSource(base.DataSource):
     
     Some code taken from OKFN Swiss library.
     """
-    def __init__(self, fileobj, read_header = True, dialect = None, encoding=None, detect_encoding = False, 
+    def __init__(self, resource, read_header = True, dialect = None, encoding=None, detect_encoding = False, 
                 detect_header = False, sample_size = 200, **reader_args):
         """Creates a CSV data source stream.
         
         :Attributes:
-            * cvsobject: file or a file handle with CVS data
+            * resource: file name, URL or a file handle with CVS data
             * read_header: flag determining whether first line contains header or not. 
                 ``True`` by default.
             * encoding: source character encoding, by default no conversion is performed. 
@@ -50,10 +50,12 @@ class CSVDataSource(base.DataSource):
         self._autodetection = detect_encoding or detect_header
         
         self.sample_size = sample_size
-        self.fileobj = fileobj
+        self.resource = resource
         self.reader_args = reader_args
         self.reader = None
         self.dialect = dialect
+        
+        self.close_file = False
         
         self._fields = None
         
@@ -68,10 +70,7 @@ class CSVDataSource(base.DataSource):
         
         """
 
-        if type(self.fileobj) == str:
-            self.file = file(self.fileobj, "r")
-        else:
-            self.file = fileobj
+        self.file, self.close_file = base.open_resource(self.resource)
 
         handle = None
         
@@ -113,6 +112,10 @@ class CSVDataSource(base.DataSource):
             fields = self.reader.next()
             self._fields = base.fieldlist(fields)
         
+    def finalize(self):
+        if self.file and self.close_file:
+            self.file.close()
+
     def rows(self):
         if not self.reader:
             raise RuntimeError("Stream is not initialized")
@@ -129,28 +132,38 @@ class CSVDataSource(base.DataSource):
         self._fields = fields
 
 class CSVDataTarget(base.DataTarget):
-    def __init__(self, fileobj, write_headers = True, truncate = True):
-        self.fileobj = fileobj
+    def __init__(self, resource, write_headers = True, truncate = True):
+        """Creates a CSV data target
+        
+        :Attributes:
+            * resource: target object - might be a filename or file-like object
+            * write_headers: write field names as headers into output file
+            * truncate: remove data from file before writing, default: True
+            
+        """
+        self.resource = resource
         self.write_headers = write_headers
         self.truncate = truncate
         self._fields = None
-        
+
+        self.close_file = False
+        self.file = None
     def initialize(self):
-        if type(self.fileobj) == str:
-            if self.truncate:
-                self.file = file(self.fileobj, "w")
-            else:
-                self.file = file(self.fileobj, "a")
+        if self.truncate:
+            mode = "w"
         else:
-            self.file = fileobj
-        
+            mode = "a"
+
+        self.file, self.close_file = base.open_resource(self.resource, mode)
+
         self.writer = csv.writer(self.file)
         
         if self.write_headers:
             self.writer.writerow(self.field_names)
 
     def finalize(self):
-        self.file.close()
+        if self.file and self.close_file:
+            self.file.close()
 
     @property
     def fields(self):
