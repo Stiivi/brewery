@@ -8,5 +8,9 @@ __all__ = (
     "DataStream",
     "DataSource",
     "DataTarget",
-    "fieldlist"
+    "fieldlist",
+    "CSVDataSource",
+    "CSVDataTarget",
+    "XLSDataSource",
+    "GoogleSpreadsheetDataSource"
 )

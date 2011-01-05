@@ -62,11 +62,11 @@ class CSVDataSource(base.DataSource):
     def initialize(self):
         """Initialize CSV source stream:
         
-            1.   perform autodetection if required:
-            1.1. detect encoding from a sample data (if requested)
-            1.2. detect whether CSV has headers from a sample data (if requested)
-            2.   create CSV reader object
-            3.   read CSV headers if requested and initialize stream fields
+        #. perform autodetection if required:
+            #. detect encoding from a sample data (if requested)
+            #. detect whether CSV has headers from a sample data (if requested)
+        #.  create CSV reader object
+        #.   read CSV headers if requested and initialize stream fields
         
         """
 

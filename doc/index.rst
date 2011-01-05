@@ -13,8 +13,8 @@ Contents:
    
    introduction
    install
-   cubes
    streams
+   cubes
    data_quality
    tools
    api/index
