@@ -71,7 +71,6 @@ class XLSDataSource(base.DataSource):
         # FIXME: be more sophisticated and read field types from next row
         if self.read_header:
             row = self.sheet.row_values(self.header_row)
-            print row
             self._fields = base.fieldlist(row)
             self.skip_rows = self.header_row + 1
 
