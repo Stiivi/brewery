@@ -12,7 +12,6 @@ ez_setup
 *~
 build/
 dist/
-data/
 sandbox
 *.tmproj
 doc/_build
