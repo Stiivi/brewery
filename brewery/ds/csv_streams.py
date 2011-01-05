@@ -1,7 +1,8 @@
 import csv
 import codecs
+import base
 
-class UTF8Recoder:
+class UTF8Recoder(object):
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
 
@@ -19,13 +20,13 @@ class UTF8Recoder:
     def next(self):
         return self.reader.next().encode('utf-8')
 
-class CSVDataSource(ds.DataSource):
+class CSVDataSource(base.DataSource):
     """docstring for ClassName
     
     Some code taken from OKFN Swiss library.
     """
-    def __init__(self, fileobj, read_header = True, encoding=None, detect_encoding = False, 
-                detect_header = False, sample_size = 200, **kwargs):
+    def __init__(self, fileobj, read_header = True, dialect = None, encoding=None, detect_encoding = False, 
+                detect_header = False, sample_size = 200, **reader_args):
         """Creates a CSV data source stream.
         
         :Attributes:
@@ -50,8 +51,11 @@ class CSVDataSource(ds.DataSource):
         
         self.sample_size = sample_size
         self.fileobj = fileobj
-        self.kwargs = kwargs
+        self.reader_args = reader_args
         self.reader = None
+        self.dialect = dialect
+        
+        self._fields = None
         
     def initialize(self):
         """Initialize CSV source stream:
@@ -69,6 +73,7 @@ class CSVDataSource(ds.DataSource):
         else:
             self.file = fileobj
 
+        handle = None
         
         if self._autodetection:
             
@@ -93,22 +98,44 @@ class CSVDataSource(ds.DataSource):
         if not handle:
             handle = UTF8Recoder(self.file, self.encoding)
 
-        self.reader = csv.reader(handle, **self.kwargs)
+        if self.dialect:
+            if type(self.dialect) == str:
+                dialect = csv.get_dialect(self.dialect)
+            else:
+                dialect = self.dialect
+                
+            self.reader_args["dialect"] = dialect
+
+        self.reader = csv.reader(handle, **self.reader_args)
 
         # Initialize field list
         if self.read_header:
             fields = self.reader.next()
-            self.fields = ds.fieldlist(fields)
+            self._fields = base.fieldlist(fields)
         
     def rows(self):
-        yield self.reader.next()
+        if not self.reader:
+            raise RuntimeError("Stream is not initialized")
+        return self.reader
 
-class CSVDataTarget(ds.DataTarget):
-    def __init__(self, fileobj, write_headers = True, truncate = False):
+    @property
+    def fields(self):
+        if not self._fields:
+            raise ValueError("Fields are not initialized in CSV source")
+        return self._fields
+        
+    @fields.setter
+    def _set_fields(self, fields):
+        self._fields = fields
+
+class CSVDataTarget(base.DataTarget):
+    def __init__(self, fileobj, write_headers = True, truncate = True):
         self.fileobj = fileobj
         self.write_headers = write_headers
         self.truncate = truncate
-    def initialize():
+        self._fields = None
+        
+    def initialize(self):
         if type(self.fileobj) == str:
             if self.truncate:
                 self.file = file(self.fileobj, "w")
@@ -121,10 +148,19 @@ class CSVDataTarget(ds.DataTarget):
         
         if self.write_headers:
             self.writer.writerow(self.field_names)
-        
-    def append(obj):
-        
-        
-        
-        
-    
+
+    def finalize(self):
+        self.file.close()
+
+    @property
+    def fields(self):
+        if not self._fields:
+            raise ValueError("Fields are not initialized in CSV target")
+        return self._fields
+
+    @fields.setter
+    def fields(self, fields):
+        self._fields = fields
+
+    def append(self, obj):
+        self.writer.writerow(obj)

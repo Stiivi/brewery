@@ -13,7 +13,6 @@ ez_setup
 build/
 dist/
 data/
-doc/build/
-example/google_appengine
-google_appengine
-
+sandbox
+*.tmproj
+doc/_build

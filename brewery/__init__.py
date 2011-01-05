@@ -4,10 +4,10 @@ import json
 import os
 import sys
 
+import brewery.ds
 import brewery.cubes
 import brewery.dq
 import brewery.utils
-import brewery.ds
 
 __version__ = '0.5.0'
 

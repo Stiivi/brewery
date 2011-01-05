@@ -11,11 +11,11 @@ from test_query_generator import *
 from test_data_source import *
 
 test_cases = [DataStoreTestCase,
-              DatasetTestCase,
               ModelValidatorTestCase,
               ModelFromDictionaryTestCase, 
               ModelTestCase,
               QueryGeneratorTestCase,
+              DataSourceTestCase
                 ]
 
 def load_tests(loader, tests, pattern):
