@@ -83,6 +83,14 @@ class DataSourceTestCase(unittest.TestCase):
         self.assertEqual(3, result["min_fields"])
         self.assertEqual(8, result["count"])
 
+    def test_xls_source(self):
+        src = brewery.ds.XLSDataSource(self.data_file('test.xls'))
+        src.initialize()
+        result = self.read_source(src)
+        self.assertEqual(3, result["max_fields"])
+        self.assertEqual(3, result["min_fields"])
+        self.assertEqual(8, result["count"])
+
     def test_copy(self):
         src = brewery.ds.CSVDataSource(self.data_file('test_tab.csv'), dialect = "excel-tab")
         src.initialize()

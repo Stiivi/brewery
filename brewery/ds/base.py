@@ -92,7 +92,7 @@ def fieldlist(fields):
         d["storage_type"] = "unknown"
         d["analytical_type"] = "typeless"
 
-        if type(obj) == str:
+        if type(obj) == str or type(obj) == unicode:
             d["name"] = obj
         elif type(obj) == tuple:
             d["name"] = obj[0]
@@ -111,7 +111,8 @@ def fieldlist(fields):
             if "adapter_storage_type" in obj:
                 d["adapter_storage_type"] = obj["adapter_storage_type"]
         else:
-            raise ValueError("Unknown type of field object '%s'" % obj)
+            raise ValueError("Unknown object type ('%s' ) of field description object '%s'" \
+                                % (type(obj), obj))
         
         if "analytical_type" not in d:
             deftype = Field.default_analytical_types[d["storage_type"]]
@@ -286,6 +287,8 @@ class Datastore(object):
         """
 
 class DataStream(object):
+    """Shared methods for data targets and data sources"""
+    
     def initialize(self):
         """Delayed stream initialisation code. Subclasses might override this method to implement
         file or handle opening, connecting to a database, doing web authentication, ... By
@@ -339,8 +342,6 @@ class DataSource(DataStream):
     def rows(self):
         """Return iterable object with tuples. This is the main method for reading from
         data source. Subclasses should implement this method.
-        
-        .. seealso:: :meth:`Dataset.rows`
         """
         raise NotImplementedError()
 
@@ -351,10 +352,7 @@ class DataTarget(DataStream):
     def append(self, object):
         """Append an object into dataset. Object can be a tuple, array or a dict object. If tuple
         or array is used, then value position should correspond to field position in the field list,
-        if dict is used, the keys should be valid field names.
-
-        .. seealso:: :meth:`Dataset.append`
-        
+        if dict is used, the keys should be valid field names.        
         """
         raise NotImplementedError()
      
