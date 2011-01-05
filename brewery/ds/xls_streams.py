@@ -1,4 +1,5 @@
 import base
+import datetime
 
 try:
     import xlrd
@@ -54,7 +55,7 @@ class XLSDataSource(base.DataSource):
     def rows(self):
         if not self.sheet:
             raise RuntimeError("XLS Stream is not initialized - there is no sheet")
-        return XLSIterator(self.sheet, self.skip_rows)
+        return XLSIterator(self.workbook, self.sheet, self.skip_rows)
 
     @property
     def fields(self):
@@ -78,7 +79,8 @@ class XLSIterator(object):
     """
     Iterator that reads XLS spreadsheet
     """
-    def __init__(self, sheet, row_offset = 0):
+    def __init__(self, workbook, sheet, row_offset = 0):
+        self.workbook = workbook
         self.sheet = sheet
         self.row_count = sheet.nrows
         self.current_row = row_offset
@@ -90,7 +92,29 @@ class XLSIterator(object):
         if self.current_row >= self.row_count:
             raise StopIteration
             
-        row = self.sheet.row_values(self.current_row)
+        row = self.sheet.row(self.current_row)
+        row = [self._cell_value(cell) for cell in row]
         self.current_row += 1
         return row
         
+    def _cell_value(self, cell):
+        """Convert Excel cell into value of a python type
+        
+        (from Swiss XlsReader.cell_to_python)"""
+        
+        # annoying need book argument for datemode
+        # info on types: http://www.lexicon.net/sjmachin/xlrd.html#xlrd.Cell-class
+        if cell.ctype == xlrd.XL_CELL_NUMBER: 
+            return float(cell.value)
+        elif cell.ctype == xlrd.XL_CELL_DATE:
+            # TODO: distinguish date and datetime
+            args = xlrd.xldate_as_tuple(cell.value, self.workbook.datemode)
+            try:
+                return datetime.date(args[0], args[1], args[2])
+            except Exception, inst:
+                # print 'Error parsing excel date (%s): %s' % (args, inst)
+                return None
+        elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
+            return bool(cell.value)
+        else:
+            return cell.value

@@ -1,7 +1,11 @@
 """Field statistics"""
 
 import sets
-import bson
+
+try:
+    import bson
+except:
+    pass
 
 class FieldStatistics(object):
     """Data quality statistics for a dataset field
