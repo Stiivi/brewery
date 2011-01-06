@@ -226,12 +226,12 @@ class Field(object):
                 }
 
     def __init__(self, name, label = None, storage_type = "unknown", analytical_type = None, 
-                    adapter_storage_type = None, missing_values = None):
+                    concrete_storage_type = None, missing_values = None):
         self.name = name
         self.label = label
         self.storage_type = storage_type
         self.analytical_type = analytical_type
-        self.adapter_storage_type = adapter_storage_type
+        self.concrete_storage_type = concrete_storage_type
         self.missing_values = missing_values
 
     def __str__(self):
@@ -356,7 +356,7 @@ class DataStream(object):
         raise NotImplementedError()
 
     @fields.setter
-    def _set_fields(self, value):
+    def fields(self, value):
         raise Exception("Data stream %s does not support setting fields." % str(self.__class__))
 
     @property

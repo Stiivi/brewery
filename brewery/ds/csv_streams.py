@@ -1,5 +1,6 @@
 import csv
 import codecs
+import cStringIO
 import base
 
 class UTF8Recoder(object):
@@ -19,6 +20,44 @@ class UTF8Recoder(object):
 
     def next(self):
         return self.reader.next().encode('utf-8')
+
+class UnicodeWriter:
+    """
+    A CSV writer which will write rows to CSV file "f",
+    which is encoded in the given encoding.
+
+    From: <http://docs.python.org/lib/csv-examples.html>
+    """
+
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+        # Redirect output to a queue
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row):
+        new_row = []
+        for value in row:
+            if type(value) == unicode or type(value) == str:
+                new_row.append(value.encode("utf-8"))
+            else:
+                new_row.append(unicode(value))
+                
+        self.writer.writerow(new_row)
+        # Fetch UTF-8 output from the queue ...
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        # ... and reencode it into the target encoding
+        data = self.encoder.encode(data)
+        # write to the target stream
+        self.stream.write(data)
+        # empty queue
+        self.queue.truncate(0)
+
+    def writerows(self, rows):
+        for row in rows:
+            self.writerow(row)
 
 class CSVDataSource(base.DataSource):
     """docstring for ClassName
@@ -132,7 +171,8 @@ class CSVDataSource(base.DataSource):
         self._fields = fields
 
 class CSVDataTarget(base.DataTarget):
-    def __init__(self, resource, write_headers = True, truncate = True):
+    def __init__(self, resource, write_headers = True, truncate = True, encoding = "utf-8", 
+                dialect = None, **kwds):
         """Creates a CSV data target
         
         :Attributes:
@@ -145,6 +185,9 @@ class CSVDataTarget(base.DataTarget):
         self.write_headers = write_headers
         self.truncate = truncate
         self._fields = None
+        self.encoding = encoding
+        self.dialect = dialect
+        self.kwds = kwds
 
         self.close_file = False
         self.file = None
@@ -156,7 +199,8 @@ class CSVDataTarget(base.DataTarget):
 
         self.file, self.close_file = base.open_resource(self.resource, mode)
 
-        self.writer = csv.writer(self.file)
+        self.writer = UnicodeWriter(self.file, encoding = self.encoding, 
+                                    dialect = self.dialect, **self.kwds)
         
         if self.write_headers:
             self.writer.writerow(self.field_names)

@@ -113,5 +113,4 @@ class SQLAlchemyDataset(object):
         return self.table.select().execute()
 
     def append(self, obj):
-        # self.table.insert(values = ["a", "b", "c", "d", "e", "f"]).execute()
         self.table.insert(values = obj).execute()

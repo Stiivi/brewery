@@ -11,30 +11,24 @@ import pymongo
 import json
 import sys
 import brewery
+import brewery.ds as ds
 
 key_stats = {}
 
-def connect(database, collection, connection = None):
+def create_stream(database, collection, port = None, host = None):
     """Audit a collection in a database"""
-    global mongo_collection
-    
-    if not connection:
-        connection = pymongo.Connection("localhost", 27017)
-    elif issubclass(connection.__class__, dict):
-        host = connection.get("host", "localhost")
-        port = connection.get("port", 27017)
-        try:
-            connection = pymongo.Connection(host, port)
-        except pymongo.errors.AutoReconnect:
-            print "Unable to connect to '%s:%s'" % (host, port)
-            return
-        
-    _database = connection[database]
-    return _database[collection]
+    stream = ds.MongoDBDataSource(collection = collection,
+                                    database = 'wdmmg_dev',
+                                    port = port,
+                                    host = host,
+                                    expand = True)
+    stream.initialize()
+    return stream
 
-def audit(collection, threshold = None):
+def audit_stream(stream, threshold = None):
+    stream.read_fields
     count = 0
-    for record in collection.find():
+    for record in stream.records():
         count += 1
         for key, value in record.items():
             if not key in key_stats:
@@ -104,8 +98,9 @@ parser.add_argument('database')
 parser.add_argument('collection')
 args = parser.parse_args(sys.argv[1:])
 
-collection = connect(args.database, args.collection, connection = {'host': args.host, 'port': args.port})
-result = audit(collection, threshold = args.threshold)
+stream = create_stream(args.database, args.collection, host = args.host, port =args.port)
+result = audit_stream(stream, threshold = args.threshold)
+
 if args.format == 'text':
     dump_text(result)
 else:
