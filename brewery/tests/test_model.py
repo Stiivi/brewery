@@ -44,9 +44,6 @@ class ModelTestCase(unittest.TestCase):
 
     def test_model_from_path(self):
         # model = brewery.cubes.model_from_path(self.model_path)
-        file_path = os.path.join(self.model_path, "cube_contracts.json")
-        self.assertRaises(RuntimeError, cubes.model_from_path, file_path)
-        
         model = cubes.model_from_path(self.model_path)
         self.assertEqual(model.name, "public_procurements", "Model was not properely loaded")
         self.assertEqual(len(model.dimensions), 6, "Model dimensions were not properely loaded")
@@ -112,11 +109,31 @@ class ModelValidatorTestCase(unittest.TestCase):
                              "ymd": { "levels": ["year", "month", "day"] } }
         self.date_desc = { "name": "date", "levels": self.date_levels , "hierarchies": self.date_hiers }
 
+    def test_default_dimension(self):
+        date_desc = { "name": "date", "levels": {"year": {"key": "year"}}}
+        dim = cubes.Dimension('date', date_desc)
+        h = dim.default_hierarchy
+        self.assertEqual("year", h.name)
+
+        date_desc = { "name": "date", "levels": self.date_levels2}
+        dim = cubes.Dimension('date', date_desc)
+        test = lambda: dim.default_hierarchy
+        self.assertRaises(KeyError, test)
+        
+        date_desc = { "name": "date", "levels": {}}
+        dim = cubes.Dimension('date', date_desc)
+        test = lambda: dim.default_hierarchy
+        self.assertRaises(KeyError, test)
+
     def test_dimension_validation(self):
         date_desc = { "name": "date"}
         dim = cubes.Dimension('date', date_desc)
         results = dim.validate()
         self.assertValidationError(results, "No levels in dimension")
+
+        date_desc = { "name": "date", "levels": {"year": {"key": "year"}}}
+        dim = cubes.Dimension('date', date_desc)
+        self.assertValidation(results, "No defaut hierarchy")
 
         date_desc = { "name": "date", "levels": self.date_levels}
         dim = cubes.Dimension('date', date_desc)

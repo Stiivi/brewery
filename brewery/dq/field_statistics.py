@@ -65,13 +65,13 @@ class FieldStatistics(object):
 
         # We are not testing lists, dictionaries and object IDs
         storage_type = value.__class__
-        if issubclass(storage_type, dict) \
-                    or issubclass(storage_type, bson.objectid.ObjectId) \
-                    or issubclass(storage_type, list):
-            return
 
         if self.distinct_threshold == 0 or len(self.distinct_values) < self.distinct_threshold:
-            self.distinct_values.add(value)
+            try:
+                self.distinct_values.add(value)
+            except:
+                # FIXME: Should somehow handle invalid values that can not be added
+                pass
         else:
             self.distinct_overflow = True
             

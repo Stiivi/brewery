@@ -34,7 +34,10 @@ def model_from_path(path):
     """
     
     if not os.path.isdir(path):
-        raise RuntimeError('path should be a directory')
+        a_file = open(path)
+        model_desc = json.load(a_file)
+        a_file.close()
+        return model_from_dict(model_desc)
         
     info_path = os.path.join(path, 'model.json')
 
@@ -83,7 +86,7 @@ def model_from_path(path):
                 model_desc["cubes"][desc["name"]] = desc
 
     return model_from_dict(model_desc)
-    
+
 def model_from_dict(desc):
     """Create a model from description dictionary
     

@@ -31,6 +31,7 @@ class Dimension(object):
 
         self.__init_levels(desc.get("levels", None))
         self.__init_hierarchies(desc.get("hierarchies", None))
+        self._flat_hierarchy = None
 
         self.default_hierarchy_name = desc.get("default_hierarchy", None)
         self.key_field = desc.get("key_field")
@@ -57,7 +58,11 @@ class Dimension(object):
             hier = Hierarchy(hier_name, hier_info)
             hier.dimension = self
             self.hierarchies[hier_name] = hier
-
+            
+    def _initialize_default_flat_hierarchy(self):
+        if not self._flat_hierarchy:
+            self._flat_hierarchy = self.flat_hierarchy(self.levels.values()[0])
+        
     @property
     def default_hierarchy(self):
         """Get default hierarchy specified by ``default_hierarchy_name``, if the variable is not set then
@@ -74,14 +79,31 @@ class Dimension(object):
                 hierarchy = self.hierarchies.values()[0]
             else:
                 if not self.hierarchies:
-                    msg = "are no hierarchies defined"
+                    if len(self.levels) == 1:
+                        self._initialize_default_flat_hierarchy()
+                        return self._flat_hierarchy
+                    elif len(self.levels) > 1:
+                        raise KeyError("There are no hierarchies in dimenson %s "
+                                       "and there are more than one level" % self.name)
+                    else:
+                        raise KeyError("There are no hierarchies in dimenson %s "
+                                       "and there are no levels to make hierarchy from" % self.name)
                 else:
-                    msg = "is more (%d) than one hierarchy defined" % len(self.hierarchies)
-                raise KeyError("No default hierarchy specified in dimension '%s' " \
-                               "and there %s" % (self.name, msg))
+                    raise KeyError("No default hierarchy specified in dimension '%s' " \
+                                   "and there is more (%d) than one hierarchy defined" \
+                                   % (self.name, len(self.hierarchies)))
 
         return hierarchy
     
+    def flat_hierarchy(self, level):
+        # if len(levels) > 0:
+        #     raise AttributeError("Could not create default flat hierarchy in dimension '%s' if there "
+        #                          "are more than one level" % self.name)
+        hier = Hierarchy(level.name)
+        hier.level_names = [level.name]
+        hier.dimension = self
+        return hier
+
     def all_attributes(self, hierarchy = None):
         if not hierarchy:
             hier = self.default_hierarchy

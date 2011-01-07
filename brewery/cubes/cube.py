@@ -32,7 +32,7 @@ class Cube(object):
         self.label = info.get("label", "")
         self.description = info.get("description", "")
         self.measures = info.get("measures", [])
-
+        self.attributes = info.get("attributes", [])
         self.model = None
         self._dimensions = {}
         self.mappings = info.get("mappings", {})
@@ -83,7 +83,7 @@ class Cube(object):
         results = []
 
         if not self.mappings:
-            results.append( ('error', "No mappings for cube '%s'" % self.name) )
+            results.append( ('warning', "No mappings for cube '%s'" % self.name) )
 
         if not self.fact:
             results.append( ('warning', "No fact specified for cube '%s' (factless cubes are not yet supported, "
@@ -94,7 +94,7 @@ class Cube(object):
             try:
                 mapping = self.fact_field_mapping(measure)
             except KeyError:
-                results.append( ('error', "No mapping for measure '%s' in cube '%s'" % (measure, self.name)) )
+                results.append( ('warning', "No mapping for measure '%s' in cube '%s'" % (measure, self.name)) )
 
         for dimension in self.dimensions:
             attributes = dimension.all_attributes()
