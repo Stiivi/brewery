@@ -96,6 +96,7 @@ class Dimension(object):
         return hierarchy
     
     def flat_hierarchy(self, level):
+        """Return the only one hierarchy for the only one level"""
         # if len(levels) > 0:
         #     raise AttributeError("Could not create default flat hierarchy in dimension '%s' if there "
         #                          "are more than one level" % self.name)
@@ -103,6 +104,11 @@ class Dimension(object):
         hier.level_names = [level.name]
         hier.dimension = self
         return hier
+
+    @property
+    def is_flat(self):
+        """Return true if dimension has only one level"""
+        return len(self.levels) == 1
 
     def all_attributes(self, hierarchy = None):
         if not hierarchy:
@@ -119,6 +125,8 @@ class Dimension(object):
         return attributes
         
     def to_dict(self):
+        """Return dict representation of the dimension"""
+        
         out = brewery.utils.IgnoringDictionary()
         out.setnoempty("name", self.name)
         out.setnoempty("label", self.label)
@@ -145,10 +153,17 @@ class Dimension(object):
         results = []
 
         if not self.levels:
-            results.append( ('error', "No levels in dimension '%s'" % self.name) )
+            results.append( ('error', "No levels in dimension '%s'" % (self.name)) )
 
         if not self.hierarchies:
-            results.append( ('error', "No hierarchies in dimension '%s'" % self.name) )
+            base = "No hierarchies in dimension '%s'" % (self.name)
+            if self.is_flat:
+                level = self.levels.values()[0]
+                results.append( ('warning', base + ", flat level '%s' will be used" % (level.name)) )
+            elif len(self.levels) > 1:
+                results.append( ('error', base + ", more than one levels exist (%d)" % len(self.levels)) )
+            else:
+                results.append( ('error', base) )
         else:
             if not self.default_hierarchy_name:
                 if len(self.hierarchies) > 1 and not "default" in self.hierarchies:

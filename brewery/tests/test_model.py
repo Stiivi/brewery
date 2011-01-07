@@ -133,13 +133,18 @@ class ModelValidatorTestCase(unittest.TestCase):
 
         date_desc = { "name": "date", "levels": {"year": {"key": "year"}}}
         dim = cubes.Dimension('date', date_desc)
+        self.assertEqual(1, len(dim.levels))
+        results = dim.validate()
+        self.assertValidation(results, "No levels")
         self.assertValidation(results, "No defaut hierarchy")
+
+        self.assertValidationError(results, "No hierarchies in dimension", expected_type = "warning")
 
         date_desc = { "name": "date", "levels": self.date_levels}
         dim = cubes.Dimension('date', date_desc)
         results = dim.validate()
 
-        self.assertValidationError(results, "No hierarchies in dimension")
+        self.assertValidationError(results, "No hierarchies in dimension.*more", expected_type = "error")
 
         date_desc = { "name": "date", "levels": self.date_levels , "hierarchies": self.date_hiers }
         dim = cubes.Dimension('date', date_desc)
@@ -174,13 +179,19 @@ class ModelValidatorTestCase(unittest.TestCase):
             if re.match(expected, result[1]):
                 self.fail(message)
 
-    def assertValidationError(self, results, expected, message = None):
+    def assertValidationError(self, results, expected, message = None, expected_type = None):
+        # print "TEST: %s:%s" % (expected_type, expected)
         if not message:
-            message = "Validation error expected (match: '%s')" % expected
+            if expected_type:
+                message = "Validation %s expected (match: '%s')" % (expected_type, expected)
+            else:
+                message = "Validation fail expected (match: '%s')" % expected
             
         for result in results:
+            # print "VALIDATE: %s IN %s:%s" % (expected, result[0], result[1])
             if re.match(expected, result[1]):
-                return
+                if not expected_type or (expected_type and expected_type == result[0]):
+                    return
         self.fail(message)
         		
 if __name__ == '__main__':
