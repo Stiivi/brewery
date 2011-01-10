@@ -17,14 +17,25 @@ setup(
     },
     scripts = ['bin/mongoaudit', 'bin/brewery'],
     
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License (GPL)',
+        'Programming Language :: Python',
+        'Topic :: Database',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Utilities'
+    ],
+    
     test_suite = "brewery.tests.test_suite",
 
     # metadata for upload to PyPI
     author = "Stefan Urbanek",
     author_email = "stefan.urbanek@gmail.com",
-    description = "OLAP and Data analysis framework",
+    description = "Framework for processing, analysing and measuring quality of structured data streams",
     license = "GPL",
-    keywords = "data analysis olap quality",
+    keywords = "data analysis quality",
     url = "http://www.databrewery.org"
 
     # could also include long_description, download_url, classifiers, etc.

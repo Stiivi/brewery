@@ -1,23 +1,14 @@
 import unittest
 import brewery
 import os
-import brewery.cubes as cubes
 import brewery.tests
 import json
 import re
 
-from test_model import *
-from test_query_generator import *
 from test_data_source import *
-from test_aggregations import *
 
 test_cases = [DataStoreTestCase,
-              ModelValidatorTestCase,
-              ModelFromDictionaryTestCase, 
-              ModelTestCase,
-              QueryGeneratorTestCase,
-              DataSourceTestCase,
-              AggregationsBasicsTestCase
+              DataSourceTestCase
                 ]
 
 def load_tests(loader, tests, pattern):
