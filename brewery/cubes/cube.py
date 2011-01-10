@@ -57,7 +57,7 @@ class Cube(object):
         
     def dimension(self, name):
         """Get dimension by name"""
-        return self._dimensions[dimension.name]
+        return self._dimensions[name]
         
     def to_dict(self):
         """Convert to dictionary"""
@@ -136,13 +136,14 @@ class Cube(object):
     def measure_mapping(self, measure):
         """Return mapping for a measure"""
         
-        mapped = self.mappings.get("fact.%s" % measure)
+        mapped = self.mappings.get(measure)
         if not mapped:
-            # FIXME: this should be depreciated
-            mapped = self.mappings.get("%s" % measure)
+            mapped = self.mappings.get("fact." + measure)
 
         if not mapped:
-            raise KeyError("Cube '%s' has no mapping for measure '%s'" % (self.name, measure))
+            mapped = measure
+            # FIXME: raise this on "strict mappings"?
+            # raise KeyError("Cube '%s' has no mapping for measure '%s'" % (self.name, measure))
 
         return mapped
 

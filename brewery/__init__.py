@@ -1,6 +1,5 @@
 """Brewery"""
 
-import json
 import os
 import sys
 
@@ -8,6 +7,11 @@ import brewery.ds
 import brewery.cubes
 import brewery.dq
 import brewery.utils
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 __version__ = '0.5.0'
 

@@ -1,6 +1,9 @@
 import base
-import gdata.spreadsheet.service
-import gdata.spreadsheet.text_db
+try:
+    import gdata.spreadsheet.service
+    import gdata.spreadsheet.text_db
+except:
+    pass
 
 # Documentation:
 # http://gdata-python-client.googlecode.com/svn/trunk/pydocs/

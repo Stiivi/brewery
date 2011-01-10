@@ -1,6 +1,10 @@
-import pymongo
 import base
 import brewery.dq
+try:
+    import pymongo
+except: 
+    pass
+
 
 class MongoDBDataSource(base.DataSource):
     """docstring for ClassName

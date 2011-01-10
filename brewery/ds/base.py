@@ -243,7 +243,7 @@ class Field(object):
         d["label"] = self.label
         d["storage_type"] = self.storage_type
         d["analytical_type"] = self.analytical_type
-        d["adapter_storage_type"] = self.adapter_storage_type
+        d["concrete_storage_type"] = self.concrete_storage_type
         d["missing_values"] = self.missing_values
         return "<%s(%s)>" % (self.__class__, d)
   

@@ -9,13 +9,15 @@ import re
 from test_model import *
 from test_query_generator import *
 from test_data_source import *
+from test_aggregations import *
 
 test_cases = [DataStoreTestCase,
               ModelValidatorTestCase,
               ModelFromDictionaryTestCase, 
               ModelTestCase,
               QueryGeneratorTestCase,
-              DataSourceTestCase
+              DataSourceTestCase,
+              AggregationsBasicsTestCase
                 ]
 
 def load_tests(loader, tests, pattern):

@@ -1,7 +1,11 @@
 from dimension import *
 from cube import *
 import brewery.utils
-import json
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 class Model(object):
     """
