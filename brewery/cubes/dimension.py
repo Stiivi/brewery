@@ -29,6 +29,9 @@ class Dimension(object):
         self.label = desc.get("label", "")
         self.description = desc.get("description", "")
 
+        self.levels = []
+        self.level_names = []
+        
         self.__init_levels(desc.get("levels", None))
         self.__init_hierarchies(desc.get("hierarchies", None))
         self._flat_hierarchy = None
@@ -46,6 +49,7 @@ class Dimension(object):
             level = Level(level_name, level_info)
             level.dimension = self
             self.levels[level_name] = level
+            self.level_names.append(level_name)
 
     def __init_hierarchies(self, desc):
         """booo bar"""
@@ -104,6 +108,10 @@ class Dimension(object):
         hier.level_names = [level.name]
         hier.dimension = self
         return hier
+
+    def level(self, name):
+        """Return level with given name"""
+        return self.levels[name]
 
     @property
     def is_flat(self):
@@ -182,14 +190,19 @@ class Dimension(object):
             if not level.attributes:
                 results.append( ('error', "Level '%s' in dimension '%s' has no attributes" % (level.name, self.name)) )
             else:
-                if not level.key:
+                if not level._key:
                     attr = level.attributes[0]
                     results.append( ('warning', "Level '%s' in dimension '%s' has no key attribute specified, "\
                                                 "first attribute will be used: '%s'" 
                                                 % (level.name, self.name, attr)) )
 
-            if level.attributes and level.key and level.key not in level.attributes:
+            if level.attributes and level._key and level._key not in level.attributes:
                 results.append( ('error', "Key '%s' in level '%s' in dimension '%s' in not in attribute list"
                                                 % (level.key, level.name, self.name)) )
 
         return results
+        
+    def __str__(self):
+        return "<dimension: {name: '%s', levels: %s}>" % (self.name, self.level_names)
+    def __repr__(self):
+        return self.__str__()

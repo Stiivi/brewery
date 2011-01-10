@@ -16,7 +16,7 @@ class Level(object):
     def __init__(self, name, desc, dimension = None):
         self.name = name
         self.label = desc.get("label", "")
-        self.key = desc.get("key", None)
+        self._key = desc.get("key", None)
         self.attributes = desc.get("attributes", [])
         self.label_attribute = desc.get("label_attribute", [])
         self.dimension = dimension
@@ -32,3 +32,11 @@ class Level(object):
         out.setnoempty("label_attribute", self.label_attribute)
 
         return out
+
+    @property
+    def key(self):
+        if self._key:
+            return self._key
+        else:
+            return self.attributes[0]
+            
