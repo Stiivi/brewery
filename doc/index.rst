@@ -14,7 +14,6 @@ Contents:
    introduction
    install
    streams
-   cubes
    data_quality
    tools
    api/index

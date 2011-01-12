@@ -44,7 +44,7 @@ class FieldStatistics(object):
           greather than threshold, collection is stopped and `distinct_overflow` will be set. Set to 0
           to get all values. Default is 10.
     """    
-    def __init__(self, key, distinct_threshold = 10):
+    def __init__(self, key = None, distinct_threshold = 10):
         self.field = key
         self.value_count = 0
         self.record_count = 0
