@@ -352,10 +352,11 @@ class DataStream(object):
         is recommended also for :class:`DataTarget` subclasses that create datasets (new CSV file,
         non-existing tables).
         """
-        raise NotImplementedError()
+        return self._fields
 
-    def set_fields(self, value):
-        raise Exception("Data stream %s does not support setting fields." % str(self.__class__))
+    def set_fields(self, fields):
+        self._fields = fields
+        # raise Exception("Data stream %s does not support setting fields." % str(self.__class__))
 
     fields = property(get_fields, set_fields)
 

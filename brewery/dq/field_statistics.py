@@ -149,3 +149,5 @@ class FieldStatistics(object):
         
         return d
     
+    def __repr__(self):
+        return "FieldStatistics:%s" % (self.dict())

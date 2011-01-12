@@ -58,8 +58,8 @@ class DataSourceTestCase(unittest.TestCase):
         # File
         src = brewery.ds.CSVDataSource(self.data_file('test.csv'))
         src.read_header = False
-        test = lambda: src.fields()
-        self.assertRaises(ValueError, test)
+        # test = lambda: src.get_fields()
+        self.assertRaises(RuntimeError, src.rows)
         
         src.read_header = True
         src.initialize()
@@ -113,7 +113,39 @@ class DataSourceTestCase(unittest.TestCase):
         self.assertEqual(3, result["min_fields"])
         self.assertEqual(8, result["count"])
 
+    def test_row_record(self):
+        pass
+        # * Test whether all streams support correctly reading/writing both records and rows
+        # * Streams should raise an exception when writing a row into a stream without initalized
+        #   fields
+        # * If fields are set to source stream, it should not return other fields as specified
+    
+    def test_auditor(self):
+        src = brewery.ds.CSVDataSource(self.data_file('test.csv'))
+        src.initialize()
+
+        auditor = brewery.ds.StreamAuditor()
+        auditor.fields = src.fields
+        auditor.initialize()
         
+        # Perform audit for each row from source:
+        for row in src.rows():
+            auditor.append(row)
+
+        # Finalize results, close files, etc.
+        auditor.finalize()
+
+        # Get the field statistics
+        stats = auditor.field_statistics
+        
+        self.assertEqual(len(stats), 3)
+        stat = stats["type"].dict()
+        self.assertTrue("record_count" in stat)
+        self.assertTrue("unique_storage_type" in stat)
+        utype = stat["unique_storage_type"]
+        ftype = stat["storage_types"][0]
+        self.assertEqual(utype, ftype)
+
     # def test_sqlite_source(self):
     #     return
     #     src = brewery.ds.RelationalDataSource(self.connection, "test_amounts")

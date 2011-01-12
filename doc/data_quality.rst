@@ -34,6 +34,28 @@ Example of auditing a CSV file:
     for stat in stats.items():
         finalize(record_count)
 
+Auditing using :class:`brewery.ds.StreamAuditor`:
+
+.. code-block:: python
+
+    # ... suppose we have initialized source stream as src
+    
+    # Create autitor stream target and initialize field list
+    auditor = ds.StreamAuditor()
+    auditor.fields = src.fields
+    auditor.initialize()
+
+    # Perform audit for each row from source:
+    for row in src.rows():
+        auditor.append(row)
+
+    # Finalize results, close files, etc.
+    auditor.finalize()
+
+    # Get the field statistics
+    stats = auditor.field_statistics
+
+
 API
 ===
 
