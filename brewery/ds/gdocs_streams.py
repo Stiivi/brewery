@@ -86,14 +86,17 @@ class GoogleSpreadsheetDataSource(base.DataSource):
             raise RuntimeError("Stream is not initialized (no worksheet)")
         return self.worksheet.FindRecords(self.query_string)
 
-    @property
-    def fields(self):
+    def get_fields(self):
         if not self._fields:
             raise ValueError("Fields are not initialized in CSV source")
         return self._fields
+
+    def set_fields(self):
+        raise NotImplementedError
+
+    fields = property(get_fields, set_fields)
         
-    @fields.setter
-    def _set_fields(self, fields):
+    def set_fields(self, fields):
         self._fields = fields
 
 class GDocRowIterator(object):

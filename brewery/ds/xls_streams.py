@@ -59,15 +59,15 @@ class XLSDataSource(base.DataSource):
             raise RuntimeError("XLS Stream is not initialized - there is no sheet")
         return XLSIterator(self.workbook, self.sheet, self.skip_rows)
 
-    @property
-    def fields(self):
+    def get_fields(self):
         if not self._fields:
             raise ValueError("Fields are not initialized in CSV source")
         return self._fields
         
-    @fields.setter
-    def _set_fields(self, fields):
+    def set_fields(self, fields):
         self._fields = fields
+
+    fields = property(get_fields, set_fields)
 
     def _read_fields(self):
         # FIXME: be more sophisticated and read field types from next row

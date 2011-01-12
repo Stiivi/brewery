@@ -97,7 +97,6 @@ class MongoDBDataSource(base.DataSource):
     def rows(self):
         if not self.collection:
             raise RuntimeError("Stream is not initialized")
-        # return MongoDBRowIterator(self.field_names, self.collection.find())
         fields = self.field_names
         iterator = self.collection.find(fields = fields)
         return MongoDBRowIterator(iterator, fields)
@@ -113,15 +112,15 @@ class MongoDBDataSource(base.DataSource):
         iterator = self.collection.find(fields = fields)
         return MongoDBRecordIterator(iterator, self.expand)
 
-    @property
-    def fields(self):
+    def get_fields(self):
         if not self._fields:
             raise ValueError("Fields are not initialized in MongoDB source")
         return self._fields
         
-    @fields.setter
-    def fields(self, fields):
+    def set_fields(self, fields):
         self._fields = fields
+
+    fields = property(get_fields, set_fields)
 
 class MongoDBRowIterator(object):
     """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as 

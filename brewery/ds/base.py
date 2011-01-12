@@ -339,8 +339,7 @@ class DataStream(object):
         """
         pass
 
-    @property
-    def fields(self):
+    def get_fields(self):
         """Return stream field metadata: tuple of :class:`Field` objects representing fields passed
         through the receiving stream - either read from data source (:meth:`DataSource.rows`) or written
         to data target (:meth:`DataTarget.append`).
@@ -355,9 +354,10 @@ class DataStream(object):
         """
         raise NotImplementedError()
 
-    @fields.setter
-    def fields(self, value):
+    def set_fields(self, value):
         raise Exception("Data stream %s does not support setting fields." % str(self.__class__))
+
+    fields = property(get_fields, set_fields)
 
     @property
     def field_names(self):

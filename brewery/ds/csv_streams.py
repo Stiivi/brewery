@@ -160,15 +160,16 @@ class CSVDataSource(base.DataSource):
             raise RuntimeError("Stream is not initialized")
         return self.reader
 
-    @property
-    def fields(self):
+    def get_fields(self):
         if not self._fields:
             raise ValueError("Fields are not initialized in CSV source")
         return self._fields
         
-    @fields.setter
-    def _set_fields(self, fields):
+    def set_fields(self, fields):
         self._fields = fields
+
+    fields = property(get_fields, set_fields)
+
 
 class CSVDataTarget(base.DataTarget):
     def __init__(self, resource, write_headers = True, truncate = True, encoding = "utf-8", 
@@ -209,15 +210,15 @@ class CSVDataTarget(base.DataTarget):
         if self.file and self.close_file:
             self.file.close()
 
-    @property
-    def fields(self):
+    def get_fields(self):
         if not self._fields:
             raise ValueError("Fields are not initialized in CSV target")
         return self._fields
 
-    @fields.setter
-    def fields(self, fields):
+    def set_fields(self, fields):
         self._fields = fields
+
+    fields = property(get_fields, set_fields)
 
     def append(self, obj):
         self.writer.writerow(obj)
