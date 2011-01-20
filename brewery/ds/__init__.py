@@ -4,6 +4,7 @@ from brewery.ds.xls_streams import *
 from brewery.ds.gdocs_streams import *
 from brewery.ds.mongo_streams import *
 from brewery.ds.stream_auditor import *
+from brewery.ds.yaml_dir_streams import *
 # from brewery.ds.sql_streams import *
 
 __all__ = (
@@ -17,5 +18,7 @@ __all__ = (
     "XLSDataSource",
     "MongoDBDataSource",
     "GoogleSpreadsheetDataSource",
+    "YamlDirectoryDataSource",
+    "YamlDirectoryDataTarget",
     "StreamAuditor"
 )

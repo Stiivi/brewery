@@ -23,6 +23,7 @@
 import sys
 import urllib2
 import urlparse
+import brewery.dq
 
 datastore_dictionary = {}
 datastore_adapters = {}
@@ -157,8 +158,6 @@ def collapse_record(record, separator = '.', root = None):
         else:
             result[collapsed_key] = value
     return result
-        
-
 
 def open_resource(resource, mode = None):
     """Get file-like handle for a resource. Conversion:
@@ -409,10 +408,89 @@ class DataSource(DataStream):
     """Input data stream - for reading."""
 
     def rows(self):
-        """Return iterable object with tuples. This is the main method for reading from
+        """Return iterable object with tuples. This is one of two methods for reading from
         data source. Subclasses should implement this method.
         """
         raise NotImplementedError()
+
+    def records(self):
+        """Return iterable object with dict objects. This is one of two methods for reading from
+        data source. Subclasses should implement this method.
+        """
+        raise NotImplementedError()
+
+    def read_fields(self, limit = 0, collapse = False):
+        """Read field descriptions from data source. You should use this for datasets that do not
+        provide metadata directly, such as CSV files, document bases databases or directories with
+        structured files. Does nothing in relational databases, as fields are represented by table
+        columns and table metadata can obtained from database easily.
+        
+        Note that this method can be quite costly, as by default all records within dataset are read
+        and analysed.
+        
+        After executing this method, stream ``fields`` is set to the newly read field list and may
+        be configured (set more appropriate data types for example).
+        
+        :Arguments:
+            - `limit`: read only specified number of records from dataset to guess field properties
+            - `collapse`: whether records are collapsed into flat structure or not
+            
+        Returns: tuple with Field objects. Order of fields is datastore adapter specific.
+        """
+
+        keys = []
+        probes = {}
+
+        def probe_record(record, parent = None):
+            for key, value in record.items():
+                if parent:
+                    full_key = parent + "." + key
+                else:
+                    full_key = key
+
+                if self.expand and type(value) == dict:
+                    probe_record(value, full_key)
+                    continue
+
+                if not full_key in probes:
+                    probe = brewery.dq.FieldTypeProbe(full_key)
+                    probes[full_key] = probe
+                    keys.append(full_key)
+                else:
+                    probe = probes[full_key]
+                probe.probe(value)
+
+        count = 0
+        for record in self.records():
+            if collapse:
+                record = collapse_record(record)
+            print record
+            probe_record(record)
+            if limit and count >= limit:
+                break
+            count += 1
+
+        fields = []
+
+        for key in keys:
+            probe = probes[key]
+            field = Field(probe.field)
+
+            storage_type = probe.unique_storage_type
+            if not storage_type:
+                field.storage_type = "unknown"
+            elif storage_type == "unicode":
+                field.storage_type = "string"
+            else:
+                field.storage_type = "unknown"
+                field.concrete_storage_type = storage_type
+
+            # FIXME: Set analytical type
+
+            fields.append(field)
+
+        self._fields = list(fields)
+        return self._fields
 
 class DataTarget(DataStream):
     """Output data stream - for writing.
