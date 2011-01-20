@@ -7,7 +7,8 @@ import re
 
 from test_data_source import *
 
-test_cases = [DataStoreTestCase,
+test_cases = [DataSourceUtilsTestCase,
+              DataStoreTestCase,
               DataSourceTestCase
                 ]
 

@@ -122,6 +122,44 @@ def fieldlist(fields):
         a_list.append(Field(**d))
     return list(a_list)
     
+def expand_record(record, separator = '.'):
+    """Expand record represented as dict object by treating keys as key paths separated by
+    `separator`, which is by default ``.``. For example: ``{ "product.code": 10 }`` will become
+    ``{ "product" = { "code": 10 } }``
+    
+    See :func:`brewery.ds.collapse_record` for reverse operation.
+    """
+    result = {}
+    for key, value in record.items():
+        current = result
+        path = key.split(separator)
+        for part in path[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        current[path[-1]] = value
+    return result
+
+def collapse_record(record, separator = '.', root = None):
+    """See :func:`brewery.ds.expand_record` for reverse operation.
+    """
+
+    result = {}
+    for key, value in record.items():
+        if root:
+            collapsed_key = root + separator + key
+        else:
+            collapsed_key = key
+        
+        if type(value) == dict:
+            collapsed = collapse_record(value, separator, collapsed_key)
+            result.update(collapsed)
+        else:
+            result[collapsed_key] = value
+    return result
+        
+
+
 def open_resource(resource, mode = None):
     """Get file-like handle for a resource. Conversion:
     
@@ -339,8 +377,8 @@ class DataStream(object):
         """
         pass
 
-    def get_fields(self):
-        """Return stream field metadata: tuple of :class:`Field` objects representing fields passed
+    def __get_fields(self):
+        """Information about fields: tuple of :class:`Field` objects representing fields passed
         through the receiving stream - either read from data source (:meth:`DataSource.rows`) or written
         to data target (:meth:`DataTarget.append`).
 
@@ -354,11 +392,11 @@ class DataStream(object):
         """
         return self._fields
 
-    def set_fields(self, fields):
+    def __set_fields(self, fields):
         self._fields = fields
         # raise Exception("Data stream %s does not support setting fields." % str(self.__class__))
 
-    fields = property(get_fields, set_fields)
+    fields = property(__get_fields, __set_fields)
 
     @property
     def field_names(self):

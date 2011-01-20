@@ -7,6 +7,22 @@ import json
 import csv
 import shutil
 
+class DataSourceUtilsTestCase(unittest.TestCase):
+    def test_expand_collapse(self):
+        record = { "name": "foo", 
+                    "entity.name": "bar", 
+                    "entity.number" : 10, 
+                    "entity.address.country": "Uganda" }
+        ex_record = { "name": "foo", 
+                     "entity": { "name": "bar", 
+                                 "number" : 10, 
+                                 "address": {"country": "Uganda" }
+                                }
+                    }
+                
+        self.assertEqual(ex_record, brewery.ds.expand_record(record))
+        self.assertEqual(record, brewery.ds.collapse_record(ex_record))
+
 class DataStoreTestCase(unittest.TestCase):
     def setUp(self):
         pass
@@ -145,6 +161,8 @@ class DataSourceTestCase(unittest.TestCase):
         utype = stat["unique_storage_type"]
         ftype = stat["storage_types"][0]
         self.assertEqual(utype, ftype)
+        
+        src.finalize()
 
     # def test_sqlite_source(self):
     #     return

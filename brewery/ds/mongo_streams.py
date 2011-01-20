@@ -112,16 +112,6 @@ class MongoDBDataSource(base.DataSource):
         iterator = self.collection.find(fields = fields)
         return MongoDBRecordIterator(iterator, self.expand)
 
-    def get_fields(self):
-        if not self._fields:
-            raise ValueError("Fields are not initialized in MongoDB source")
-        return self._fields
-        
-    def set_fields(self, fields):
-        self._fields = fields
-
-    fields = property(get_fields, set_fields)
-
 class MongoDBRowIterator(object):
     """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as 
     dictionaries"""
