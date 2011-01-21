@@ -20,5 +20,7 @@ __all__ = (
     "GoogleSpreadsheetDataSource",
     "YamlDirectoryDataSource",
     "YamlDirectoryDataTarget",
+    "SQLDataSource",
+    "SQLDataTarget",
     "StreamAuditor"
 )

@@ -112,7 +112,7 @@ class YamlDirectoryDataTarget(base.DataTarget):
         path = os.path.join(self.path, base_name)
 
         handle = open(path, "w")
-        yaml.safe_dump(record, stream = handle, encoding= None)
+        yaml.safe_dump(record, stream = handle, encoding= None, default_flow_style = False)
         handle.close()
         
         self.index += 1
