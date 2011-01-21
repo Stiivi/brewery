@@ -13,6 +13,17 @@ class YamlDirectoryDataSource(base.DataSource):
     def __init__(self, path, extension = "yml", expand = False, filename_field = None):
         """Creates a YAML directory data source stream.
         
+        The data source reads files from a directory and treats each file as single record. For example,
+        following directory will contain 3 records::
+        
+            data/
+                contract_0.yml
+                contract_1.yml
+                contract_2.yml
+        
+        Optionally one can specify a field where file name will be stored.
+        
+        
         :Attributes:
             * path: directory with YAML files
             * extension: file extension to look for, default is ``yml``,if none is given, then
@@ -29,8 +40,6 @@ class YamlDirectoryDataSource(base.DataSource):
         self.extension = extension
         
     def initialize(self):
-        """Initialize source stream:
-        """
         pass
   
     def records(self):
@@ -68,8 +77,8 @@ class YamlDirectoryDataTarget(base.DataTarget):
     """
     def __init__(self, path, filename_template = "record_${__index}.yml", expand = False, 
                     filename_start_index = 0):
-        """Creates a CSV data source stream.
-
+        """Creates a directory data target with YAML files as records.
+        
         :Attributes:
             * path: directory with YAML files
             * extension: file extension to use

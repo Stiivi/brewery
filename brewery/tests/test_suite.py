@@ -6,10 +6,11 @@ import json
 import re
 
 from test_data_source import *
+from test_streams import *
 
 test_cases = [DataSourceUtilsTestCase,
-              DataStoreTestCase,
               DataSourceTestCase
+#              CSVDataStreamsTestCase
                 ]
 
 def load_tests(loader, tests, pattern):

@@ -23,22 +23,22 @@ class DataSourceUtilsTestCase(unittest.TestCase):
         self.assertEqual(ex_record, brewery.ds.expand_record(record))
         self.assertEqual(record, brewery.ds.collapse_record(ex_record))
 
-class DataStoreTestCase(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_stores(self):
-        
-    	self.assertRaisesRegexp(Exception, "datastore with name", brewery.ds.datastore, "foo")
-        desc = {"url":":memory:"}
-    	self.assertRaisesRegexp(ValueError, "No adapter provided", brewery.ds.datastore, desc)
-
-        desc = {"adapter":"foo", "path":":memory:"}
-    	self.assertRaisesRegexp(KeyError, "Adapter.*foo.*not found", brewery.ds.datastore, desc)
-
-        desc = {"adapter":"sqlalchemy", "url":"sqlite:///:memory:"}
-        ds = brewery.ds.datastore(desc)
-    	self.assertEqual("sqlalchemy", ds.adapter_name)
+# class DataStoreTestCase(unittest.TestCase):
+#     def setUp(self):
+#         pass
+# 
+#     def test_stores(self):
+#         
+#       self.assertRaisesRegexp(Exception, "datastore with name", brewery.ds.datastore, "foo")
+#         desc = {"url":":memory:"}
+#       self.assertRaisesRegexp(ValueError, "No adapter provided", brewery.ds.datastore, desc)
+# 
+#         desc = {"adapter":"foo", "path":":memory:"}
+#       self.assertRaisesRegexp(KeyError, "Adapter.*foo.*not found", brewery.ds.datastore, desc)
+# 
+#         desc = {"adapter":"sqlalchemy", "url":"sqlite:///:memory:"}
+#         ds = brewery.ds.datastore(desc)
+#       self.assertEqual("sqlalchemy", ds.adapter_name)
  		
 class DataSourceTestCase(unittest.TestCase):
     output_dir = None
@@ -80,12 +80,12 @@ class DataSourceTestCase(unittest.TestCase):
         src.read_header = True
         src.initialize()
         names = [field.name for field in src.fields]
-        self.assertEqual(['name', 'type', 'amount'], names)
+        self.assertEqual(['id', 'name', 'type', 'location.name', 'location.code', 'amount'], names)
 
         result = self.read_source(src)
             
-        self.assertEqual(3, result["max_fields"])
-        self.assertEqual(3, result["min_fields"])
+        self.assertEqual(6, result["max_fields"])
+        self.assertEqual(6, result["min_fields"])
         self.assertEqual(8, result["count"])
 
     def test_csv_dialect(self):
@@ -154,7 +154,7 @@ class DataSourceTestCase(unittest.TestCase):
         # Get the field statistics
         stats = auditor.field_statistics
         
-        self.assertEqual(len(stats), 3)
+        self.assertEqual(len(stats), 6)
         stat = stats["type"].dict()
         self.assertTrue("record_count" in stat)
         self.assertTrue("unique_storage_type" in stat)

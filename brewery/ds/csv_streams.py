@@ -162,6 +162,11 @@ class CSVDataSource(base.DataSource):
             raise RuntimeError("Fields are not initialized")
         return self.reader
 
+    def records(self):
+        fields = self.field_names
+        for row in self.reader:
+            yield dict(zip(fields, row))
+
 class CSVDataTarget(base.DataTarget):
     def __init__(self, resource, write_headers = True, truncate = True, encoding = "utf-8", 
                 dialect = None, **kwds):
