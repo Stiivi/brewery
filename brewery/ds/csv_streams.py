@@ -207,4 +207,11 @@ class CSVDataTarget(base.DataTarget):
             self.file.close()
 
     def append(self, obj):
-        self.writer.writerow(obj)
+        if type(obj) == dict:
+            row = []
+            for field in self.field_names:
+                row.append(obj.get(field))
+        else:
+            row = obj
+                
+        self.writer.writerow(row)

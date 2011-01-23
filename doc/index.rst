@@ -16,6 +16,7 @@ Contents:
    streams
    data_quality
    tools
+   examples/index
    api/index
 
 Indices and tables

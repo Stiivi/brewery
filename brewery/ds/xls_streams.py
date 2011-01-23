@@ -61,6 +61,11 @@ class XLSDataSource(base.DataSource):
             raise RuntimeError("Fields are not initialized")
         return XLSRowIterator(self.workbook, self.sheet, self.skip_rows)
 
+    def records(self):
+        fields = self.field_names
+        for row in self.rows():
+            yield dict(zip(fields, row))
+
     def _read_fields(self):
         # FIXME: be more sophisticated and read field types from next row
         if self.read_header:
