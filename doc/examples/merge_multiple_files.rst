@@ -89,7 +89,7 @@ Go through all sources and merge them:
         fields = source.get("fields")
 
         # Initialize data source: skip reading of headers - we are preparing them ourselves
-
+        # use XLSDataSource for XLS files
         src = ds.CSVDataSource(path, read_header = False)
         src.fields = ds.fieldlist(fields)
         src.initialize()
@@ -104,3 +104,37 @@ Go through all sources and merge them:
         src.finalize()
 
 Now you have a sparse CSV files which contains all rows from source CSV files in one ``merged.csv``.
+
+You can have a directory with YAML files (one per record/row) as output instead of one CSV just by
+changing data stream target. See :class:`brewery.ds.YamlDirectoryDataTarget` for more information.
+
+
+.. code-block:: python
+
+    out = ds.YamlDirectoryDataTarget("merged_grants")
+
+Directory ``merged_grants`` must exist before running the script.
+
+Or directly into a SQL database. The following will initialize SQL table target stream which will remove
+all existing records from the table before inserting. Note that the table ``grants`` must exist in
+database ``opendata`` and must contain columns with names equal to fields specified in ``all_fields``.
+See :class:`brewery.ds.SQLDataTarget` for more information.
+
+.. code-block:: python
+
+    out = ds.SQLDataTarget(url = "postgres://localhost/opendata",
+                           table = "grants",
+                           truncate = True)
+
+
+Refer to source streams and source targets in the API documentation for more information about
+possibilities.
+
+
+.. seealso:: 
+
+    Module :mod:`brewery.ds`
+        List of varous data sources and data targets.
+    Function :func:`brewery.ds.fieldlist`
+        All streams use list of :class:`brewery.ds.Field` objects for field metadata. This function will
+        convert list of strings into list of instances of Field class.
