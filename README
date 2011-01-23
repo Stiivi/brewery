@@ -1,12 +1,13 @@
-Brewery - Data Manipulation and Data Mining Framework for Python
+Brewery - Data streaming, auditing and mining framework for Python
 
 ABOUT
 
-Brewery is a ruby framework for:
-* Data streams
-* OLAP and multidimensional analysis
-* data mining
+Brewery is a python framework for:
+* data streams - streaming structured data from various sources into various targets. Example of 
+  existing streams: CSV, XLS, Google Spreadsheet, relational SQL database, MongoDB, directory with YAML
+  files, HTML, ...
 * data quality monitoring
+* data mining
 
 AUTHOR
 
@@ -15,7 +16,7 @@ Stefan Urbanek <stefan.urbanek@gmail.com>
 
 COPYRIGHT
 
-Copyright (C) 2010 Stefan Urbanek
+Copyright (C) 2010, 2011 Stefan Urbanek
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
