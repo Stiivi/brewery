@@ -243,7 +243,7 @@ class SQLDataTarget(base.DataTarget):
     """
     def __init__(self, connection = None, url = None,
                     table = None, schema = None, truncate = False, 
-                    create = False, replace = False, **options):
+                    create = False, statement = None, replace = False, **options):
         """Creates a relational database data target stream.
         
         :Attributes:
@@ -291,7 +291,7 @@ class SQLDataTarget(base.DataTarget):
             self.dataset = self.datastore.dataset(self.table_name)
             
         if self.truncate:
-            self.dataset.table.delete()
+            self.dataset.table.delete().execute()
 
         self._update_fields()
         self.insert_command = self.dataset.table.insert()

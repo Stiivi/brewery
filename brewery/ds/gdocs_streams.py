@@ -84,7 +84,8 @@ class GoogleSpreadsheetDataSource(base.DataSource):
     def records(self):
         if not self.worksheet:
             raise RuntimeError("Stream is not initialized (no worksheet)")
-        return self.worksheet.FindRecords(self.query_string)
+        iterator = self.worksheet.FindRecords(self.query_string).__iter__()
+        return GDocRecordIterator(self.field_names, iterator)
 
 class GDocRowIterator(object):
     """
@@ -102,3 +103,18 @@ class GDocRowIterator(object):
         content = record.content
         values = [content[field] for field in self.field_names]
         return list(values)
+
+class GDocRecordIterator(object):
+    """
+    Iterator that returns records as dict objects
+    """
+    def __init__(self, field_names, iterator):
+        self.iterator = iterator
+        self.field_names = field_names
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        record = self.iterator.next()
+        return record.content

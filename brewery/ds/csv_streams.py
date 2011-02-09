@@ -65,7 +65,7 @@ class CSVDataSource(base.DataSource):
     Some code taken from OKFN Swiss library.
     """
     def __init__(self, resource, read_header = True, dialect = None, encoding=None, detect_encoding = False, 
-                detect_header = False, sample_size = 200, **reader_args):
+                detect_header = False, sample_size = 200, skip_rows = None, **reader_args):
         """Creates a CSV data source stream.
         
         :Attributes:
@@ -77,7 +77,8 @@ class CSVDataSource(base.DataSource):
             * detect_headers: try to determine whether data source has headers in first row or not
             * sample_size: maximum bytes to be read when detecting encoding and headers in file. By
                 default it is set to 200 bytes to prevent loading huge CSV files at once.
-        
+            * skip_rows: number of rows to be skipped. Default: ``None``
+            
         Note: avoid auto-detection when you are reading from remote URL stream.
         
         """
@@ -95,7 +96,7 @@ class CSVDataSource(base.DataSource):
         self.dialect = dialect
         
         self.close_file = False
-        
+        self.skip_rows = skip_rows
         self._fields = None
         
     def initialize(self):
@@ -146,6 +147,10 @@ class CSVDataSource(base.DataSource):
 
         self.reader = csv.reader(handle, **self.reader_args)
 
+        if self.skip_rows:
+            for i in range(0, self.skip_rows):
+                self.reader.next()
+                
         # Initialize field list
         if self.read_header:
             fields = self.reader.next()

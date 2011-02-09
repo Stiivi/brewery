@@ -13,7 +13,7 @@ class XLSDataSource(base.DataSource):
 
     Based on the OKFN Swiss library.
     """
-    def __init__(self, resource, sheet = None, read_header = True):
+    def __init__(self, resource, sheet = None, encoding = None, skip_rows = None, read_header = True):
         """Creates a XLS spreadsheet data source stream.
         
         :Attributes:
@@ -29,6 +29,7 @@ class XLSDataSource(base.DataSource):
         self.skip_rows = 0
         self._fields = None
         self.close_file = True
+        self.encoding = encoding
         
     def initialize(self):
         """Initialize XLS source stream:
@@ -36,7 +37,8 @@ class XLSDataSource(base.DataSource):
 
         self.file, self.close_file = base.open_resource(self.resource)
 
-        self.workbook = xlrd.open_workbook(file_contents=self.file.read())
+        self.workbook = xlrd.open_workbook(file_contents=self.file.read(),
+                                           encoding_override=self.encoding)
 
         if not self.sheet_reference:
             self.sheet_reference = 0
