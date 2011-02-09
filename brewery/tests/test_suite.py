@@ -6,10 +6,14 @@ import json
 import re
 
 from test_data_source import *
-from test_streams import *
+from test_pipes import *
+from test_nodes import *
+# from test_streams import *
 
 test_cases = [DataSourceUtilsTestCase,
-              DataSourceTestCase
+              DataSourceTestCase,
+              PipeTestCase,
+              NodesTestCase
 #              CSVDataStreamsTestCase
                 ]
 
@@ -20,7 +24,3 @@ def load_tests(loader, tests, pattern):
         suite.addTests(tests)
     return suite
 
-# 
-# 
-# if __name__ == '__main__':
-#     unittest.main()
