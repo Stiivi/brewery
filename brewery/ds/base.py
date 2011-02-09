@@ -26,7 +26,7 @@ import urlparse
 import brewery.dq
 
 def fieldlist(fields):
-    """Create a list of :class:`Field` objects from a list of strings, dictionaries or tuples
+    """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
     
     How fields are consutrcuted:
         * string: `field name` is set 
