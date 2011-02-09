@@ -1,6 +1,7 @@
 import base
 import re
 import copy
+import brewery.ds as ds
 
 class FieldMapNode(base.Node):
     """Map fields: rename fields or drop fields."""
@@ -20,7 +21,7 @@ class FieldMapNode(base.Node):
 
     @property
     def output_fields(self):
-        output_fields = []
+        output_fields = ds.FieldList()
         
         for field in self.input.fields:
             if field.name in self.mapped_fields:
@@ -89,7 +90,7 @@ class TextSubstituteNode(base.Node):
         else:
             append = False
 
-        index = pipe.field_index(self.field)
+        index = self.input_fields.index(self.field)
             
         for row in pipe.rows():
             value = row[index]

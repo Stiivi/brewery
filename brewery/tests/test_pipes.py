@@ -79,14 +79,3 @@ class PipeTestCase(unittest.TestCase):
         target.join()
         self.assertEqual(self.processed_count, 20)
         self.assertLess(self.sent_count, 1000)
-
-    def test_fields(self):
-        pipe = pipes.Pipe()
-        fields = ["a", "b", "c", "d"]
-        pipe.fields = ds.fieldlist(fields)
-        
-        self.assertEqual(fields, pipe.field_names)
-        indexes = pipe.field_indexes(["a", "c", "d"])
-        self.assertEqual((0, 2, 3), indexes)
-
-        self.assertRaises(ValueError, pipe.field_indexes, ["a", "c", "x"])

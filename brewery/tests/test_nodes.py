@@ -231,6 +231,11 @@ class NodesTestCase(unittest.TestCase):
         # Setup node
         node.add_aggregation("id", ["sum"])
         self.initialize_node(node)
+
+        fields = node.output_field_names
+        a = ['id_sum', 'id_min', 'id_max', 'id_average', 'record_count']
+        self.assertEqual(a, fields)
+
         node.run()
         node.finalize()
 

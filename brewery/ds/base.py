@@ -40,40 +40,37 @@ def fieldlist(fields):
         * `analytical_type` is set to ``typeless``
     """
 
-    a_list = []
-    for obj in fields:
-        d = {}
-        d["storage_type"] = "unknown"
-        d["analytical_type"] = "typeless"
+    return FieldList(fields)
 
-        if type(obj) == str or type(obj) == unicode:
-            d["name"] = obj
-        elif type(obj) == tuple:
-            d["name"] = obj[0]
-            if len(obj) > 1:
-                d["storage_type"] = obj[1]
-                if len(obj) > 2:
-                    d["analytical_type"] = obj[2]
-        elif type(obj) == dict:
-            d["name"] = obj["name"]
-            if "label" in obj:
-                d["label"] = obj["label"]
-            if "storage_type" in obj:
-                d["storage_type"] = obj["storage_type"]
-            if "analytical_type" in obj:
-                d["analytical_type"] = obj["analytical_type"]
-            if "adapter_storage_type" in obj:
-                d["adapter_storage_type"] = obj["adapter_storage_type"]
+def field_names(fields):
+    """Return field names from list of fields.
+    
+    :Parameters:
+        * `fields` - `FieldList` object, list of `Field` objects or list of strings
+        
+    Returns a list of strings containing names of fields.
+    
+    """
+    names = []
+    if type(fields) == FieldList:
+        fields = fields.fields
+
+    for field in fields:
+        if type(field) == str or type(field) == unicode:
+            name = field
         else:
-            raise ValueError("Unknown object type ('%s' ) of field description object '%s'" \
-                                % (type(obj), obj))
-        
-        if "analytical_type" not in d:
-            deftype = Field.default_analytical_types[d["storage_type"]]
-            d["analytical_type"] = deftype
-        
-        a_list.append(Field(**d))
-    return list(a_list)
+            name = field.name
+        names.append(name)
+
+    return names
+    
+def field_name(field):
+    """Return a field name. If the `field` is a string object, return just the string. If 
+    the `field` is `Field` instance then return `field.name` """
+    if type(field) == str or type(field) == unicode:
+        return field
+    else:
+        return field.name
     
 def expand_record(record, separator = '.'):
     """Expand record represented as dict object by treating keys as key paths separated by
@@ -214,7 +211,7 @@ class Field(object):
                     "date": "typeless"
                 }
 
-    def __init__(self, name, label = None, storage_type = "unknown", analytical_type = None, 
+    def __init__(self, name, label = None, storage_type = "unknown", analytical_type = "typeless", 
                     concrete_storage_type = None, missing_values = None):
         self.name = name
         self.label = label
@@ -235,8 +232,208 @@ class Field(object):
         d["concrete_storage_type"] = self.concrete_storage_type
         d["missing_values"] = self.missing_values
         return "<%s(%s)>" % (self.__class__, d)
-  
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if self.name != other.name or self.label != other.label:
+            return False
+        elif self.storage_type != other.storage_type or self.analytical_type != other.analytical_type:
+            return False
+        elif self.concrete_storage_type != other.concrete_storage_type:
+            return False
+        elif self.missing_values != other.missing_values:
+            return False
+        else:
+            return True
+            
+    def __ne__(self,other):
+        return not self.__eq__(other)
+
+class FieldList(object):
+    """List of fields"""
+    def __init__(self, fields = None):
+        """
+        Create a list of :class:`Field` objects from a list of strings, dictionaries or tuples
+
+        How fields are consutrcuted:
+            * string: `field name` is set 
+            * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is obligatory,
+                rest is optional
+            * dict: contains key-value pairs for initializing a :class:`Field` object
+
+        For strings and in if not explicitly specified in a tuple or a dict case, then following rules
+        apply:
+            * `storage_type` is set to ``unknown``
+            * `analytical_type` is set to ``typeless``
+        """
+        super(FieldList, self).__init__()
+
+        self._fields = []
+        self._field_dict = {}
+        self._field_names = []
+
+        if fields:
+            for field in fields:
+                self.append(field)
+        
+    def append(self, field):
+        """Add field to list of fields.
+        
+        :Parameters:
+            * `field` - :class:`Field` object, ``str``, ``tuple`` or ``dict`` object 
+
+        If field is not a `Field` object, then construction of new field is as follows:
+            * ``str``: `field name` is set 
+            * ``tuple``: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
+              obligatory, rest is optional
+            * ``dict``: contains key-value pairs for initializing a :class:`Field` object
+
+        For strings and in if not explicitly specified in a tuple or a dict case, then following rules
+        apply:
+            * `storage_type` is set to ``unknown``
+            * `analytical_type` is set to ``typeless``
+        """
+
+
+        d = {}
+        d["storage_type"] = "unknown"
+        d["analytical_type"] = "typeless"
+
+        if type(field) == Field:
+            # FIXME: should be a copy?
+            new_field = field
+        else:
+            if type(field) == str or type(field) == unicode:
+                d["name"] = field
+            elif type(field) == tuple or type(field) == list:
+                d["name"] = field[0]
+                if len(field) > 1:
+                    d["storage_type"] = field[1]
+                    if len(field) > 2:
+                        d["analytical_type"] = field[2]
+            elif type(field) == dict:
+                d["name"] = field["name"]
+                if "label" in field:
+                    d["label"] = field["label"]
+                if "storage_type" in field:
+                    d["storage_type"] = field["storage_type"]
+                if "analytical_type" in field:
+                    d["analytical_type"] = field["analytical_type"]
+                if "adapter_storage_type" in field:
+                    d["adapter_storage_type"] = field["adapter_storage_type"]
+            else:
+                raise ValueError("Unknown field object type ('%s' ) of field description object '%s'" \
+                                    % (type(field), field))
+
+            if "analytical_type" not in d:
+                deftype = Field.default_analytical_types[d["storage_type"]]
+                d["analytical_type"] = deftype
+
+            new_field = Field(**d)
+            
+        self._fields.append(new_field)
+        self._field_dict[new_field.name] = new_field
+        self._field_names.append(new_field.name)
+        
+    def field_names(self, indexes = None):
+        """Return names of fields in the list.
+
+        :Parameters:
+            * `indexes` - list of indexes for which field names should be collected. If set to
+              ``None`` then all field names are collected - this is default behaviour.
+        """
+        
+        if indexes:
+            names = []
+            for i in indexes:
+                names.append(self._field_names[i])
+            return names
+        else:
+            return self._field_names
+
+    def indexes(self, fields):
+        """Return a tuple with indexes of fields from ``fields`` in a data row. Fields
+        should be a list of ``Field`` objects or strings"""
+
+        names = field_names(fields)
+        indexes = []
+        for field in names:
+            indexes.append(self.index(field))
+
+        return tuple(indexes)
+
+    def index(self, field):
+        """Return index of a field"""
+        
+        try:
+            index = self._field_names.index(field_name(field))
+        except ValueError:
+            raise KeyError("Field list has no field with name '%s'" % name)
+
+        return index
+
+    def fields(self, names = None):
+        """Return a tuple with indexes of fields from ``fieldlist`` in a data row."""
+        if not names:
+            return self._fields
+
+        fields = []
+        for name in names:
+            if name in self._field_dict:
+                fields.append(self._field_dict[name])
+            else:
+                raise KeyError("Field list has no field with name '%s'" % name)
+
+        return fields
+
+    def field(self, name):
+        """Return a field with name `name`"""
+        if name in self._field_dict:
+            fields.append(self._field_dict[name])
+        else:
+            raise KeyError("Field list has no field with name '%s'" % name)
+    
+    def __len__(self):
+        return len(self._fields)
+        
+    def __getitem__(self, index):
+        return self._fields[index]
+        
+    def __setitem__(self, index, new_field):
+        field = self._fields[index]
+        del self._field_dict[field.name]
+        self._fields[index] = new_field
+        self._field_names[index] = new_field.name
+        self._field_dict[new_field.name] = new_field
+        
+    def __delitem__(self, index):
+        field = self._fields[index]
+        del self._field_dict[field.name]
+        del self._fields[index]
+        del self._field_names[index]
+        
+    def __iter__(self):
+        return self._fields.__iter__()
+        
+    def __contains__(self, field):
+        if type(field) == str or type(field) == unicode:
+            return field in self._field_names
+            
+        return field in self._fields
+
+    def copy(self, fields = None):
+        """Return a shallow copy of the list.
+        
+        :Parameters:
+            * `fields` - list of fields to be copied.
+        """
+        if fields:
+            copy_fields = self.fields(fields)
+            return FieldList(copy_fields)
+        else:
+            return FieldList(self._fields)
+        
 class DataStream(object):
     """Shared methods for data targets and data sources"""
     

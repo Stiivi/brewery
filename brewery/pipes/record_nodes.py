@@ -149,14 +149,19 @@ class AggregateNode(base.Node):
     @property
     def output_fields(self):
         # FIXME: use storage types based on aggregated field type
+        fields = ds.FieldList()
 
-        fields = self.input.fields_with_names(self.key_fields)
+        if self.key_fields:
+            for field in  self.input_fields.fields(self.key_fields):
+                fields.append(field)
+
         for field in self.aggregated_fields:
             fields.append(ds.Field(field + "_sum", storage_type = "float", analytical_type = "range"))
             fields.append(ds.Field(field + "_min", storage_type = "float", analytical_type = "range"))
             fields.append(ds.Field(field + "_max", storage_type = "float", analytical_type = "range"))
             fields.append(ds.Field(field + "_average", storage_type = "float", analytical_type = "range"))
         fields.append(ds.Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
+
         return fields
         
     def run(self):
@@ -165,8 +170,8 @@ class AggregateNode(base.Node):
         self.keys = []
         self.counts = {}
         
-        key_indexes = pipe.field_indexes(self.key_fields)
-        value_indexes = pipe.field_indexes(self.aggregated_fields)
+        key_indexes = self.input_fields.indexes(self.key_fields)
+        value_indexes = self.input_fields.indexes(self.aggregated_fields)
         
         for row in pipe.rows():
             # Create aggregation key
@@ -214,4 +219,5 @@ class AggregateNode(base.Node):
                 row.append(aggregate.average)
 
             row.append(key_aggregate.count)
+
             self.put(row)
