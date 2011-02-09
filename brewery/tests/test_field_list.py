@@ -39,10 +39,10 @@ class FieldListCase(unittest.TestCase):
         fields = ds.FieldList(["a", "b", "c", "d"])
         del fields[0]
         
-        self.assertEqual(["b", "c", "d"], fields.field_names())
+        self.assertEqual(["b", "c", "d"], fields.names())
         
         del fields[2]
-        self.assertEqual(["b", "c"], fields.field_names())
+        self.assertEqual(["b", "c"], fields.names())
         
         self.assertRaises(KeyError, fields.field, "d")
         self.assertEqual(2, len(fields))

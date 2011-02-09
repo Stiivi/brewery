@@ -9,7 +9,7 @@ from test_data_source import *
 from test_pipes import *
 from test_nodes import *
 from test_field_list import *
-from test_node_network import *
+from test_node_stream import *
 # from test_streams import *
 
 test_cases = [FieldListCase,
@@ -17,7 +17,8 @@ test_cases = [FieldListCase,
               DataSourceTestCase,
               PipeTestCase,
               NodesTestCase,
-              ProcessingNetworkTestCase
+              StreamBuildingTestCase,
+              StreamInitializationTestCase
 #              CSVDataStreamsTestCase
                 ]
 

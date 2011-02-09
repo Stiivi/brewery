@@ -4,12 +4,26 @@ import copy
 import brewery.ds as ds
 
 class FieldMapNode(base.Node):
-    """Map fields: rename fields or drop fields."""
+    """Map fields: rename fields or drop fields.
+    
+    :Parameters:
+        * `map_fields` - dictionary of field name mappings, keys are source fields, values are
+          renamed (output) fields
+        * `drop_fields` - list of field names to be dropped from stream
+    
+    """
 
-    def __init__(self):
+    def __init__(self, map_fields = None, drop_fields = None):
         super(FieldMapNode, self).__init__()
-        self.mapped_fields = {}
-        self.dropped_fields = set([])
+        if map_fields:
+            self.mapped_fields = map_fields
+        else:
+            self.mapped_fields = {}
+
+        if drop_fields:
+            self.dropped_fields = set(drop_fields)
+        else:
+            self.dropped_fields = set([])
         
     def rename_field(self, source, target):
         """Change field name"""

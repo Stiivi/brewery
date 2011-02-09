@@ -1,5 +1,6 @@
 import base
 import brewery.ds as ds
+import logging
 
 class SampleNode(base.Node):
     def __init__(self, sample_size = 1000, discard_sample = False, mode = None):
@@ -19,7 +20,9 @@ class SampleNode(base.Node):
     def run(self):
         pipe = self.input
         count = 0
+        
         for row in pipe.rows():
+            logging.debug("sampling row %d" % count)
             self.put(row)
             count += 1
             if count >= self.sample_size:
@@ -127,13 +130,13 @@ class KeyAggregate(object):
         
 class AggregateNode(base.Node):
     """docstring for AggregateNode"""
-    def __init__(self, key_fields = None, default_aggregations = ["sum"], 
+    def __init__(self, keys = None, default_aggregations = ["sum"], 
                  record_count_field = "record_count"):
         """Creates a new node for aggregations. Supported aggregations: sum, avg, min, max""" 
                 
         super(AggregateNode, self).__init__()
-        if key_fields:
-            self.key_fields = key_fields
+        if keys:
+            self.key_fields = keys
         else:
             self.key_fields = []
             

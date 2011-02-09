@@ -336,7 +336,7 @@ class FieldList(object):
         self._field_dict[new_field.name] = new_field
         self._field_names.append(new_field.name)
         
-    def field_names(self, indexes = None):
+    def names(self, indexes = None):
         """Return names of fields in the list.
 
         :Parameters:
