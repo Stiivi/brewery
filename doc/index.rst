@@ -15,6 +15,7 @@ Contents:
    install
    streams
    data_quality
+   pipes
    tools
    examples/index
    api/index

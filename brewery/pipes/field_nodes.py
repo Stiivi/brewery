@@ -116,3 +116,26 @@ class TextSubstituteNode(base.Node):
                 row[index] = value
 
             self.put(row)
+
+# class ValueThresholdNode(base.Node):
+#     def __init__(self, field, low_value = None, high_value = None):
+#         """Creates a node for text replacement.
+# 
+#         :Attributes:
+#             * `field`: field to be used for substitution (should contain a string)
+#             * `derived_field`: new field to be created after substitutions. If set to ``None`` then the
+#               source field will be replaced with new substituted value. Default is ``None`` - same field
+#               replacement.
+# 
+#         """
+#         super(TextSubstituteNode, self).__init__()
+# 
+#         self.field = field
+#         self.derived_field = derived_field
+#         self.substitutions = []
+# 
+#         
+#     def run(self):
+#         index = self.input_fields.index(self.field)
+#         for row in self.input.rows():s
+#             

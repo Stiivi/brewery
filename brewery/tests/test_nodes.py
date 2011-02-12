@@ -15,6 +15,7 @@ class NodesTestCase(unittest.TestCase):
     def create_sample(self, count = 100, custom = None, pipe = None):
         if not pipe:
             pipe = self.input
+        pipe.empty()
         pipe.fields = brewery.ds.fieldlist(["i", "q", "str", "custom"])
         for i in range(0, count):
             pipe.put([i, float(i)/4, "item-%s" % i, custom])
@@ -259,3 +260,78 @@ class NodesTestCase(unittest.TestCase):
         for row in pipe.rows():
             if not (type(row) == list or type(row) == tuple):
                 self.fail('pipe should contain only rows (lists/tuples), found: %s' % type(row))
+
+    def test_select(self):
+        def select(value):
+            return value < 5
+        def select_greater_than(value, threshold):
+            return value > threshold
+            
+        node = pipes.SelectNode(function = select, fields = ["i"])
+
+        self.setup_node(node)
+        self.create_sample()
+
+        self.initialize_node(node)
+
+        # Passed fields should be equal
+        ifields = self.input.fields
+        ofields = node.output_fields
+        self.assertEqual(ifields, ofields)
+
+        node.run()
+        node.finalize()
+
+        self.assertEqual(5, len(self.output.buffer)) 
+
+        self.output.empty()
+        x = lambda value: value < 10
+        node.function = x
+        self.setup_node(node)
+        self.create_sample()
+
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+
+        self.assertEqual(10, len(self.output.buffer)) 
+        
+        # Test kwargs
+        self.output.empty()
+        self.setup_node(node)
+        self.create_sample()
+        node.function = select_greater_than
+        node.kwargs = {"threshold" : 7}
+        node.discard = True
+        
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+
+        self.assertEqual(8, len(self.output.buffer)) 
+    def test_set_select(self):
+        node = pipes.SetSelectNode(field = "type", value_set = ["a"])
+
+        self.setup_node(node)
+        self.create_distinct_sample()
+
+        self.initialize_node(node)
+
+        node.run()
+        node.finalize()
+
+        self.assertEqual(18, len(self.output.buffer)) 
+    def test_audit(self):
+        node = pipes.AuditNode()
+        self.setup_node(node)
+        self.create_distinct_sample()
+
+        self.initialize_node(node)
+
+        self.assertEqual(6, len(node.output_fields())) 
+
+        node.run()
+        node.finalize()
+
+        self.assertEqual(5, len(self.output.buffer)) 
+        

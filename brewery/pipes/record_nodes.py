@@ -1,5 +1,6 @@
 import base
 import brewery.ds as ds
+import brewery.dq as dq
 import logging
 
 class SampleNode(base.Node):
@@ -46,6 +47,11 @@ class AppendNode(base.Node):
         for pipe in self.inputs:
             for row in pipe.rows():
                 self.put(row)
+
+class MergeNode(base.Node):
+    def __init__(self):
+        super(DistinctNode, self).__init__()
+        
 
 class DistinctNode(base.Node):
     def __init__(self, distinct_fields = None, discard = False):
@@ -224,3 +230,123 @@ class AggregateNode(base.Node):
             row.append(key_aggregate.count)
 
             self.put(row)
+
+class SelectNode(base.Node):
+    def __init__(self, function = None, fields = None, discard = False, **kwargs):
+        """Creates a node that will select records based on condition `function`. 
+        
+        :Parameters:
+            * `function`: callable object that returns either True or False
+            * `fields`: list of fields passed to the function
+            * `discard`: if ``True``, then selection is inversed and fields that function
+              evaluates as ``True`` are discarded. Default is False - selected records are passed
+              to the output.
+            * `kwargs`: additional arguments passed to the function
+        
+        """
+        super(SelectNode, self).__init__()
+        self.function = function
+        self.fields = fields
+        self.discard = discard
+        self.kwargs = kwargs
+    
+    def initialize(self):
+        self.indexes = self.input_fields.indexes(self.fields)
+    
+    def run(self):
+        for row in self.input.rows():
+            values = [row[index] for index in self.indexes]
+            flag = self.function(*values, **self.kwargs)
+            if (flag and not self.discard) or (not flag and self.discard):
+                self.put(row)
+
+class SetSelectNode(base.Node):
+    def __init__(self, field = None, value_set = None, discard = False):
+        """Creates a node that will select records where `field` contains value from `value_set`.
+
+        :Parameters:
+            * `field`: field to be tested
+            * `value_set`: set of values that will be used for record selection
+            * `discard`: if ``True``, then selection is inversed and records that function
+              evaluates as ``True`` are discarded. Default is False - selected records are passed
+              to the output.
+
+        """
+        super(SetSelectNode, self).__init__()
+        self.field = field
+        self.value_set = value_set
+        self.discard = discard
+
+    def initialize(self):
+        self.field_index = self.input_fields.index(self.field)
+
+    def run(self):
+        for row in self.input.rows():
+            flag = row[self.field_index] in self.value_set
+            if (flag and not self.discard) or (not flag and self.discard):
+                self.put(row)
+
+class AuditNode(base.Node):
+    def __init__(self, distinct_threshold = 10):
+        """Creates a field audit node.
+        
+        :Attributes:
+            * `distinct_threshold` - number of distinct values to be tested. If there are more
+            than the threshold, then values are not included any more and result `distinct_values`
+            is set to None
+        
+        Audit note passes following fields to the output:
+        
+            * field_name - name of a field from input
+            * record_count - number of records
+            * null_count - number of records with null value for the field
+            * null_record_ratio - ratio of null count to number of records
+            * empty_string_count - number of strings that are empty (for fields of type string)
+            * distinct_values - number of distinct values (if less than distinct threshold). Set
+              to None if there are more distinct values than `distinct_threshold`.
+        
+        """
+        super(AuditNode, self).__init__()
+        self.distinct_threshold = distinct_threshold
+        
+    def output_fields(self):
+
+        audit_record_fields = [
+                               ("field_name", "string", "typeless"),
+                               ("record_count", "integer", "range"),
+                               ("null_count", "float", "range"),
+                               ("null_record_ratio", "float", "range"),
+                               ("empty_string_count", "integer", "range"),
+                               ("distinct_values", "integer", "range")
+                               ]
+                               
+        fields = ds.FieldList(audit_record_fields)
+        return fields
+
+    def initialize(self):
+        self.stats = []
+        for field in self.input_fields:
+            stat = dq.FieldStatistics(field.name, distinct_threshold = self.distinct_threshold)
+            self.stats.append(stat)
+        
+    def run(self):
+        for row in self.input.rows():
+            for i, value in enumerate(row):
+                self.stats[i].probe(value)
+        
+        for stat in self.stats:
+            stat.finalize()
+            if stat.distinct_overflow:
+                dist_count = None
+            else:
+                dist_count = len(stat.distinct_values)
+                
+            row = [ stat.field,
+                    stat.record_count,
+                    stat.null_count,
+                    stat.null_record_ratio,
+                    stat.empty_string_count,
+                    dist_count
+                  ]
+            self.put(row)
+
