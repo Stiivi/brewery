@@ -13,6 +13,21 @@ import logging
 class RowListSourceNode(base.SourceNode):
     """Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
     object."""
+
+    __node_info__ = {
+        "label" : "Row List Source",
+        "description" : "Provide list of lists or tuples as data source.",
+        "attributes" : [
+            {
+                 "name": "list",
+                 "description": "List of rows represented as lists or tuples."
+            },
+            {
+                 "name": "fields",
+                 "description": "Fields in the list."
+            }
+        ]
+    }
     def __init__(self, a_list = [], fields = None):
         self.list = a_list
         self.fields = fields
@@ -32,6 +47,21 @@ class RecordListSourceNode(base.SourceNode):
     """Source node that feeds records (dictionary objects) from a list (or any other iterable)
     object."""
 
+    __node_info__ = {
+        "label" : "Record List Source",
+        "description" : "Provide list of dict objects as data source.",
+        "attributes" : [
+            {
+                 "name": "list",
+                 "description": "List of records represented as dictionaries."
+            },
+            {
+                 "name": "fields",
+                 "description": "Fields in the list."
+            }
+        ]
+    }
+
     def __init__(self, a_list = [], fields = None):
         self.list = a_list
         self.fields = fields
@@ -48,6 +78,27 @@ class RecordListSourceNode(base.SourceNode):
         
     
 class StreamSourceNode(base.SourceNode):
+    """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
+    output.
+
+    The source data stream should configure fields on initialize().
+
+    Note that this node is only for programatically created processing streams. Not useable
+    in visual, web or other stream modelling tools.
+    """
+    
+    __node_info__ = {
+        "label" : "Data Stream Source",
+        "icon": "row_list_source_node",
+        "description" : "Generic data stream data source node.",
+        "attributes" : [
+            {
+                 "name": "stream",
+                 "description": "Data stream object."
+            }
+        ]
+    }
+
     def __init__(self, stream):
         super(StreamSourceNode, self).__init__()
         self.stream = stream

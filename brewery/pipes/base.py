@@ -123,6 +123,7 @@ class Pipe(SimpleDataPipe):
 class Node(object):
     """Base class for procesing node
     
+    .. abstract_node
     """
     def __init__(self):
         """Creates a new data processing node.
@@ -212,7 +213,11 @@ class Node(object):
         return self.output_fields.names()
 
 class SourceNode(Node):
-    """Abstract class for all source nodes"""
+    """Abstract class for all source nodes
+    
+    .. abstract_node
+    
+    """
     def __init__(self):
         super(SourceNode, self).__init__()
         self.fields = None
@@ -224,7 +229,11 @@ class SourceNode(Node):
         raise Exception("Should not add input pipe to a source node")
 
 class TargetNode(Node):
-    """Abstract class for all target nodes"""
+    """Abstract class for all target nodes
+    
+    .. abstract_node
+    
+    """
     def __init__(self):
         super(TargetNode, self).__init__()
         self.fields = None

@@ -4,14 +4,25 @@ import copy
 import brewery.ds as ds
 
 class FieldMapNode(base.Node):
-    """Map fields: rename fields or drop fields.
-    
-    :Parameters:
-        * `map_fields` - dictionary of field name mappings, keys are source fields, values are
-          renamed (output) fields
-        * `drop_fields` - list of field names to be dropped from stream
-    
+    """Node renames input fields or drops them from the stream.
     """
+    __node_info__ = {
+        "type": "field",
+        "label" : "Field Map",
+        "description" : "Rename or drop fields from the stream.",
+        "attributes" : [
+            {
+                "name": "map_fields",
+                "label": "Map fields",
+                "description": "Dictionary of input to output field name."
+            },
+            {
+                "name": "drop_fields",
+                "label": "drop fields",
+                "description": "List of fields to be dropped from the stream."
+            }
+        ]
+    }
 
     def __init__(self, map_fields = None, drop_fields = None):
         super(FieldMapNode, self).__init__()
@@ -65,6 +76,35 @@ class FieldMapNode(base.Node):
             self.put_record(record)
 
 class TextSubstituteNode(base.Node):
+    """Substitute text in a field using regular expression."""
+    
+    __node_info__ = {
+        "type": "field",
+        "label" : "Text Substitute",
+        "description" : "Substitute text in a field using regular expression.",
+        "attributes" : [
+            {
+                "name": "field",
+                "label": "substituted field",
+                "description": "Field containing a string or text value where substition will "
+                               "be applied"
+            },
+            {
+                "name": "derived_field",
+                "label": "derived field",
+                "description": "Field where substition result will be stored. If not set, then "
+                               "original field will be replaced with new value."
+            },
+            {
+                "name": "substitutions",
+                "label": "substitutions",
+                "description": "List of substitutions: each substition is a two-element tuple "
+                               "(`pattern`, `replacement`) where `pattern` is a regular expression "
+                               "that will be replaced using `replacement`"
+            }
+        ]
+    }
+
     def __init__(self, field, derived_field = None):
         """Creates a node for text replacement.
         
@@ -117,7 +157,62 @@ class TextSubstituteNode(base.Node):
 
             self.put(row)
 
-# class ValueThresholdNode(base.Node):
+class ValueThresholdNode(base.Node):
+    """Create a field that will refer to a value bin based on threshold(s). Values of `range` type
+    can be compared against one or two thresholds to get low/high or low/medium/high value bins.
+
+    *Note: this node is not yet implemented*
+    
+    The result is stored in a separate field that will be constructed from source field name and
+    prefix/suffix.
+    
+    For example:
+        * amount < 100 is low
+        * 100 <= amount <= 1000 is medium
+        * amount > 1000 is high
+
+    Generated field will be `amount_threshold` and will contain one of three possible values:
+    `low`, `medium`, `hight`
+    
+    Another possible use case might be for binning after data audit: we want to measure null 
+    record count and we set thresholds:
+        
+        * ratio < 5% is ok
+        * 5% <= ratio <= 15% is fair
+        * ratio > 15% is bad
+        
+    We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
+        
+    """
+    
+    __node_info__ = {
+        "type": "field",
+        "label" : "Value Threshold",
+        "description" : "Bin values based on a threshold.",
+        "attributes" : [
+            {
+                "name": "field_thresholds",
+                "label": "field",
+                "description": "Dictionary of range type field names and threshold tuples."
+            },
+            {
+                "name": "bins",
+                "label": "bins",
+                "description": "Names of bins based on threshold. Default is low, medium, high"
+            },
+            {
+                "name": "prefix",
+                "label": "prefix",
+                "description": "field prefix to be used"
+            },
+            {
+                "name": "suffix",
+                "label": "suffix",
+                "description": "field suffix to be used"
+            }
+        ]
+    }
+
 #     def __init__(self, field, low_value = None, high_value = None):
 #         """Creates a node for text replacement.
 # 
@@ -138,4 +233,27 @@ class TextSubstituteNode(base.Node):
 #     def run(self):
 #         index = self.input_fields.index(self.field)
 #         for row in self.input.rows():s
-#             
+#  
+
+class BinningNode(base.Node):
+    """Derive a bin/category field from a value.
+
+    *Note: this node is not yet implemented*
+    
+    Binning modes:
+    
+    * fixed width (for example: by 100)
+    * fixed number of fixed-width bins
+    * n-tiles by count or by sum
+    * record rank
+    
+        
+    """
+    
+    __node_info__ = {
+        "type": "field",
+        "label" : "Binning",
+        "icon": "histogram_node",
+        "description" : "Derive a field based on binned values (histogram)"
+    }
+           

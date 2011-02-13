@@ -4,6 +4,36 @@ import brewery.dq as dq
 import logging
 
 class SampleNode(base.Node):
+    """Create a data sample from input stream. There are more sampling possibilities:
+    
+    * fixed number of records
+    * % of records, random *(not yet implemented)*
+    * get each n-th record *(not yet implemented)*
+    
+    Node can work in two modes: pass sample to the output or discard sample and pass the rest.
+    The mode is controlled through the `discard` flag. When it is false, then sample is passed
+    and rest is discarded. When it is true, then sample is discarded and rest is passed.
+    
+    """
+    
+    __node_info__ = {
+        "label" : "Sample Node",
+        "description" : "Pass data sample from input to output.",
+        "output" : "same fields as input",
+        "attributes" : [
+            {
+                 "name": "sample_size",
+                 "description": "Size of the sample to be passed to the output"
+            },
+            {
+                "name": "discard",
+                 "description": "flag whether the sample is discarded or included",
+                 "default": "True"
+            }
+        ]
+    }
+    
+
     def __init__(self, sample_size = 1000, discard_sample = False, mode = None):
         """Creates and initializes sample node
         
@@ -31,6 +61,13 @@ class SampleNode(base.Node):
                 break
 
 class AppendNode(base.Node):
+    """Sequentialy append input streams. Concatenation order reflects input stream order. The
+    input streams should have same set of fields."""
+    __node_info__ = {
+        "label" : "Append",
+        "description" : "Concatenate input streams."
+    }
+
     def __init__(self):
         """Creates a node that concatenates records from inputs. Order of input pipes matter."""
         super(AppendNode, self).__init__()
@@ -49,11 +86,43 @@ class AppendNode(base.Node):
                 self.put(row)
 
 class MergeNode(base.Node):
+    """Merge two or more streams (join)"""
+    
     def __init__(self):
-        super(DistinctNode, self).__init__()
+        super(MergeNode, self).__init__()
         
 
 class DistinctNode(base.Node):
+    """Node will pass distinct records with given distinct fields.
+    
+    If `discard` is ``False`` then first record with distinct keys is passed to the output. This is
+    used to find all distinct key values.
+    
+    If `discard` is ``True`` then first record with distinct keys is discarded and all duplicate
+    records with same key values are passed to the output. This mode is used to find duplicate
+    records. For example: there should be only one invoice per organisation per month. Set
+    `distinct_fields` to `organisaion` and `month`, sed `discard` to ``True``. Running this node
+    should give no records on output if there are no duplicates.
+    
+    """
+    __node_info__ = {
+        "label" : "Distinct Node",
+        "description" : "Pass only distinct records (discard duplicates) or pass only duplicates",
+        "attributes" : [
+            {
+                "name": "distinct_fields",
+                "label": "distinct fields",
+                "description": "List of key fields that will be considered when comparing records"
+            },
+            {
+                "name": "discard",
+                "label": "derived field",
+                "description": "Field where substition result will be stored. If not set, then "
+                               "original field will be replaced with new value."
+            }
+        ]
+    }
+
     def __init__(self, distinct_fields = None, discard = False):
         """Creates a node that will pass distinct records with given distinct fields.
         
@@ -135,7 +204,26 @@ class KeyAggregate(object):
         self.field_aggregates = {}
         
 class AggregateNode(base.Node):
-    """docstring for AggregateNode"""
+    """Aggregate"""
+    
+    __node_info__ = {
+        "label" : "Aggregate Node",
+        "description" : "Aggregate values grouping by key fields.",
+        "output" : "Key fields followed by aggregations for each aggregated field. Last field is "
+                   "record count.",
+        "attributes" : [
+            {
+                 "name": "keys",
+                 "description": "List of fields according to which records are grouped"
+            },
+            {
+                "name": "record_count_field",
+                 "description": "Name of a field where record count will be stored. "
+                                "Default is `record_count`"
+            }
+        ]
+    }
+    
     def __init__(self, keys = None, default_aggregations = ["sum"], 
                  record_count_field = "record_count"):
         """Creates a new node for aggregations. Supported aggregations: sum, avg, min, max""" 
@@ -151,6 +239,7 @@ class AggregateNode(base.Node):
         self.record_count_field = record_count_field
             
     def add_aggregation(self, field, aggregations = None):
+        """Add aggregation for `field` """
         self.aggregations[field] = aggregations
         self.aggregated_fields.append(field)
     
@@ -232,6 +321,50 @@ class AggregateNode(base.Node):
             self.put(row)
 
 class SelectNode(base.Node):
+    """Select records that will be selected by a predicate function.
+
+
+    Example: configure a node that will select records where `amount` field is greater than 100
+    
+    .. code-block:: python
+
+        def select_greater_than(value, threshold):
+            return value > threshold
+
+        node.function = select_greater_than
+        node.fields = ["amount"]
+        node.kwargs = {"threshold": 100}
+
+    The `discard` flag controls behaviour of the node: if set to ``True``, then selection is
+    inversed and fields that function evaluates as ``True`` are discarded. Default is False -
+    selected records are passed to the output.
+    """
+    
+    __node_info__ = {
+        "label" : "Select",
+        "description" : "Select records by a predicate function.",
+        "output" : "same fields as input",
+        "attributes" : [
+            {
+                 "name": "function",
+                 "description": "Predicate function. Should be a callable object."
+            },
+            {
+                 "name": "fields",
+                 "description": "List of field names to be passed to the function."
+            },
+            {
+                "name": "discard",
+                 "description": "flag whether the selection is discarded or included",
+                 "default": "True"
+            },
+            {
+                 "name": "kwargs",
+                 "description": "Keyword arguments passed to the predicate function"
+            },
+        ]
+    }
+
     def __init__(self, function = None, fields = None, discard = False, **kwargs):
         """Creates a node that will select records based on condition `function`. 
         
@@ -261,6 +394,37 @@ class SelectNode(base.Node):
                 self.put(row)
 
 class SetSelectNode(base.Node):
+    """Select records where field value is from predefined set of values.
+    
+    Use case examples:
+    
+    * records from certain regions in `region` field
+    * recprds where `quality` status field is `low` or `medium`
+    
+    """
+    
+    
+    __node_info__ = {
+        "label" : "Set Select",
+        "description" : "Select records by a predicate function.",
+        "output" : "same fields as input",
+        "attributes" : [
+            {
+                 "name": "field",
+                 "description": "Field to be tested."
+            },
+            {
+                 "name": "value_set",
+                 "description": "set of values that will be used for record selection"
+            },
+            {
+                "name": "discard",
+                 "description": "flag whether the selection is discarded or included",
+                 "default": "True"
+            }
+        ]
+    }
+
     def __init__(self, field = None, value_set = None, discard = False):
         """Creates a node that will select records where `field` contains value from `value_set`.
 
@@ -287,6 +451,34 @@ class SetSelectNode(base.Node):
                 self.put(row)
 
 class AuditNode(base.Node):
+    """Node chcecks stream for empty strings, not filled values, number distinct values.
+    
+    Audit note passes following fields to the output:
+    
+        * `field_name` - name of a field from input
+        * `record_count` - number of records
+        * `null_count` - number of records with null value for the field
+        * `null_record_ratio` - ratio of null count to number of records
+        * `empty_string_count` - number of strings that are empty (for fields of type string)
+        * `distinct_values` - number of distinct values (if less than distinct threshold). Set
+          to None if there are more distinct values than `distinct_threshold`.
+    """
+    
+    __node_info__ = {
+        "icon" : "data_audit_node",
+        "label" : "Data Audit",
+        "description" : "Perform basic data audit.",
+        "attributes" : [
+            {
+                "name": "distinct_threshold",
+                "label": "distinct threshold",
+                "description": "number of distinct values to be tested. If there are more "
+                               "than the threshold, then values are not included any more "
+                               "and result `distinct_values` is set to None "
+            }
+        ]
+    }
+
     def __init__(self, distinct_threshold = 10):
         """Creates a field audit node.
         
