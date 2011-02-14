@@ -10,8 +10,12 @@ __all__ = (
     "Node",
     "SourceNode",
     "TargetNode",
+
     "FieldMapNode",
     "TextSubstituteNode",
+    "ValueThresholdNode",
+    "BinningNode",
+    
     "SampleNode",
     "AppendNode",
     "DistinctNode",
@@ -19,11 +23,17 @@ __all__ = (
     "AuditNode",
     "SelectNode",
     "SetSelectNode",
+    "AuditNode",
+    
     "RowListSourceNode",
     "RecordListSourceNode",
     "StreamSourceNode",
+    "CSVSourceNode",
+    "YamlDirectorySourceNode",
+    
     "RowListTargetNode",
     "RecordListTargetNode",
     "StreamTargetNode",
-    "Stream"
+    "Stream",
+    "FormattedPrinterNode"
 )

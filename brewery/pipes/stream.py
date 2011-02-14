@@ -223,7 +223,7 @@ class Stream(object):
                 continue
 
             fields = node.output_fields
-            logging.debug("  node output fields: %s" % fields.names)
+            logging.debug("  node output fields: %s" % fields.names())
             for output_pipe in node.outputs:
                 output_pipe.fields = fields
 

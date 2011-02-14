@@ -114,6 +114,8 @@ class FieldStatistics(object):
         """
         if record_count:
             self.record_count = record_count
+        else:
+            self.record_count = self.value_count
 
         if self.record_count:
             self.value_ratio = float(self.value_count) / float(self.record_count)

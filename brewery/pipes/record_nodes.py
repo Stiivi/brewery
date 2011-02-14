@@ -500,7 +500,8 @@ class AuditNode(base.Node):
         """
         super(AuditNode, self).__init__()
         self.distinct_threshold = distinct_threshold
-        
+    
+    @property
     def output_fields(self):
 
         audit_record_fields = [
@@ -540,5 +541,6 @@ class AuditNode(base.Node):
                     stat.empty_string_count,
                     dist_count
                   ]
+
             self.put(row)
 
