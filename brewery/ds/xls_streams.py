@@ -26,7 +26,7 @@ class XLSDataSource(base.DataSource):
         self.sheet_reference = sheet
         self.read_header = read_header
         self.header_row = 0
-        self.skip_rows = 0
+        self.skip_rows = skip_rows
         self._fields = None
         self.close_file = True
         self.encoding = encoding

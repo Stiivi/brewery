@@ -3,6 +3,7 @@ import brewery.ds as ds
 import unittest
 import logging
 import threading
+import time
 
 logging.basicConfig(level=logging.WARN)
 
@@ -62,7 +63,20 @@ class StreamBuildingTestCase(unittest.TestCase):
 
 class FailNode(pipes.Node):
     def run(self):
+        logging.debug("intentionally failing a node")
         raise Exception("This is fail node and it failed as expected")
+
+class SlowSourceNode(pipes.Node):
+
+    @property
+    def output_fields(self):
+        return ds.fieldlist(["i"])
+        
+    def run(self):
+        for cycle in range(0,10):
+            for i in range(0, 1000):
+                self.put([i])
+            time.sleep(0.05)
         
 class StreamInitializationTestCase(unittest.TestCase):
     def setUp(self):
@@ -132,15 +146,39 @@ class StreamInitializationTestCase(unittest.TestCase):
         self.stream.finalize()
         
     def test_fail_run(self):
-        self.stream.remove("aggregate")
-        self.stream.remove("aggtarget")
-        self.stream.remove("sample")
-        self.stream.add(FailNode(), "fail")
-        self.stream.connect("source", "fail")
-        self.stream.connect("fail", "map")
-        self.stream.initialize()
-        self.stream.run()
-        self.stream.finalize()
+        nodes = {
+            "source": pipes.RowListSourceNode(self.src_list, self.fields),
+            "fail": FailNode(),
+            "target": pipes.RecordListTargetNode(self.target_list)
+        }
+        connections = {
+            ("source", "fail"),
+            ("fail", "target")
+        }
+        stream = pipes.Stream(nodes, connections)
+
+        stream.initialize()
+        stream.run()
+        stream.finalize()
         
-        self.assertEqual(1, len(self.stream.exceptions))
+        self.assertEqual(1, len(stream.exceptions))
+
+    def test_fail_with_slow_source(self):
+        nodes = {
+            "source": SlowSourceNode(),
+            "fail": FailNode(),
+            "target": pipes.RecordListTargetNode(self.target_list)
+        }
+        connections = {
+            ("source", "fail"),
+            ("fail", "target")
+        }
+        
+        stream = pipes.Stream(nodes, connections)
+
+        stream.initialize()
+        stream.run()
+        stream.finalize()
+
+        self.assertEqual(1, len(stream.exceptions))
     

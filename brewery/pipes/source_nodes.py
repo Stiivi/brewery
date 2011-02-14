@@ -1,5 +1,5 @@
 import base
-import brewery.ds
+import brewery.ds as ds
 import logging
 
 # data_sources = {
@@ -40,7 +40,6 @@ class RowListSourceNode(base.SourceNode):
 
     def run(self):
         for row in self.list:
-            logging.debug("generating row: %s" % row)
             self.put(row)
 
 class RecordListSourceNode(base.SourceNode):
@@ -125,3 +124,153 @@ class StreamSourceNode(base.SourceNode):
     def finalize(self):
         self.stream.finalize()
 
+class CSVSourceNode(base.SourceNode):
+    """Source node that reads comma separated file from a filesystem or a remote URL.
+
+    It is recommended to configure node fields before running. If you do not do so, fields are
+    read from the file header if specified by `read_header` flag. Field storage types are set to
+    `string` and analytical type is set to `typeless`.
+
+    """
+    __node_info__ = {
+        "label" : "CSV Source",
+        "icon": "csv_file_source_node",
+        "description" : "Read data from a comma separated values (CSV) file.",
+        "attributes" : [
+            {
+                 "name": "resource",
+                 "description": "File name or URL containing comma separated values"
+            },
+            {
+                 "name": "fields",
+                 "description": "fields contained in the file",
+            },
+            {
+                 "name": "read_header",
+                 "description": "flag determining whether first line contains header or not",
+                 "default": "True"
+            },
+            {
+                 "name": "skip_rows",
+                 "description": "number of rows to be skipped"
+            },
+            {
+                 "name": "encoding",
+                 "description": "resource data encoding, by default no conversion is performed"
+            },
+            {
+                 "name": "delimiter",
+                 "description": "record delimiter character, default is comma ','"
+            },
+            {
+                 "name": "quotechar",
+                 "description": "character used for quoting string values, default is double quote"
+            }
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(CSVSourceNode, self).__init__()
+        self.kwargs = kwargs
+        self.args = args
+        self.stream = None
+        self._fields = None
+        
+    @property
+    def output_fields(self):
+        if not self.stream:
+            raise ValueError("Stream is not initialized")
+
+        if not self.stream.fields:
+            raise ValueError("Fields are not initialized")
+
+        return self.stream.fields
+
+    def __set_fields(self, fields):
+        self._fields = fields
+
+    def __get_fields(self):
+        return self._fields
+
+    fields = property(__get_fields, __set_fields)
+
+    def initialize(self):
+        self.stream = ds.CSVDataSource(*self.args, **self.kwargs)
+        
+        if self._fields:
+            self.stream.fields = self._fields
+        
+        self.stream.initialize()
+        self._fields = self.stream.fields
+
+    def run(self):
+        for row in self.stream.rows():
+            self.put(row)
+            
+    def finalize(self):
+        self.stream.finalize()
+
+class YamlDirectorySourceNode(base.SourceNode):
+    """Source node that reads data from a directory containing YAML files.
+    
+    The data source reads files from a directory and treats each file as single record. For example,
+    following directory will contain 3 records::
+    
+        data/
+            contract_0.yml
+            contract_1.yml
+            contract_2.yml
+    
+    Optionally one can specify a field where file name will be stored.
+    """
+    __node_info__ = {
+        "label" : "YAML Directory Source",
+        "icon": "yaml_directory_source_node",
+        "description" : "Read data from a directory containing YAML files",
+        "attributes" : [
+            {
+                 "name": "path",
+                 "description": "Path to a directory"
+            },
+            {
+                 "name": "extension",
+                 "description": "file extension to look for, default is yml. If none is given, "
+                                "then all regular files in the directory are read.",
+                 "default": "yml"
+            },
+            {
+                 "name": "filename_field",
+                 "description": "name of a new field that will contain file name",
+                 "default": "True"
+            }
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(YamlDirectorySourceNode, self).__init__()
+        self.kwargs = kwargs
+        self.args = args
+        self.stream = None
+        self.fields = None
+
+    @property
+    def output_fields(self):
+        if not self.stream:
+            raise ValueError("Stream is not initialized")
+
+        if not self.stream.fields:
+            raise ValueError("Fields are not initialized")
+
+        return self.stream.fields
+
+    def initialize(self):
+        self.stream = ds.YamlDirectoryDataSource(*self.args, **self.kwargs)
+
+        self.stream.fields = self.fields
+        self.stream.initialize()
+
+    def run(self):
+        for row in self.stream.rows():
+            # logging.debug("putting yaml row. pipe status: %s" % self.outputs[0].stop_sending)
+            self.put(row)
+
+    def finalize(self):
+        self.stream.finalize()

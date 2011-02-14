@@ -1,6 +1,8 @@
 import logging
 import base
 import threading
+import traceback 
+import sys
 
 class StreamError(Exception):
     pass
@@ -189,6 +191,7 @@ class Stream(object):
         logging.info("initializing stream")
         logging.debug("sorting nodes")
         sorted_nodes = self.sorted_nodes()
+        self.pipes = []
 
         logging.debug("flushing pipes")
         for node in sorted_nodes:
@@ -200,12 +203,12 @@ class Stream(object):
             logging.debug("creating pipes for node %s" % node)
 
             targets = self.node_targets(node)
-
             for target in targets:
                 logging.debug("  connecting with %s" % (target))
                 pipe = base.Pipe()
                 node.add_output(pipe)
                 target.add_input(pipe)
+                self.pipes.append(pipe)
                 
         # Initialize fields
         for node in sorted_nodes:
@@ -225,6 +228,14 @@ class Stream(object):
                 output_pipe.fields = fields
 
     def run(self):
+        """Run all nodes in the stream.
+        
+        When an exception occurs, the stream is stopped and all catched exceptions are stored in
+        attribute `exceptions`.
+        
+        """
+        
+        
         logging.info("running stream")
         
         threads = []
@@ -243,19 +254,32 @@ class Stream(object):
             while True:
                 thread.join(1)
                 if thread.isAlive():
-                    logging.debug("thread join timed out")
+                    pass
+                    # logging.debug("thread join timed out")
                 else:
                     if thread.exception:
                         self.exceptions.append( (thread.node, thread.exception) )
                     else:
                         logging.debug("thread joined")
                     break
+                if self.exceptions:
+                    logging.info("node exception occured, trying to kill threads")
+                    self.kill_threads()
+                    
 
-        for (node, exception) in self.exceptions:
-            logging.error("exception in node %s: %s" % (node, exception))
+        for (thread, node) in threads:
+            if thread.exception:
+                logging.error("exception in node %s: %s" % (node, thread.exception))
+                logging.debug("exception traceback: \n%s" % ("".join(thread.traceback)))
+                # for line in thread.traceback:
+                #     logging.debug("%s" % line)
 
         logging.info("run finished")
         
+        
+    def kill_threads(self):
+        logging.info("killing threads")
+
     def finalize(self):
         logging.info("finalizing nodes")
         for node in self.sorted_nodes():
@@ -264,18 +288,32 @@ class Stream(object):
 
 class StreamNodeThread(threading.Thread):
     def __init__(self, node):
+        """Creates a stream node thread.
+        
+        :Attributes:
+            * `node`: a Node object
+            * `exception`: attribute will contain exception if one occurs during run()
+            * `traceback`: will contain traceback if exception occurs
+        
+        """
         super(StreamNodeThread, self).__init__()
         self.node = node
         self.exception = None
+        self.traceback = None
         
     def run(self):
         """Wrapper method for running a node"""
         logging.debug("%s: start" % self)
         try:
             self.node.run()
+        except base.NodeFinished, e:
+            logging.info("node %s finished" % (self.node))
         except Exception, e:
             logging.error("node %s failed: %s" % (self.node, e))
             self.exception = e
+            tb = sys.exc_info()[2]
+            self.traceback = traceback.format_list(traceback.extract_tb(tb))
+            del tb
 
         # Flush pipes after node is finished
         logging.debug("%s: finished" % self)
@@ -283,4 +321,8 @@ class StreamNodeThread(threading.Thread):
         for pipe in self.node.outputs:
             pipe.flush()
         logging.debug("%s: flushed" % self)
+        logging.debug("%s: stopping inputs" % self)
+        for pipe in self.node.inputs:
+            pipe.stop()
+        logging.debug("%s: stopped" % self)
         

@@ -2,11 +2,17 @@ import Queue
 import threading
 import logging
 
+class NodeFinished(Exception):
+    """Exception raised when node has no active outputs - each output node signalised that it
+    requires no more data."""
+    pass
+
 class SimpleDataPipe(object):
     """Dummy pipe for testing nodes"""
     def __init__(self):
         self.buffer = []
         self.fields = None
+        self.stop_sending = False
 
     def rows(self):
         return self.buffer
@@ -31,6 +37,7 @@ class SimpleDataPipe(object):
         self.buffer.append(obj)
             
     def stop(self):
+        self.stop_sending = True
         pass
         
     def flush(self):
@@ -74,7 +81,6 @@ class Pipe(SimpleDataPipe):
             self.buffer = []
         
     def _send_buffer(self):
-        logging.debug("sending buffer of size %d" % len(self.buffer))
         if self.stop_sending:
             logging.debug("stop sending - not sending anything")
             return
@@ -112,6 +118,8 @@ class Pipe(SimpleDataPipe):
 
     def stop(self):
         """Close the pipe from target node: no more data needed."""
+        logging.debug("stop requested: stop flag: %s queue empty: %s" % 
+                        (self.stop_sending, self.queue.empty()))
         self.stop_sending = True
 
         while True:
@@ -137,6 +145,7 @@ class Node(object):
         super(Node, self).__init__()
         self.inputs = []
         self.outputs = []
+        self._active_outputs = []
         self.description = None
 
     def initialize(self):
@@ -178,8 +187,14 @@ class Node(object):
     
     def put(self, obj):
         """Put row into all output pipes. Convenience method."""
+        active_outputs = 0
         for output in self.outputs:
-            output.put(obj)
+            if not output.stop_sending:
+                output.put(obj)
+                active_outputs += 1
+                
+        if not active_outputs:
+            raise NodeFinished
 
     def put_record(self, obj):
         """Put record into all output pipes. Convenience method. Not recommended to be used."""

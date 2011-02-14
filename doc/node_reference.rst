@@ -1,6 +1,42 @@
 Data Source
 ===========
 
+CSV Source
+----------
+
+.. image:: nodes/csv_file_source_node.png
+   :align: right
+
+*Read data from a comma separated values (CSV) file.*
+
+Source node that reads comma separated file from a filesystem or a remote URL.
+
+It is recommended to configure node fields before running. If you do not do so, fields are
+read from the file header if specified by `read_header` flag. Field storage types are set to
+`string` and analytical type is set to `typeless`.
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - resource
+     - File name or URL containing comma separated values
+   * - fields
+     - fields contained in the file
+   * - read_header
+     - flag determining whether first line contains header or not
+   * - skip_rows
+     - number of rows to be skipped
+   * - encoding
+     - resource data encoding, by default no conversion is performed
+   * - delimiter
+     - record delimiter character, default is comma ','
+   * - quotechar
+     - character used for quoting string values, default is double quote
+
 Record List Source
 ------------------
 
@@ -72,6 +108,40 @@ in visual, web or other stream modelling tools.
      - description
    * - stream
      - Data stream object.
+
+YAML Directory Source
+---------------------
+
+.. image:: nodes/yaml_directory_source_node.png
+   :align: right
+
+*Read data from a directory containing YAML files*
+
+Source node that reads data from a directory containing YAML files.
+
+The data source reads files from a directory and treats each file as single record. For example,
+following directory will contain 3 records::
+
+    data/
+        contract_0.yml
+        contract_1.yml
+        contract_2.yml
+
+Optionally one can specify a field where file name will be stored.
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - path
+     - Path to a directory
+   * - extension
+     - file extension to look for, default is yml. If none is given, then all regular files in the directory are read.
+   * - filename_field
+     - name of a new field that will contain file name
 
 Record Operations
 =================
@@ -408,6 +478,49 @@ We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
 Data Target
 ===========
 
+Formatted Printer
+-----------------
+
+.. image:: nodes/formatted_printer_node.png
+   :align: right
+
+*Print input using a string formatter to an output IO stream*
+
+Target node that will print output based on format.
+
+Refer to the python formatting guide:
+
+    http://docs.python.org/library/string.html
+
+Example:
+
+Consider we have a data with information about donations. We want to pretty print two fields:
+`project` and `requested_amount` in the form::
+
+    Hlavička - makovička                                            27550.0
+    Obecná knižnica - symbol moderného vzdelávania                 132000.0
+    Vzdelávanie na európskej úrovni                                 60000.0
+
+Node for given format is created by:
+
+.. code-block:: python
+
+    node = FormattedPrinterNode(format = u"{project:<50.50} {requested_amount:>20}")
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - format
+     - Format string to be used
+   * - output
+     - IO object. If not set then sys.stdout will be used
+   * - delimiter
+     - Record delimiter. By default it is new line character.
+
 Record List Target
 ------------------
 
@@ -428,7 +541,7 @@ To get list of fields, ask for `output_fields`.
 
    * - attribute
      - description
-   * - list
+   * - records
      - Created list of records represented as dictionaries.
 
 Row List Target
@@ -450,7 +563,7 @@ To get list of fields, ask for `output_fields`.
 
    * - attribute
      - description
-   * - list
+   * - rows
      - Created list of tuples.
 
 Data Stream Target

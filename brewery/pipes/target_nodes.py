@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
+
 import base
 import brewery.ds
+import sys
 
 class StreamTargetNode(base.TargetNode):
     """Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the 
@@ -55,7 +58,7 @@ class RowListTargetNode(base.TargetNode):
         "description" : "Store data as list of tuples",
         "attributes" : [
             {
-                 "name": "list",
+                 "name": "rows",
                  "description": "Created list of tuples."
             }
         ]
@@ -69,8 +72,12 @@ class RowListTargetNode(base.TargetNode):
             self.list = []
 
     def run(self):
+        self.list = []
         for row in self.input.rows():
             self.list.append(row)
+    @property
+    def rows(self):
+        return self.list        
         
 class RecordListTargetNode(base.TargetNode):
     """Target node that stores data from input in a list of records (dictionary objects)
@@ -85,7 +92,7 @@ class RecordListTargetNode(base.TargetNode):
         "description" : "Store data as list of dictionaries (records)",
         "attributes" : [
             {
-                 "name": "list",
+                 "name": "records",
                  "description": "Created list of records represented as dictionaries."
             }
         ]
@@ -98,6 +105,83 @@ class RecordListTargetNode(base.TargetNode):
             self.list = []
 
     def run(self):
+        self.list = []
         for record in self.input.records():
             self.list.append(record)
 
+    @property
+    def records(self):
+        return self.list
+        
+class FormattedPrinterNode(base.TargetNode):
+    """Target node that will print output based on format.
+
+    Refer to the python formatting guide:
+    
+        http://docs.python.org/library/string.html
+
+    Example:
+    
+    Consider we have a data with information about donations. We want to pretty print two fields:
+    `project` and `requested_amount` in the form::
+    
+        Hlavička - makovička                                            27550.0
+        Obecná knižnica - symbol moderného vzdelávania                 132000.0
+        Vzdelávanie na európskej úrovni                                 60000.0
+    
+    Node for given format is created by:
+    
+    .. code-block:: python
+    
+        node = FormattedPrinterNode(format = u"{project:<50.50} {requested_amount:>20}")
+
+    """
+
+    __node_info__ = {
+        "label" : "Formatted Printer",
+        "icong": "formatted_printer_node",
+        "description" : "Print input using a string formatter to an output IO stream",
+        "attributes" : [
+            {
+                 "name": "format",
+                 "description": "Format string to be used"
+            },
+            {
+                 "name": "output",
+                 "description": "IO object. If not set then sys.stdout will be used"
+            },
+            {
+                 "name": "delimiter",
+                 "description": "Record delimiter. By default it is new line character."
+            }
+        ]
+    }
+    def __init__(self, format = None, output = sys.stdout, delimiter = None):
+        super(FormattedPrinterNode, self).__init__()
+        self.format = format
+        self.output = sys.stdout
+
+        if delimiter:
+            self.delimiter = delimiter
+        else:
+            self.delimiter = '\n'
+
+    def run(self):
+        names = self.input_fields.names()
+
+        if self.format:
+            format_string = self.format
+        else:
+            fields = []
+            for name in names:
+                fields.append("{" + name + "}")
+                
+            format_string = u"" + "\t".join(fields)
+                
+            
+        for record in self.input.records():
+            self.output.write(format_string.format(**record))
+            if self.delimiter:
+                self.output.write(self.delimiter)
+
+        self.output.flush()

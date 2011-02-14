@@ -70,7 +70,7 @@ class YamlDirectoryDataSource(base.DataSource):
             for field in self.field_names:
                 row.append(record.get(field))
             yield row
-        
+
 
 class YamlDirectoryDataTarget(base.DataTarget):
     """docstring for YamlDirectoryDataTarget
