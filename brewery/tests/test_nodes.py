@@ -161,8 +161,8 @@ class NodesTestCase(unittest.TestCase):
         node.finalize()
         
         values = []
-        for record in self.output.buffer:
-            values.append(record["id"])
+        for row in self.output.buffer:
+            values.append(row[0])
 
         self.assertEqual(9, len(self.output.buffer)) 
 
@@ -177,8 +177,8 @@ class NodesTestCase(unittest.TestCase):
         node.finalize()
         
         values = []
-        for record in self.output.buffer:
-            values.append( record["id2"])
+        for row in self.output.buffer:
+            values.append( row[1])
 
         self.assertEqual(0, len(self.output.buffer)) 
         self.assertAllRows()
@@ -328,10 +328,44 @@ class NodesTestCase(unittest.TestCase):
 
         self.initialize_node(node)
 
-        self.assertEqual(6, len(node.output_fields())) 
+        self.assertEqual(6, len(node.output_fields)) 
 
         node.run()
         node.finalize()
 
         self.assertEqual(5, len(self.output.buffer)) 
+        
+    def test_strip(self):
+        node = pipes.StringStripNode(fields = ["custom"])
+
+        self.setup_node(node)
+        self.create_sample(custom = "  foo  ")
+
+        self.initialize_node(node)
+
+        node.run()
+        node.finalize()
+
+        self.assertEqual("foo", self.output.buffer[0][3]) 
+
+    def test_strip_auto(self):
+        fields = brewery.ds.fieldlist([("str1", "string"), 
+                                       ("x","unknown"), 
+                                       ("str2","string"), 
+                                       ("f", "unknown")])
+        self.input.fields = fields
+        for i in range(0, 5):
+            self.input.put([" foo ", " bar ", " baz ", " moo "])
+
+        node = pipes.StringStripNode()
+
+        self.setup_node(node)
+
+        self.initialize_node(node)
+
+        node.run()
+        node.finalize()
+
+        row = self.output.buffer[0]
+        self.assertEqual(["foo", " bar ", "baz", " moo "], row) 
         

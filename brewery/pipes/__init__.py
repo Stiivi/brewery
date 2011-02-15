@@ -10,12 +10,15 @@ __all__ = (
     "Node",
     "SourceNode",
     "TargetNode",
-
+    
+    # Field nodes
     "FieldMapNode",
     "TextSubstituteNode",
     "ValueThresholdNode",
     "BinningNode",
-    
+    "StringStripNode",
+
+    # Record nodes
     "SampleNode",
     "AppendNode",
     "DistinctNode",

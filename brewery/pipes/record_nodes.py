@@ -160,23 +160,25 @@ class DistinctNode(base.Node):
                 self.put(row)
             return
 
-        for record in pipe.records():
+        indexes = self.input_fields.indexes(self.distinct_fields)
+
+        for row in pipe.rows():
             pass_flag = True
             # Construct key tuple from distinct fields
             key_tuple = []
-            for field in self.distinct_fields:
-                key_tuple.append(record.get(field))
+            for index in indexes:
+                key_tuple.append(row[index])
 
             key_tuple = tuple(key_tuple)
             if key_tuple not in self.distinct_values:
                 self.distinct_values.add(key_tuple)
                 if not self.discard:
-                    self.put(record)
+                    self.put(row)
             else:
                 if self.discard:
                     # We already have one found record, which was discarded (because discard is true),
                     # now we pass duplicates
-                    self.put(record)
+                    self.put(row)
 
 class Aggregate(object):
     """Structure holding aggregate information (should be replaced by named tuples in Python 3)"""
@@ -460,7 +462,7 @@ class AuditNode(base.Node):
         * `null_count` - number of records with null value for the field
         * `null_record_ratio` - ratio of null count to number of records
         * `empty_string_count` - number of strings that are empty (for fields of type string)
-        * `distinct_values` - number of distinct values (if less than distinct threshold). Set
+        * `distinct_count` - number of distinct values (if less than distinct threshold). Set
           to None if there are more distinct values than `distinct_threshold`.
     """
     
@@ -510,7 +512,7 @@ class AuditNode(base.Node):
                                ("null_count", "float", "range"),
                                ("null_record_ratio", "float", "range"),
                                ("empty_string_count", "integer", "range"),
-                               ("distinct_values", "integer", "range")
+                               ("distinct_count", "integer", "range")
                                ]
                                
         fields = ds.FieldList(audit_record_fields)

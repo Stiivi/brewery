@@ -252,7 +252,7 @@ class Stream(object):
         for (thread, node) in threads:
             logging.debug("joining thread for %s" % node)
             while True:
-                thread.join(1)
+                thread.join(0.2)
                 if thread.isAlive():
                     pass
                     # logging.debug("thread join timed out")

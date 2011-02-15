@@ -123,6 +123,10 @@ def document_nodes_in_module(module):
         output.write("%s\n" % label)
         output.write("%s\n\n" % ("=" * len(label)))
         
+        node_type = type_info["type"]
+        if not node_type in nodes_by_type:
+            continue
+            
         for node_doc in nodes_by_type[type_info["type"]]:
             write_node_doc(node_doc, output)
     output.close()

@@ -63,6 +63,8 @@ class FieldStatistics(object):
         
         self.unique_storage_type = None
         
+        self.probes = []
+        
     def probe(self, value):
         """Probe the value:
         
@@ -87,6 +89,9 @@ class FieldStatistics(object):
             self.empty_string_count += 1
 
         self._probe_distinct(value)
+        
+        for probe in self.probes:
+            probe.probe(value)
 
     def _probe_distinct(self, value):
         """"""
@@ -96,7 +101,7 @@ class FieldStatistics(object):
         # We are not testing lists, dictionaries and object IDs
         storage_type = value.__class__
 
-        if self.distinct_threshold == 0 or len(self.distinct_values) < self.distinct_threshold:
+        if not self.distinct_threshold or self.distinct_threshold == 0 or len(self.distinct_values) < self.distinct_threshold:
             try:
                 self.distinct_values.add(value)
             except:

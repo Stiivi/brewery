@@ -197,7 +197,7 @@ Audit note passes following fields to the output:
     * `null_count` - number of records with null value for the field
     * `null_record_ratio` - ratio of null count to number of records
     * `empty_string_count` - number of strings that are empty (for fields of type string)
-    * `distinct_values` - number of distinct values (if less than distinct threshold). Set
+    * `distinct_count` - number of distinct values (if less than distinct threshold). Set
       to None if there are more distinct values than `distinct_threshold`.
 
 
@@ -401,6 +401,28 @@ Node renames input fields or drops them from the stream.
    * - drop_fields
      - List of fields to be dropped from the stream.
 
+String Strip
+------------
+
+.. image:: nodes/string_strip_node.png
+   :align: right
+
+*Strip characters.*
+
+Strip spaces (orother specified characters) from string fields.
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - fields
+     - List of string fields to be stripped. If none specified, then all fields of type string are stripped
+   * - chars
+     - Characters to be stripped. By default all white-space characters are stripped.
+
 Text Substitute
 ---------------
 
@@ -497,9 +519,9 @@ Example:
 Consider we have a data with information about donations. We want to pretty print two fields:
 `project` and `requested_amount` in the form::
 
-    Hlavička - makovička                                            27550.0
-    Obecná knižnica - symbol moderného vzdelávania                 132000.0
-    Vzdelávanie na európskej úrovni                                 60000.0
+    Hlavicka - makovicka                                            27550.0
+    Obecna kniznica - symbol moderneho vzdelavania                 132000.0
+    Vzdelavanie na europskej urovni                                 60000.0
 
 Node for given format is created by:
 
@@ -517,9 +539,13 @@ Node for given format is created by:
    * - format
      - Format string to be used
    * - output
-     - IO object. If not set then sys.stdout will be used
+     - IO object. If not set then sys.stdout will be used. If it is a string, then it is considered a filename.
    * - delimiter
      - Record delimiter. By default it is new line character.
+   * - header
+     - Header string - will be printed before printing first record
+   * - footer
+     - Footer string - will be printed after all records are printed
 
 Record List Target
 ------------------

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import base
 import re
 import copy
@@ -157,6 +159,62 @@ class TextSubstituteNode(base.Node):
 
             self.put(row)
 
+
+class StringStripNode(base.Node):
+    """Strip spaces (orother specified characters) from string fields."""
+
+    __node_info__ = {
+        "type": "field",
+        "icon": "string_strip_node",
+        "label" : "String Strip",
+        "description" : "Strip characters.",
+        "attributes" : [
+            {
+                "name": "fields",
+                "description": "List of string fields to be stripped. If none specified, then all "
+                               "fields of storage type `string` are stripped"
+            },
+            {
+                "name": "chars",
+                "description": "Characters to be stripped. "
+                               "By default all white-space characters are stripped."
+            }
+        ]
+    }
+
+    def __init__(self, fields = None, chars = None):
+        """Creates a node for string stripping.
+
+        :Attributes:
+            * `fields`: fields to be stripped
+            * `chars`: characters to be stripped
+
+        """
+        super(StringStripNode, self).__init__()
+
+        self.fields = fields
+        self.chars = chars
+
+    def run(self):
+
+        if self.fields:
+            fields = self.fields
+        else:
+            fields = []
+            for field in self.input.fields:
+                if field.storage_type == "string" or field.storage_type == "text":
+                    fields.append(field)
+
+        indexes = self.input_fields.indexes(fields)
+
+        for row in self.input.rows():
+            for index in indexes:
+                value = row[index]
+                if value:
+                    row[index] = value.strip(self.chars)
+
+            self.put(row)
+
 class ValueThresholdNode(base.Node):
     """Create a field that will refer to a value bin based on threshold(s). Values of `range` type
     can be compared against one or two thresholds to get low/high or low/medium/high value bins.
@@ -191,27 +249,96 @@ class ValueThresholdNode(base.Node):
         "description" : "Bin values based on a threshold.",
         "attributes" : [
             {
-                "name": "field_thresholds",
-                "label": "field",
-                "description": "Dictionary of range type field names and threshold tuples."
+                "name": "thresholds",
+                "description": "List of fields of `range` type and threshold tuples "
+                               "(field, low, high) or (field, low)"
             },
             {
-                "name": "bins",
-                "label": "bins",
+                "name": "bin_names",
                 "description": "Names of bins based on threshold. Default is low, medium, high"
             },
             {
                 "name": "prefix",
-                "label": "prefix",
-                "description": "field prefix to be used"
+                "description": "field prefix to be used, default is none."
             },
             {
                 "name": "suffix",
-                "label": "suffix",
-                "description": "field suffix to be used"
+                "description": "field suffix to be used, default is '_bin'"
             }
         ]
     }
+
+    def __init__(self, thresholds = None, bin_names = None, prefix = None, suffix = None):
+        self.thresholds = thresholds
+        self.bin_names = bin_names
+        self.prefix = prefix
+        self.suffix = suffix
+    
+    @property
+    def output_fields(self):
+        return self._output_fields
+    
+    def initialize(self):
+        self.field_names = [t[0] for t in thresholds]
+
+
+        self._output_fields = ds.FieldList()
+
+        for field in self.input.fields:
+            self._output_fields.append(field)
+
+        if self.prefix:
+            prefix = self.prefix
+        else:
+            prefix = ""
+            
+        if self.suffix:
+            suffix = self.suffix
+        else:
+            suffix = "_bin"
+
+        for name in self.field_names:
+            field = ds.Field(prefix + name + suffix)
+            field.storage_type = "string"
+            field.analytical_type = "set"
+            self._output_fields.append(name)
+
+    def run(self):
+        thresholds = []
+        for t in self.thresholds:
+            if len(t) == 1:
+                thresholds.append( (0) )
+            else:
+                if t[2] == None:
+                    thresholds.append( t[1] )
+                if t[1] == None:
+                    thresholds.append( t[2] )
+                else:
+                    thresholds.append( t[1:] )
+        
+        if not self.bin_names:
+            bin_names = ("low", "medium", "high")
+        else:
+            bin_names = self.bin_names
+            
+        field_names = [t[0] for t in self.thresholds]
+        indexes = self.input.fields.indexes(field_names)
+        
+        for row in self.input.rows():
+            for i, t in enumerate(thresholds):
+                value = row[indexes[i]]
+                
+                if len(t) == 1:
+                    if value < t[0]:
+                        row.append(bin_names[0])
+                    else:
+                        row.append(bin_names[-1])
+                else:
+                    if t[0] and t[1]:
+                        pass # FIXME: continue here
+                        
+                
+                
 
 #     def __init__(self, field, low_value = None, high_value = None):
 #         """Creates a node for text replacement.

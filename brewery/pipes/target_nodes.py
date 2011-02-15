@@ -125,9 +125,9 @@ class FormattedPrinterNode(base.TargetNode):
     Consider we have a data with information about donations. We want to pretty print two fields:
     `project` and `requested_amount` in the form::
     
-        Hlavička - makovička                                            27550.0
-        Obecná knižnica - symbol moderného vzdelávania                 132000.0
-        Vzdelávanie na európskej úrovni                                 60000.0
+        Hlavicka - makovicka                                            27550.0
+        Obecna kniznica - symbol moderneho vzdelavania                 132000.0
+        Vzdelavanie na europskej urovni                                 60000.0
     
     Node for given format is created by:
     
@@ -148,25 +148,48 @@ class FormattedPrinterNode(base.TargetNode):
             },
             {
                  "name": "output",
-                 "description": "IO object. If not set then sys.stdout will be used"
+                 "description": "IO object. If not set then sys.stdout will be used. "
+                                "If it is a string, then it is considered a filename."
             },
             {
                  "name": "delimiter",
                  "description": "Record delimiter. By default it is new line character."
+            },
+            {
+                 "name": "header",
+                 "description": "Header string - will be printed before printing first record"
+            },
+            {
+                 "name": "footer",
+                 "description": "Footer string - will be printed after all records are printed"
             }
         ]
     }
-    def __init__(self, format = None, output = sys.stdout, delimiter = None):
+    def __init__(self, format = None, output = sys.stdout, delimiter = None, header = None,
+                 footer = None):
         super(FormattedPrinterNode, self).__init__()
         self.format = format
-        self.output = sys.stdout
+        
+        self.output = output
+        self.header = header
+        self.footer = footer
 
         if delimiter:
             self.delimiter = delimiter
         else:
             self.delimiter = '\n'
+            
+        self.handle = None
+        self.close_handle = False
 
     def run(self):
+        if type(self.output) == str or type(self.output) == unicode:
+            self.handle = open(self.output, "w")
+            self.close_handle = True
+        else:
+            self.handle = self.output
+            self.close_handle = False
+        
         names = self.input_fields.names()
 
         if self.format:
@@ -174,14 +197,30 @@ class FormattedPrinterNode(base.TargetNode):
         else:
             fields = []
             for name in names:
-                fields.append("{" + name + "}")
+                fields.append(u"{" + name + u"}")
                 
-            format_string = u"" + "\t".join(fields)
-                
+            format_string = u"" + u"\t".join(fields)
+
+        if self.header:
+            self.handle.write(self.header)
+            if self.delimiter:
+                self.handle.write(self.delimiter)
             
         for record in self.input.records():
-            self.output.write(format_string.format(**record))
+            self.handle.write(format_string.format(**record).encode("utf-8"))
+                
             if self.delimiter:
-                self.output.write(self.delimiter)
+                self.handle.write(self.delimiter)
 
-        self.output.flush()
+        if self.footer:
+            self.handle.write(self.footer)
+            if self.delimiter:
+                self.handle.write(self.delimiter)
+
+        self.handle.flush()
+        
+    def finalize(self):
+        if self.handle:
+            self.handle.flush()
+            if self.close_handle:
+                self.handle.close()
