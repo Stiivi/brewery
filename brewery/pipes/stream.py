@@ -95,19 +95,23 @@ class Stream(object):
 
     def sorted_nodes(self):
         """
-        L = Empty list that will contain the sorted elements
-        S = Set of all nodes with no incoming edges
-        while S is non-empty do
-            remove a node n from S
-            insert n into L
-            for each node m with an edge e from n to m do
-                remove edge e from the graph
-                if m has no other incoming edges then
-                    insert m into S
-        if graph has edges then
-            output error message (graph has at least one cycle)
-        else 
-            output message (proposed topologically sorted order: L)
+        Return topologically sorted nodes.
+        
+        Algorithm::
+        
+            L = Empty list that will contain the sorted elements
+            S = Set of all nodes with no incoming edges
+            while S is non-empty do
+                remove a node n from S
+                insert n into L
+                for each node m with an edge e from n to m do
+                    remove edge e from the graph
+                    if m has no other incoming edges then
+                        insert m into S
+            if graph has edges then
+                raise exception: graph has at least one cycle
+            else 
+                return proposed topologically sorted order: L
         """
         def is_source(node, connections):
             for connection in connections:
@@ -229,6 +233,8 @@ class Stream(object):
 
     def run(self):
         """Run all nodes in the stream.
+        
+        Each node is being wrapped and run in a separate thread.
         
         When an exception occurs, the stream is stopped and all catched exceptions are stored in
         attribute `exceptions`.

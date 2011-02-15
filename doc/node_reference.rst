@@ -1,5 +1,8 @@
-Data Source
-===========
+Node Reference
+++++++++++++++
+
+Sources
+=======
 
 CSV Source
 ----------
@@ -7,7 +10,9 @@ CSV Source
 .. image:: nodes/csv_file_source_node.png
    :align: right
 
-*Read data from a comma separated values (CSV) file.*
+**Synopsis:** *Read data from a comma separated values (CSV) file.*
+
+**Class:** CSVSourceNode
 
 Source node that reads comma separated file from a filesystem or a remote URL.
 
@@ -43,7 +48,9 @@ Record List Source
 .. image:: nodes/record_list_source_node.png
    :align: right
 
-*Provide list of dict objects as data source.*
+**Synopsis:** *Provide list of dict objects as data source.*
+
+**Class:** RecordListSourceNode
 
 Source node that feeds records (dictionary objects) from a list (or any other iterable)
 object.
@@ -66,7 +73,9 @@ Row List Source
 .. image:: nodes/row_list_source_node.png
    :align: right
 
-*Provide list of lists or tuples as data source.*
+**Synopsis:** *Provide list of lists or tuples as data source.*
+
+**Class:** RowListSourceNode
 
 Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
 object.
@@ -89,7 +98,9 @@ Data Stream Source
 .. image:: nodes/row_list_source_node.png
    :align: right
 
-*Generic data stream data source node.*
+**Synopsis:** *Generic data stream data source node.*
+
+**Class:** StreamSourceNode
 
 Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
 output.
@@ -115,7 +126,9 @@ YAML Directory Source
 .. image:: nodes/yaml_directory_source_node.png
    :align: right
 
-*Read data from a directory containing YAML files*
+**Synopsis:** *Read data from a directory containing YAML files*
+
+**Class:** YamlDirectorySourceNode
 
 Source node that reads data from a directory containing YAML files.
 
@@ -152,7 +165,9 @@ Aggregate Node
 .. image:: nodes/aggregate_node.png
    :align: right
 
-*Aggregate values grouping by key fields.*
+**Synopsis:** *Aggregate values grouping by key fields.*
+
+**Class:** AggregateNode
 
 Aggregate
 
@@ -174,7 +189,9 @@ Append
 .. image:: nodes/append_node.png
    :align: right
 
-*Concatenate input streams.*
+**Synopsis:** *Concatenate input streams.*
+
+**Class:** AppendNode
 
 Sequentialy append input streams. Concatenation order reflects input stream order. The
 input streams should have same set of fields.
@@ -186,7 +203,9 @@ Data Audit
 .. image:: nodes/data_audit_node.png
    :align: right
 
-*Perform basic data audit.*
+**Synopsis:** *Perform basic data audit.*
+
+**Class:** AuditNode
 
 Node chcecks stream for empty strings, not filled values, number distinct values.
 
@@ -216,7 +235,9 @@ Distinct Node
 .. image:: nodes/distinct_node.png
    :align: right
 
-*Pass only distinct records (discard duplicates) or pass only duplicates*
+**Synopsis:** *Pass only distinct records (discard duplicates) or pass only duplicates*
+
+**Class:** DistinctNode
 
 Node will pass distinct records with given distinct fields.
 
@@ -247,7 +268,9 @@ Merge Node
 .. image:: nodes/merge_node.png
    :align: right
 
-*no description*
+**Synopsis:** *no description*
+
+**Class:** MergeNode
 
 Merge two or more streams (join)
 
@@ -258,7 +281,9 @@ Sample Node
 .. image:: nodes/sample_node.png
    :align: right
 
-*Pass data sample from input to output.*
+**Synopsis:** *Pass data sample from input to output.*
+
+**Class:** SampleNode
 
 Create a data sample from input stream. There are more sampling possibilities:
 
@@ -288,7 +313,9 @@ Select
 .. image:: nodes/select_node.png
    :align: right
 
-*Select records by a predicate function.*
+**Synopsis:** *Select records by a predicate function.*
+
+**Class:** SelectNode
 
 Select records that will be selected by a predicate function.
 
@@ -330,7 +357,9 @@ Set Select
 .. image:: nodes/set_select_node.png
    :align: right
 
-*Select records by a predicate function.*
+**Synopsis:** *Select records by a predicate function.*
+
+**Class:** SetSelectNode
 
 Select records where field value is from predefined set of values.
 
@@ -362,7 +391,9 @@ Binning
 .. image:: nodes/histogram_node.png
    :align: right
 
-*Derive a field based on binned values (histogram)*
+**Synopsis:** *Derive a field based on binned values (histogram)*
+
+**Class:** BinningNode
 
 Derive a bin/category field from a value.
 
@@ -384,7 +415,9 @@ Consolidate Value To Type Node
 .. image:: nodes/generic_node.png
    :align: right
 
-*Consolidate Value to Type*
+**Synopsis:** *Consolidate Value to Type*
+
+**Class:** ConsolidateValueToTypeNode
 
 Consolidate values of selected fields, or fields of given type to match the type.
 
@@ -416,7 +449,9 @@ Field Map
 .. image:: nodes/field_map_node.png
    :align: right
 
-*Rename or drop fields from the stream.*
+**Synopsis:** *Rename or drop fields from the stream.*
+
+**Class:** FieldMapNode
 
 Node renames input fields or drops them from the stream.
     
@@ -439,7 +474,9 @@ String Strip
 .. image:: nodes/string_strip_node.png
    :align: right
 
-*Strip characters.*
+**Synopsis:** *Strip characters.*
+
+**Class:** StringStripNode
 
 Strip spaces (orother specified characters) from string fields.
 
@@ -461,7 +498,9 @@ Text Substitute
 .. image:: nodes/text_substitute_node.png
    :align: right
 
-*Substitute text in a field using regular expression.*
+**Synopsis:** *Substitute text in a field using regular expression.*
+
+**Class:** TextSubstituteNode
 
 Substitute text in a field using regular expression.
 
@@ -485,7 +524,9 @@ Value Threshold
 .. image:: nodes/value_threshold_node.png
    :align: right
 
-*Bin values based on a threshold.*
+**Synopsis:** *Bin values based on a threshold.*
+
+**Class:** ValueThresholdNode
 
 Create a field that will refer to a value bin based on threshold(s). Values of `range` type
 can be compared against one or two thresholds to get low/high or low/medium/high value bins.
@@ -529,8 +570,8 @@ We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
    * - suffix
      - field suffix to be used, default is '_bin'
 
-Data Target
-===========
+Targets
+=======
 
 Formatted Printer
 -----------------
@@ -538,7 +579,9 @@ Formatted Printer
 .. image:: nodes/formatted_printer_node.png
    :align: right
 
-*Print input using a string formatter to an output IO stream*
+**Synopsis:** *Print input using a string formatter to an output IO stream*
+
+**Class:** FormattedPrinterNode
 
 Target node that will print output based on format.
 
@@ -585,7 +628,9 @@ Record List Target
 .. image:: nodes/record_list_target_node.png
    :align: right
 
-*Store data as list of dictionaries (records)*
+**Synopsis:** *Store data as list of dictionaries (records)*
+
+**Class:** RecordListTargetNode
 
 Target node that stores data from input in a list of records (dictionary objects)
 object.
@@ -608,7 +653,9 @@ Row List Target
 .. image:: nodes/row_list_target_node.png
    :align: right
 
-*Store data as list of tuples*
+**Synopsis:** *Store data as list of tuples*
+
+**Class:** RowListTargetNode
 
 Target node that stores data from input in a list of rows (as tuples).
 
@@ -630,7 +677,9 @@ Data Stream Target
 .. image:: nodes/row_list_target_node.png
    :align: right
 
-*Generic data stream data target node.*
+**Synopsis:** *Generic data stream data target node.*
+
+**Class:** StreamTargetNode
 
 Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the 
 input to the target stream.

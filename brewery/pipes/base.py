@@ -47,9 +47,34 @@ class SimpleDataPipe(object):
         self.buffer = []
         
 class Pipe(SimpleDataPipe):
-    """Pipe for transfer of structured data between processing nodes"""
+    """Pipe for transfer of structured data between processing nodes and node threads.
+    Pipe is using ``Queue`` object for sending data. Data are not being send as they come, but
+    they are buffered instead. When buffer is full or when pipe flush is requeted, then the buffer
+    is send through the queue.
+
+    If receiving node is finished with source data and does not want anything any more, it should
+    send ``stop()`` to the pipe. In most cases, stream runner will send ``stop()`` to all input
+    pipes when node ``run()`` method is finished.
+
+    If sending node is finished, it should send ``flush()`` to the pipe, however this is not
+    necessary in most cases, as the method for running stream flushes outputs automatically on
+    when node ``run()`` method is finished.
+    """
+
     def __init__(self, buffer_size = 1000, queue_size = 1):
         """Create a pipe for transfer of structured data between processing nodes.
+
+        Pipe passes structured data between processing nodes and node threads by using ``Queue``
+        object. Data are not being send as they come, but they are buffered instead. When buffer
+        is full or when pipe ``flush()`` is requeted, then the buffer is send through the queue.
+
+        If receiving node is finished with source data and does not want anything any more, it should
+        send ``stop()`` to the pipe. In most cases, stream runner will send ``stop()`` to all input
+        pipes when node ``run()`` method is finished.
+
+        If sending node is finished, it should send ``flush()`` to the pipe, however this is not
+        necessary in most cases, as the method for running stream flushes outputs automatically on
+        when node ``run()`` method is finished.
         
         :Parameters:
             * `buffer_size`: number of data objects (rows or records) to be collected before they can
@@ -230,6 +255,9 @@ class Node(object):
 class SourceNode(Node):
     """Abstract class for all source nodes
     
+    All source nodes should provide an attribute or implement a property (``@property``) called
+    ``output_fields``.
+    
     .. abstract_node
     
     """
@@ -253,6 +281,7 @@ class TargetNode(Node):
         super(TargetNode, self).__init__()
         self.fields = None
 
+    @property
     def output_fields(self):
         raise RuntimeError("Output fields asked from a target object.")
 

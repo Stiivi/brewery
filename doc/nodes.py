@@ -8,10 +8,10 @@ sys.path.insert(0, "..")
 import brewery.pipes
 
 node_types = [
-    {"type": "source", "label": "Data Source"},
+    {"type": "source", "label": "Sources"},
     {"type": "record", "label": "Record Operations"},
     {"type": "field", "label": "Field Operations"},
-    {"type": "target", "label": "Data Target"},
+    {"type": "target", "label": "Targets"},
 ]
 
 def decamelize(name):
@@ -32,6 +32,7 @@ def node_documentation(class_name, node):
         
     doc["documentation"] = documentation
         
+    doc["class_name"] = class_name
     name = decamelize(class_name)
     doc["name"] = name
     
@@ -81,7 +82,8 @@ def write_node_doc(doc, f):
     temp = "${label}\n${underline}\n\n"
     temp += ".. image:: nodes/${icon}.png\n" \
                 "   :align: right\n\n" \
-                "*${description}*\n\n" \
+                "**Synopsis:** *${description}*\n\n" \
+                "**Class:** ${class_name}\n\n" \
                 "${documentation}\n\n"
     
     template = string.Template(temp)
@@ -107,6 +109,9 @@ def document_nodes_in_module(module):
     nodes_by_type = {}
     
     output = open("node_reference.rst", "w")
+
+    output.write("Node Reference\n"\
+                 "++++++++++++++\n\n")
 
     for name, member in inspect.getmembers(module):
         if inspect.isclass(member) and issubclass(member, brewery.pipes.Node):
