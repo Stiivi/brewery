@@ -378,6 +378,38 @@ Binning modes:
     
 
 
+Consolidate Value To Type Node
+------------------------------
+
+.. image:: nodes/generic_node.png
+   :align: right
+
+*Consolidate Value to Type*
+
+Consolidate values of selected fields, or fields of given type to match the type.
+
+* `string`, `text`
+    * Strip strings
+    * if non-string, then it is converted to a unicode string
+    * Change empty strings to empty (null) values
+* `float`, `integer`
+    * If value is of string type, perform string cleansing first and then convert them to
+      respective numbers or to null on failure
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - fields
+     - List of fields to be cleansed. If none given then all fields of known storage type are cleansed
+   * - types
+     - List of field types to be consolidated (if no fields given)
+   * - empty_values
+     - dictionary of type -> value pairs to be set when field is considered empty (null) - not yet used
+
 Field Map
 ---------
 
@@ -419,7 +451,7 @@ Strip spaces (orother specified characters) from string fields.
    * - attribute
      - description
    * - fields
-     - List of string fields to be stripped. If none specified, then all fields of type string are stripped
+     - List of string fields to be stripped. If none specified, then all fields of storage type `string` are stripped
    * - chars
      - Characters to be stripped. By default all white-space characters are stripped.
 
@@ -488,14 +520,14 @@ We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
 
    * - attribute
      - description
-   * - field_thresholds
-     - Dictionary of range type field names and threshold tuples.
-   * - bins
+   * - thresholds
+     - List of fields of `range` type and threshold tuples (field, low, high) or (field, low)
+   * - bin_names
      - Names of bins based on threshold. Default is low, medium, high
    * - prefix
-     - field prefix to be used
+     - field prefix to be used, default is none.
    * - suffix
-     - field suffix to be used
+     - field suffix to be used, default is '_bin'
 
 Data Target
 ===========

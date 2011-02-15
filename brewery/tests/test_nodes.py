@@ -368,4 +368,45 @@ class NodesTestCase(unittest.TestCase):
 
         row = self.output.buffer[0]
         self.assertEqual(["foo", " bar ", "baz", " moo "], row) 
+
+    def test_consolidate_type(self):
+        fields = brewery.ds.fieldlist([("s", "string"), 
+                                       ("i","integer"), 
+                                       ("f","float"), 
+                                       ("u", "unknown")])
+        self.input.fields = fields
+        sample = [
+                    ["  foo  ", 123, 123, None],
+                    [123, "123", "123", None],
+                    [123.0, " 123  ", "  123  ", None],
+                    ["  foo  ", "1 2 3", "1 2 3  . 0", None],
+                    ["  foo  ", "fail", "fail", None],
+                    [None, None, None, None]
+                ]
+
+        for row in sample:
+            self.input.put(row)
+
+
+        node = pipes.ConsolidateValueToTypeNode()
+
+        self.setup_node(node)
+
+        self.initialize_node(node)
+
+        node.run()
+        node.finalize()
+
+        strings = []
+        integers = []
+        floats = []
+
+        for row in self.output.buffer:
+            strings.append(row[0])
+            integers.append(row[1])
+            floats.append(row[2])
+
+        self.assertEqual(["foo", "123", "123.0", "foo", "foo", None], strings) 
+        self.assertEqual([123, 123, 123, 123, None, None], integers) 
+        self.assertEqual([123, 123, 123, 123, None, None], floats) 
         

@@ -4,6 +4,7 @@ import base
 import re
 import copy
 import brewery.ds as ds
+import itertools
 
 class FieldMapNode(base.Node):
     """Node renames input fields or drops them from the stream.
@@ -213,6 +214,100 @@ class StringStripNode(base.Node):
                 if value:
                     row[index] = value.strip(self.chars)
 
+            self.put(row)
+
+class ConsolidateValueToTypeNode(base.Node):
+    """Consolidate values of selected fields, or fields of given type to match the type.
+    
+    * `string`, `text`
+        * Strip strings
+        * if non-string, then it is converted to a unicode string
+        * Change empty strings to empty (null) values
+    * `float`, `integer`
+        * If value is of string type, perform string cleansing first and then convert them to
+          respective numbers or to null on failure
+
+    """
+
+    __node_info__ = {
+        "type": "field",
+        "icon": "generic_node",
+        "description" : "Consolidate Value to Type",
+        "attributes" : [
+            {
+                "name": "fields",
+                "description": "List of fields to be cleansed. If none given then all fields "
+                               "of known storage type are cleansed"
+            },
+            {
+                "name": "types",
+                "description": "List of field types to be consolidated (if no fields given)"
+            },
+            {
+                "name": "empty_values",
+                "description": "dictionary of type -> value pairs to be set when field is "
+                               "considered empty (null) - not yet used"
+            }
+        ]
+    }
+
+    def __init__(self, fields = None, types = None):
+        super(ConsolidateValueToTypeNode, self).__init__()
+        self.fields = fields
+        self.types = types
+        
+    def initialize(self):
+        if self.fields:
+            fields = self.fields
+        else:
+            fields = self.input.fields
+
+        self.string_fields = list(itertools.ifilter(lambda f: f.storage_type == "string", fields))
+        self.integer_fields = list(itertools.ifilter(lambda f: f.storage_type == "integer", fields))
+        self.float_fields = list(itertools.ifilter(lambda f: f.storage_type == "float", fields))
+        
+        self.string_indexes = self.input.fields.indexes(self.string_fields)
+        self.integer_indexes = self.input.fields.indexes(self.integer_fields)
+        self.float_indexes = self.input.fields.indexes(self.float_fields)
+        
+    def run(self):
+        
+        for row in self.input.rows():
+            for i in self.string_indexes:
+                value = row[i]
+                if type(value) == str or type(value) == unicode:
+                    value = value.strip()
+                elif value:
+                    value = unicode(value)
+                    
+                if value == "":
+                    value = None
+                row[i] = value
+
+            for i in self.integer_indexes:
+                value = row[i]
+                if type(value) == str or type(value) == unicode:
+                    value = re.sub(r"\s", "", value.strip())
+
+                try:
+                    value = int(value)
+                except:
+                    value = None
+
+                row[i] = value
+
+            for i in self.float_indexes:
+                value = row[i]
+                if type(value) == str or type(value) == unicode:
+                    value = re.sub(r"\s", "", value.strip())
+
+                try:
+                    value = float(value)
+                except:
+                    value = None
+
+                row[i] = value
+        
             self.put(row)
 
 class ValueThresholdNode(base.Node):
