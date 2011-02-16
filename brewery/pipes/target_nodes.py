@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base
-import brewery.ds
+import brewery.ds as ds
 import sys
 
 class StreamTargetNode(base.TargetNode):
@@ -112,7 +112,55 @@ class RecordListTargetNode(base.TargetNode):
     @property
     def records(self):
         return self.list
+
+class CSVTargetNode(base.TargetNode):
+    """Node that writes rows into a comma separated values (CSV) file.
+    
+    :Attributes:
+        * resource: target object - might be a filename or file-like object
+        * write_headers: write field names as headers into output file
+        * truncate: remove data from file before writing, default: True
         
+    """
+    __node_info__ = {
+        "label" : "CSV Target",
+        "description" : "Write rows as comma separated values into a file",
+        "attributes" : [
+            {
+                 "name": "resource",
+                 "description": "Target object - file name or IO object."
+            },
+            {
+                 "name": "write_headers",
+                 "description": "Flag determining whether to write field names as file headers."
+            },
+            {
+                 "name": "truncate",
+                 "description": "If set to ``True`` all data from file are removed. Default ``True``"
+            }
+        ]
+    }
+    
+    def __init__(self, *args, **kwargs):
+        super(CSVTargetNode, self).__init__()
+        self.kwargs = kwargs
+        self.args = args
+        self.stream = None
+
+    def initialize(self):
+        self.stream = ds.CSVDataTarget(*self.args, **self.kwargs)
+
+        self.stream.fields = self.input_fields
+        self.stream.initialize()
+
+    def run(self):
+        for row in self.input.rows():
+            self.stream.append(row)
+
+    def finalize(self):
+        self.stream.finalize()
+
+
 class FormattedPrinterNode(base.TargetNode):
     """Target node that will print output based on format.
 
@@ -134,6 +182,28 @@ class FormattedPrinterNode(base.TargetNode):
     .. code-block:: python
     
         node = FormattedPrinterNode(format = u"{project:<50.50} {requested_amount:>20}")
+
+    Following format can be used to print output from an audit node:
+
+    .. code-block:: python
+
+        node.header = u"field                            nulls      empty   distinct\\n" \\
+                       "------------------------------------------------------------"
+        node.format = u"{field_name:<30.30} {null_record_ratio: >7.2%} "\\
+                       "{empty_string_count:>10} {distinct_count:>10}"
+
+    Output will look similar to this::
+
+        field                            nulls      empty   distinct
+        ------------------------------------------------------------
+        file                             0.00%          0         32
+        source_code                      0.00%          0          2
+        id                               9.96%          0        907
+        receiver_name                    9.10%          0       1950
+        project                          0.05%          0       3628
+        requested_amount                22.90%          0        924
+        received_amount                  4.98%          0        728
+        source_comment                  99.98%          0          2
 
     """
 

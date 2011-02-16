@@ -409,17 +409,17 @@ Binning modes:
     
 
 
-Consolidate Value To Type Node
-------------------------------
+Coalesce Value To Type Node
+---------------------------
 
-.. image:: nodes/generic_node.png
+.. image:: nodes/coalesce_value_to_type_node.png
    :align: right
 
-**Synopsis:** *Consolidate Value to Type*
+**Synopsis:** *Coalesce Value to Type*
 
-**Class:** ConsolidateValueToTypeNode
+**Class:** CoalesceValueToTypeNode
 
-Consolidate values of selected fields, or fields of given type to match the type.
+Coalesce values of selected fields, or fields of given type to match the type.
 
 * `string`, `text`
     * Strip strings
@@ -439,7 +439,7 @@ Consolidate values of selected fields, or fields of given type to match the type
    * - fields
      - List of fields to be cleansed. If none given then all fields of known storage type are cleansed
    * - types
-     - List of field types to be consolidated (if no fields given)
+     - List of field types to be coalesced (if no fields given)
    * - empty_values
      - dictionary of type -> value pairs to be set when field is considered empty (null) - not yet used
 
@@ -573,6 +573,38 @@ We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
 Targets
 =======
 
+CSV Target
+----------
+
+.. image:: nodes/csv_target_node.png
+   :align: right
+
+**Synopsis:** *Write rows as comma separated values into a file*
+
+**Class:** CSVTargetNode
+
+Node that writes rows into a comma separated values (CSV) file.
+
+:Attributes:
+    * resource: target object - might be a filename or file-like object
+    * write_headers: write field names as headers into output file
+    * truncate: remove data from file before writing, default: True
+    
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - resource
+     - Target object - file name or IO object.
+   * - write_headers
+     - Flag determining whether to write field names as file headers.
+   * - truncate
+     - If set to ``True`` all data from file are removed. Default ``True``
+
 Formatted Printer
 -----------------
 
@@ -603,6 +635,28 @@ Node for given format is created by:
 .. code-block:: python
 
     node = FormattedPrinterNode(format = u"{project:<50.50} {requested_amount:>20}")
+
+Following format can be used to print output from an audit node:
+
+.. code-block:: python
+
+    node.header = u"field                            nulls      empty   distinct\n" \
+                   "------------------------------------------------------------"
+    node.format = u"{field_name:<30.30} {null_record_ratio: >7.2%} "\
+                   "{empty_string_count:>10} {distinct_count:>10}"
+
+Output will look similar to this::
+
+    field                            nulls      empty   distinct
+    ------------------------------------------------------------
+    file                             0.00%          0         32
+    source_code                      0.00%          0          2
+    id                               9.96%          0        907
+    receiver_name                    9.10%          0       1950
+    project                          0.05%          0       3628
+    requested_amount                22.90%          0        924
+    received_amount                  4.98%          0        728
+    source_comment                  99.98%          0          2
 
 
 .. list-table:: Attributes

@@ -16,7 +16,7 @@ Contents:
    streams
    data_quality
    pipes
-   nodes
+   node_reference
    tools
    examples/index
    api/index

@@ -27,17 +27,19 @@ import brewery.dq
 
 def fieldlist(fields):
     """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
-    
+
     How fields are consutrcuted:
-        * string: `field name` is set 
-        * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is obligatory,
-            rest is optional
-        * dict: contains key-value pairs for initializing a :class:`Field` object
-    
+
+    * string: `field name` is set 
+    * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
+      obligatory, rest is optional
+    * dict: contains key-value pairs for initializing a :class:`Field` object
+
     For strings and in if not explicitly specified in a tuple or a dict case, then following rules
     apply:
-        * `storage_type` is set to ``unknown``
-        * `analytical_type` is set to ``typeless``
+
+    * `storage_type` is set to ``unknown``
+    * `analytical_type` is set to ``typeless``
     """
 
     return FieldList(fields)
@@ -257,15 +259,17 @@ class FieldList(object):
         Create a list of :class:`Field` objects from a list of strings, dictionaries or tuples
 
         How fields are consutrcuted:
-            * string: `field name` is set 
-            * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is obligatory,
-                rest is optional
-            * dict: contains key-value pairs for initializing a :class:`Field` object
+
+        * string: `field name` is set 
+        * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
+          obligatory, rest is optional
+        * dict: contains key-value pairs for initializing a :class:`Field` object
 
         For strings and in if not explicitly specified in a tuple or a dict case, then following rules
         apply:
-            * `storage_type` is set to ``unknown``
-            * `analytical_type` is set to ``typeless``
+
+        * `storage_type` is set to ``unknown``
+        * `analytical_type` is set to ``typeless``
         """
         super(FieldList, self).__init__()
 
@@ -284,15 +288,17 @@ class FieldList(object):
             * `field` - :class:`Field` object, ``str``, ``tuple`` or ``dict`` object 
 
         If field is not a `Field` object, then construction of new field is as follows:
-            * ``str``: `field name` is set 
-            * ``tuple``: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
-              obligatory, rest is optional
-            * ``dict``: contains key-value pairs for initializing a :class:`Field` object
+
+        * ``str``: `field name` is set 
+        * ``tuple``: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
+          obligatory, rest is optional
+        * ``dict``: contains key-value pairs for initializing a :class:`Field` object
 
         For strings and in if not explicitly specified in a tuple or a dict case, then following rules
         apply:
-            * `storage_type` is set to ``unknown``
-            * `analytical_type` is set to ``typeless``
+
+        * `storage_type` is set to ``unknown``
+        * `analytical_type` is set to ``typeless``
         """
 
 

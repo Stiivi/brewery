@@ -216,8 +216,8 @@ class StringStripNode(base.Node):
 
             self.put(row)
 
-class ConsolidateValueToTypeNode(base.Node):
-    """Consolidate values of selected fields, or fields of given type to match the type.
+class CoalesceValueToTypeNode(base.Node):
+    """Coalesce values of selected fields, or fields of given type to match the type.
     
     * `string`, `text`
         * Strip strings
@@ -231,8 +231,8 @@ class ConsolidateValueToTypeNode(base.Node):
 
     __node_info__ = {
         "type": "field",
-        "icon": "generic_node",
-        "description" : "Consolidate Value to Type",
+        "icon": "coalesce_value_to_type_node",
+        "description" : "Coalesce Value to Type",
         "attributes" : [
             {
                 "name": "fields",
@@ -241,7 +241,7 @@ class ConsolidateValueToTypeNode(base.Node):
             },
             {
                 "name": "types",
-                "description": "List of field types to be consolidated (if no fields given)"
+                "description": "List of field types to be coalesced (if no fields given)"
             },
             {
                 "name": "empty_values",
@@ -252,7 +252,7 @@ class ConsolidateValueToTypeNode(base.Node):
     }
 
     def __init__(self, fields = None, types = None):
-        super(ConsolidateValueToTypeNode, self).__init__()
+        super(CoalesceValueToTypeNode, self).__init__()
         self.fields = fields
         self.types = types
         

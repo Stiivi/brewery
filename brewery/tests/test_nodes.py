@@ -388,7 +388,7 @@ class NodesTestCase(unittest.TestCase):
             self.input.put(row)
 
 
-        node = pipes.ConsolidateValueToTypeNode()
+        node = pipes.CoalesceValueToTypeNode()
 
         self.setup_node(node)
 

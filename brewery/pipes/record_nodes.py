@@ -91,6 +91,9 @@ class MergeNode(base.Node):
     def __init__(self):
         super(MergeNode, self).__init__()
         
+    def run(self):
+        # FIXME: Continue here
+        pass
 
 class DistinctNode(base.Node):
     """Node will pass distinct records with given distinct fields.

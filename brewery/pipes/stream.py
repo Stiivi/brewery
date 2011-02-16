@@ -11,11 +11,11 @@ class Stream(object):
     """Data processing stream"""
     def __init__(self, nodes = None, connections = None):
         """Creates a data stream.
+
         :Parameters:
             * `nodes` - dictionary with keys as node names and values as nodes
             * `connections` - list of two-item tuples. Each tuple contains source and target node
               or source and target node name.
-        
         """
         super(Stream, self).__init__()
         self.nodes = []

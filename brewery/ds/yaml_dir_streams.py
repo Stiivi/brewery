@@ -1,7 +1,9 @@
 import sys
 import base
 import string
-import os.path
+import os
+import shutil
+
 try:
     import yaml
 except:
@@ -76,7 +78,7 @@ class YamlDirectoryDataTarget(base.DataTarget):
     """docstring for YamlDirectoryDataTarget
     """
     def __init__(self, path, filename_template = "record_${__index}.yml", expand = False, 
-                    filename_start_index = 0):
+                    filename_start_index = 0, truncate = False):
         """Creates a directory data target with YAML files as records.
         
         :Attributes:
@@ -90,16 +92,28 @@ class YamlDirectoryDataTarget(base.DataTarget):
               results in filenames ``record_0.yml``, ``record_1.yml``, ...
             * filename_start_index - first value of ``__index`` filename template value, by default 0
             * filename_field: if present, then filename is taken from that field.
+            * truncate: remove all existing files in the directory. Default is ``False``.
 
         """
         self.filename_template = filename_template
         self.filename_start_index = filename_start_index
         self.path = path
         self.expand = expand
+        self.truncate = truncate
 
     def initialize(self):
         self.template = string.Template(self.filename_template)
         self.index = self.filename_start_index
+
+        if os.path.exists(self.path):
+            if not os.path.isdir(self.path):
+                raise Exception("Path %s is not a directory" % self.path)
+            elif self.truncate:
+                shutil.rmtree(self.path)
+                os.makedirs(self.path)
+        else:
+            os.makedirs(self.path)
+                
         
     def append(self, obj):
         

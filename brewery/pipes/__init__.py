@@ -17,7 +17,7 @@ __all__ = (
     "ValueThresholdNode",
     "BinningNode",
     "StringStripNode",
-    "ConsolidateValueToTypeNode",
+    "CoalesceValueToTypeNode",
 
     # Record nodes
     "SampleNode",
