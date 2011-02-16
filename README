@@ -2,8 +2,7 @@ Brewery - Data streaming, auditing and mining framework for Python
 
 Project page: http://databrewery.org
 
-About
-=====
+ABOUT
 
 Brewery is a python framework for:
 * data streams - streaming structured data from various sources into various targets. Example of 
@@ -12,13 +11,19 @@ Brewery is a python framework for:
 * data quality monitoring
 * data mining
 
-Documentation
--------------
+INSTALLATION
+
+To install brewery framework just execute:
+
+    python setup.py install
+
+
+DOCUMENTATION
 
 Documentation can be found at: http://packages.python.org/brewery
 
-Sources
--------
+
+SOURCES
 
 Main project source repository is being hosted at Bitbucket: https://bitbucket.org/Stiivi/brewery
 
@@ -31,26 +36,14 @@ Or if you prefer git, then you can clone it from Github::
     git clone git://github.com/Stiivi/brewery-py.git
 
 
-Author
-------
+SUPPORT
+
+If you have questions, problems or suggestions, you can send a message to the Google group or 
+write to the author.
+
+* Google group: http://groups.google.com/group/databrewery
+
+
+AUTHOR
 
 Stefan Urbanek <stefan.urbanek@gmail.com>
-
-
-Copyright
----------
-
-Copyright (C) 2010, 2011 Stefan Urbanek
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.

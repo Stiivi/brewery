@@ -1,8 +1,3 @@
-.. Brewery documentation master file, created by
-   sphinx-quickstart on Wed Dec 15 11:57:31 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Brewery - Data streaming, auditing and mining framework
 =======================================================
 
@@ -20,6 +15,15 @@ Contents:
    tools
    examples/index
    api/index
+
+Contact and Getting Help
+------------------------
+
+If you have questions, problems or suggestions, you can send a message to `Google group`_ or 
+`write to me`_ (Stefan Urbanek - author).
+
+.. _Google group: http://groups.google.com/group/databrewery
+.. _write to me: stefan.urbanek@gmail.com
 
 Indices and tables
 ==================
