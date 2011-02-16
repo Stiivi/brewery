@@ -1,15 +1,19 @@
 Installation
 ++++++++++++
 
-Project is being hosted at Github: https://github.com/Stiivi/brewery-py
+Main project source repository is being hosted at Bitbucket: https://bitbucket.org/Stiivi/brewery
 
-Download from Github::
+Clone mercurial repository from bitbucket::
+
+    hg clone https://bitbucket.org/Stiivi/brewery
+
+Or if you prefer git, then you can clone it from Github::
 
     git clone git://github.com/Stiivi/brewery-py.git
 
 .. note::
     
-    File package download will be available on first release of python port.
+    File packages for download will be available on first release.
 
 Install::
 

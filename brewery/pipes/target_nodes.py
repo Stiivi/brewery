@@ -214,7 +214,8 @@ class FormattedPrinterNode(base.TargetNode):
         "attributes" : [
             {
                  "name": "format",
-                 "description": "Format string to be used"
+                 "description": "Format string to be used. Default is to print all field values "
+                                "separated by tab character."
             },
             {
                  "name": "output",
