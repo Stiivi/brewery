@@ -368,14 +368,14 @@ class ValueThresholdNode(base.Node):
         self.bin_names = bin_names
         self.prefix = prefix
         self.suffix = suffix
+        self._output_fields = None
     
     @property
     def output_fields(self):
         return self._output_fields
     
     def initialize(self):
-        self.field_names = [t[0] for t in thresholds]
-
+        field_names = [t[0] for t in self.thresholds]
 
         self._output_fields = ds.FieldList()
 
@@ -392,12 +392,21 @@ class ValueThresholdNode(base.Node):
         else:
             suffix = "_bin"
 
-        for name in self.field_names:
+        for name in field_names:
             field = ds.Field(prefix + name + suffix)
             field.storage_type = "string"
             field.analytical_type = "set"
-            self._output_fields.append(name)
+            self._output_fields.append(prefix + name + suffix)
 
+        input_fields = self.input.fields
+
+        # Check input fields
+        for name in field_names:
+            if not name in self.input.fields:
+                raise base.FieldError("No input field with name %s" % name)
+                
+        self.threshold_field_indexes = self.input.fields.indexes(field_names)
+        
     def run(self):
         thresholds = []
         for t in self.thresholds:
@@ -415,13 +424,10 @@ class ValueThresholdNode(base.Node):
             bin_names = ("low", "medium", "high")
         else:
             bin_names = self.bin_names
-            
-        field_names = [t[0] for t in self.thresholds]
-        indexes = self.input.fields.indexes(field_names)
         
         for row in self.input.rows():
             for i, t in enumerate(thresholds):
-                value = row[indexes[i]]
+                value = row[self.threshold_field_indexes[i]]
                 
                 if len(t) == 1:
                     if value < t[0]:
@@ -431,31 +437,7 @@ class ValueThresholdNode(base.Node):
                 else:
                     if t[0] and t[1]:
                         pass # FIXME: continue here
-                        
-                
-                
-
-#     def __init__(self, field, low_value = None, high_value = None):
-#         """Creates a node for text replacement.
-# 
-#         :Attributes:
-#             * `field`: field to be used for substitution (should contain a string)
-#             * `derived_field`: new field to be created after substitutions. If set to ``None`` then the
-#               source field will be replaced with new substituted value. Default is ``None`` - same field
-#               replacement.
-# 
-#         """
-#         super(TextSubstituteNode, self).__init__()
-# 
-#         self.field = field
-#         self.derived_field = derived_field
-#         self.substitutions = []
-# 
-#         
-#     def run(self):
-#         index = self.input_fields.index(self.field)
-#         for row in self.input.rows():s
-#  
+            self.put(row)
 
 class BinningNode(base.Node):
     """Derive a bin/category field from a value.

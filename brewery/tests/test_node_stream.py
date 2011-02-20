@@ -36,7 +36,7 @@ class StreamBuildingTestCase(unittest.TestCase):
         self.stream.connect("source", "sample")
         self.stream.connect("source", "csv_target")
         self.stream.connect("sample", "html_target")
-        
+    
     def test_connections(self):
         self.assertEqual(4, len(self.stream.nodes))
         self.assertEqual(3, len(self.stream.connections))
@@ -60,6 +60,33 @@ class StreamBuildingTestCase(unittest.TestCase):
         
         self.stream.connect("html_target", "source")
         self.assertRaises(Exception, self.stream.sorted_nodes)
+        
+    def test_update(self):
+        stream_desc = {
+            "nodes": {
+                "source": {"type": "row_list_source"},
+                "target": {"type": "record_list_target"},
+                "aggtarget": {"type": "record_list_target"},
+                "sample": {"type": "sample"},
+                "map":  {"type": "field_map"},
+                "aggregate": {"type": "aggregate", "keys": ["str"] }
+            },
+            "connections": {
+                ("source", "sample"),
+                ("sample", "map"),
+                ("map", "target"),
+                ("source", "aggregate"),
+                ("aggregate", "aggtarget")
+            }
+        }
+        
+        stream = pipes.Stream()
+        stream.update(stream_desc)
+        self.assertTrue(isinstance(stream.node("source"), pipes.Node))
+        self.assertTrue(isinstance(stream.node("aggregate"), pipes.AggregateNode))
+
+        node = stream.node("aggregate")
+        self.assertEqual(["str"], node.keys)
 
 class FailNode(pipes.Node):
     def run(self):
@@ -158,11 +185,9 @@ class StreamInitializationTestCase(unittest.TestCase):
         stream = pipes.Stream(nodes, connections)
 
         stream.initialize()
-        stream.run()
+        self.assertRaises(pipes.StreamRuntimeError, stream.run)
         stream.finalize()
         
-        self.assertEqual(1, len(stream.exceptions))
-
     def test_fail_with_slow_source(self):
         nodes = {
             "source": SlowSourceNode(),
@@ -177,8 +202,6 @@ class StreamInitializationTestCase(unittest.TestCase):
         stream = pipes.Stream(nodes, connections)
 
         stream.initialize()
-        stream.run()
+        self.assertRaises(pipes.StreamRuntimeError, stream.run)
         stream.finalize()
-
-        self.assertEqual(1, len(stream.exceptions))
     

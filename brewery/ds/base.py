@@ -375,7 +375,7 @@ class FieldList(object):
         try:
             index = self._field_names.index(field_name(field))
         except ValueError:
-            raise KeyError("Field list has no field with name '%s'" % name)
+            raise KeyError("Field list has no field with name '%s'" % field_name(field))
 
         return index
 

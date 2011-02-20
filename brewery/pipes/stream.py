@@ -3,9 +3,87 @@ import base
 import threading
 import traceback 
 import sys
+import inspect
+import utils
 
-class StreamError(Exception):
-    pass
+class StreamRuntimeError(Exception):
+    """Exception raised when a node fails during `run()` phase.
+
+    Attributes:
+        * `message`: exception message
+        * `node`: node where exception was raised
+        * `exception`: exception that was raised while running the node
+        * `traceback`: stack traceback
+        * `inputs`: array of field lists for each input
+        * `output`: output field list
+    """
+    def __init__(self, message = None, node = None, exception = None):
+        super(StreamRuntimeError, self).__init__()
+        if message:
+            self.message = message
+        else:
+            self.message = ""
+
+        self.node = node
+        self.exception = exception
+        self.traceback = None
+        self.inputs = []
+        self.output = []
+        self.attributes = {}
+
+    def print_exception(self, output = None):
+        """Prints exception. You can specify IO stream object in `output` parameter. By default
+        text is printed to standard output."""
+        
+        if not output:
+            output = sys.stdout
+            
+        text = "stream fail reason: {message}\n" \
+                "node: {node}\n" \
+                "exception: {exception_type}\n" \
+                "           {exception_message}\n" \
+                "traceback:\n{traceback}\n"
+
+        text = text.format(message = self.message,
+                            node = self.node,
+                            exception_type = self.exception.__class__.__name__,
+                            exception_message = str(self.exception),
+                            traceback = "".join(self.traceback))
+        if self.inputs:
+            for i, fields in enumerate(self.inputs):
+                text += "input %i:\n" % i
+                for (index, field) in enumerate(fields):
+                    text += "% 5d %s (storage:%s analytical:%s)\n" \
+                                % (index, field.name, field.storage_type, field.analytical_type)
+        else:
+            text += "input: none"
+
+        text += "\n"    
+
+        if self.output:
+            text += "output:\n"
+            for field in self.output:
+                text += "    %s (storage:%s analytical:%s)\n" \
+                            % (field.name, field.storage_type, field.analytical_type)
+        else:
+            text += "ouput: none"
+            
+        text += "\n"    
+        
+        if self.attributes:
+            text += "attributes:\n"
+            for name, attribute in self.attributes.items():
+                try:
+                    value = str(attribute)
+                except Exception, e:
+                    value = "unable to convert to string (exception: %s)" % e
+                text += "    %s: %s\n" % (name, value)
+        else:
+            text += "attributes: none"
+            
+        output.write(text)
+        
+    
 
 class Stream(object):
     """Data processing stream"""
@@ -16,6 +94,7 @@ class Stream(object):
             * `nodes` - dictionary with keys as node names and values as nodes
             * `connections` - list of two-item tuples. Each tuple contains source and target node
               or source and target node name.
+            * `stream` - another stream or 
         """
         super(Stream, self).__init__()
         self.nodes = []
@@ -27,7 +106,7 @@ class Stream(object):
                 for name, node in nodes.items():
                     self.add(node, name)
             else:
-                raise StreamError("Nodes should be a dictionary, is %s" % type(nodes))
+                raise base.StreamError("Nodes should be a dictionary, is %s" % type(nodes))
 
         if connections:
             for connection in connections:
@@ -163,7 +242,41 @@ class Stream(object):
             raise Exception("Steram has at least one cycle")
             
         return sorted_nodes
-            
+
+    def update(self, dictionary):
+        """Adds nodes and connections specified in the dictionary. Dictionary might contain
+        node names instead of real classes. You can use this method for creating stream
+        from a dictionary that was created from a JSON file, for example.
+        """
+        
+        nodes = dictionary.get("nodes")
+        connections = dictionary.get("connections")
+        
+        class_dict = base.Node.class_dictionary()
+        
+        for (name, obj) in nodes.items():
+            if isinstance(obj, base.Node):
+                node_instance = obj
+            elif isinstance(obj, type) and issubclass(obj, base.Node):
+                node_instance = obj() 
+            else:
+                if not "type" in obj:
+                    raise Exception("Node dictionary has no type key")
+                node_type = obj["type"]
+                
+                if node_type in class_dict:
+                    node_class = class_dict[node_type]
+                    node_instance = node_class()
+                    node_instance.configure(obj)
+                else:
+                    raise Exception("No node class of type '%s'" % obj)
+
+            self.add(node_instance, name)
+
+        if connections:
+            for connection in connections:
+                self.connect(connection[0], connection[1])
+        
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
         nodes = []
@@ -264,23 +377,59 @@ class Stream(object):
                     # logging.debug("thread join timed out")
                 else:
                     if thread.exception:
-                        self.exceptions.append( (thread.node, thread.exception) )
+                        self._add_thread_exception(thread)
                     else:
                         logging.debug("thread joined")
                     break
                 if self.exceptions:
                     logging.info("node exception occured, trying to kill threads")
                     self.kill_threads()
-                    
 
-        for (thread, node) in threads:
-            if thread.exception:
-                logging.error("exception in node %s: %s" % (node, thread.exception))
-                logging.debug("exception traceback: \n%s" % ("".join(thread.traceback)))
-                # for line in thread.traceback:
-                #     logging.debug("%s" % line)
+        if self.exceptions:
+            logging.info("run finished with exception")
+            # Raising only first exception found
+            raise self.exceptions[0]
+        else:
+            logging.info("run finished sucessfully")
 
-        logging.info("run finished")
+    def _add_thread_exception(self, thread):
+        """Create a StreamRuntimeError exception object and fill attributes with all necessary
+        values.
+        """
+        node = thread.node
+        exception = StreamRuntimeError(node = node, exception = thread.exception)
+
+        exception.traceback = thread.traceback
+
+        array = []
+        for pipe in node.inputs:
+            array.append(pipe.fields)
+        exception.inputs = array
+        
+        if not isinstance(node, base.TargetNode):
+            try:
+                exception.ouputs = node.output_fields
+            except:
+                pass
+        
+        node_info = node.__class__.__dict__.get("__node_info__")
+
+        attrs = {}
+        if node_info and "attributes" in node_info:
+            for attribute in node_info["attributes"]:
+                attr_name = attribute.get("name")
+                if attr_name:
+                    try:
+                        value = getattr(node, attr_name)
+                    except AttributeError:
+                        value = "<attribute %s does not exist>" % attr_name
+                    except Exception ,e:
+                        value = e
+                    attrs[attr_name] = value
+        
+        exception.attributes = attrs
+        
+        self.exceptions.append(exception)
         
         
     def kill_threads(self):
@@ -315,10 +464,10 @@ class StreamNodeThread(threading.Thread):
         except base.NodeFinished, e:
             logging.info("node %s finished" % (self.node))
         except Exception, e:
-            logging.error("node %s failed: %s" % (self.node, e))
-            self.exception = e
+            logging.info("node %s failed: %s" % (self.node, e))
             tb = sys.exc_info()[2]
             self.traceback = traceback.format_list(traceback.extract_tb(tb))
+            self.exception = e
             del tb
 
         # Flush pipes after node is finished
@@ -331,4 +480,4 @@ class StreamNodeThread(threading.Thread):
         for pipe in self.node.inputs:
             pipe.stop()
         logging.debug("%s: stopped" % self)
-        
+

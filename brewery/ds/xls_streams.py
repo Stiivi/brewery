@@ -83,7 +83,10 @@ class XLSRowIterator(object):
         self.workbook = workbook
         self.sheet = sheet
         self.row_count = sheet.nrows
-        self.current_row = row_offset
+        if row_offset:
+            self.current_row = row_offset
+        else:
+            self.current_row = 0
 
     def __iter__(self):
         return self

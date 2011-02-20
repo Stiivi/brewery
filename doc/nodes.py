@@ -79,6 +79,7 @@ def write_node_doc(doc, f):
         
     doc["underline"] = "-" * len(doc["label"])
     
+    f.write(".. _%s:\n\n" % doc["class_name"])
     temp = "${label}\n${underline}\n\n"
     temp += ".. image:: nodes/${icon}.png\n" \
                 "   :align: right\n\n" \

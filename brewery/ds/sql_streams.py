@@ -29,7 +29,7 @@ try:
         "date": sqlalchemy.types.Date,
         "time": sqlalchemy.types.DateTime,
         "integer": sqlalchemy.types.Integer,
-        "numeric": sqlalchemy.types.Numeric,
+        "float": sqlalchemy.types.Numeric,
         "boolean": sqlalchemy.types.SmallInteger
     }
 except:

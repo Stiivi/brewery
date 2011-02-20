@@ -4,6 +4,8 @@ Node Reference
 Sources
 =======
 
+.. _CSVSourceNode:
+
 CSV Source
 ----------
 
@@ -42,6 +44,8 @@ read from the file header if specified by `read_header` flag. Field storage type
    * - quotechar
      - character used for quoting string values, default is double quote
 
+.. _RecordListSourceNode:
+
 Record List Source
 ------------------
 
@@ -67,6 +71,8 @@ object.
    * - fields
      - Fields in the list.
 
+.. _RowListSourceNode:
+
 Row List Source
 ---------------
 
@@ -91,6 +97,8 @@ object.
      - List of rows represented as lists or tuples.
    * - fields
      - Fields in the list.
+
+.. _StreamSourceNode:
 
 Data Stream Source
 ------------------
@@ -119,6 +127,8 @@ in visual, web or other stream modelling tools.
      - description
    * - stream
      - Data stream object.
+
+.. _YamlDirectorySourceNode:
 
 YAML Directory Source
 ---------------------
@@ -159,6 +169,8 @@ Optionally one can specify a field where file name will be stored.
 Record Operations
 =================
 
+.. _AggregateNode:
+
 Aggregate Node
 --------------
 
@@ -183,6 +195,8 @@ Aggregate
    * - record_count_field
      - Name of a field where record count will be stored. Default is `record_count`
 
+.. _AppendNode:
+
 Append
 ------
 
@@ -196,6 +210,8 @@ Append
 Sequentialy append input streams. Concatenation order reflects input stream order. The
 input streams should have same set of fields.
 
+
+.. _AuditNode:
 
 Data Audit
 ----------
@@ -228,6 +244,8 @@ Audit note passes following fields to the output:
      - description
    * - distinct_threshold
      - number of distinct values to be tested. If there are more than the threshold, then values are not included any more and result `distinct_values` is set to None 
+
+.. _DistinctNode:
 
 Distinct Node
 -------------
@@ -262,6 +280,8 @@ should give no records on output if there are no duplicates.
    * - discard
      - Field where substition result will be stored. If not set, then original field will be replaced with new value.
 
+.. _MergeNode:
+
 Merge Node
 ----------
 
@@ -274,6 +294,8 @@ Merge Node
 
 Merge two or more streams (join)
 
+
+.. _SampleNode:
 
 Sample Node
 -----------
@@ -306,6 +328,8 @@ and rest is discarded. When it is true, then sample is discarded and rest is pas
      - Size of the sample to be passed to the output
    * - discard
      - flag whether the sample is discarded or included
+
+.. _SelectNode:
 
 Select
 ------
@@ -351,6 +375,8 @@ selected records are passed to the output.
    * - kwargs
      - Keyword arguments passed to the predicate function
 
+.. _SetSelectNode:
+
 Set Select
 ----------
 
@@ -385,6 +411,8 @@ Use case examples:
 Field Operations
 ================
 
+.. _BinningNode:
+
 Binning
 -------
 
@@ -408,6 +436,8 @@ Binning modes:
 
     
 
+
+.. _CoalesceValueToTypeNode:
 
 Coalesce Value To Type Node
 ---------------------------
@@ -443,6 +473,8 @@ Coalesce values of selected fields, or fields of given type to match the type.
    * - empty_values
      - dictionary of type -> value pairs to be set when field is considered empty (null) - not yet used
 
+.. _FieldMapNode:
+
 Field Map
 ---------
 
@@ -468,6 +500,8 @@ Node renames input fields or drops them from the stream.
    * - drop_fields
      - List of fields to be dropped from the stream.
 
+.. _StringStripNode:
+
 String Strip
 ------------
 
@@ -491,6 +525,8 @@ Strip spaces (orother specified characters) from string fields.
      - List of string fields to be stripped. If none specified, then all fields of storage type `string` are stripped
    * - chars
      - Characters to be stripped. By default all white-space characters are stripped.
+
+.. _TextSubstituteNode:
 
 Text Substitute
 ---------------
@@ -517,6 +553,8 @@ Substitute text in a field using regular expression.
      - Field where substition result will be stored. If not set, then original field will be replaced with new value.
    * - substitutions
      - List of substitutions: each substition is a two-element tuple (`pattern`, `replacement`) where `pattern` is a regular expression that will be replaced using `replacement`
+
+.. _ValueThresholdNode:
 
 Value Threshold
 ---------------
@@ -573,6 +611,8 @@ We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
 Targets
 =======
 
+.. _CSVTargetNode:
+
 CSV Target
 ----------
 
@@ -604,6 +644,45 @@ Node that writes rows into a comma separated values (CSV) file.
      - Flag determining whether to write field names as file headers.
    * - truncate
      - If set to ``True`` all data from file are removed. Default ``True``
+
+.. _DatabaseTableTargetNode:
+
+Database Table Target
+---------------------
+
+.. image:: nodes/sql_table_target.png
+   :align: right
+
+**Synopsis:** *Feed data rows into a relational database table*
+
+**Class:** DatabaseTableTargetNode
+
+Feed data rows into a relational database table.
+    
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - url
+     - Database URL in form: adapter://user:password@host/database
+   * - connection
+     - SQLAlchemy database connection - either this or url should be specified
+   * - table
+     - table name
+   * - truncate
+     - If set to ``True`` all data table are removed prior to node execution. Default is ``False`` - data are appended to the table
+   * - create
+     - create table if it does not exist or not
+   * - replace
+     - Set to True if creation should replace existing table or not, otherwise node will fail on attempt to create a table which already exists
+   * - options
+     - other SQLAlchemy connect() options
+
+.. _FormattedPrinterNode:
 
 Formatted Printer
 -----------------
@@ -666,8 +745,8 @@ Output will look similar to this::
    * - attribute
      - description
    * - format
-     - Format string to be used
-   * - output
+     - Format string to be used. Default is to print all field values separated by tab character.
+   * - target
      - IO object. If not set then sys.stdout will be used. If it is a string, then it is considered a filename.
    * - delimiter
      - Record delimiter. By default it is new line character.
@@ -675,6 +754,8 @@ Output will look similar to this::
      - Header string - will be printed before printing first record
    * - footer
      - Footer string - will be printed after all records are printed
+
+.. _RecordListTargetNode:
 
 Record List Target
 ------------------
@@ -701,6 +782,8 @@ To get list of fields, ask for `output_fields`.
    * - records
      - Created list of records represented as dictionaries.
 
+.. _RowListTargetNode:
+
 Row List Target
 ---------------
 
@@ -724,6 +807,8 @@ To get list of fields, ask for `output_fields`.
      - description
    * - rows
      - Created list of tuples.
+
+.. _StreamTargetNode:
 
 Data Stream Target
 ------------------

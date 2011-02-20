@@ -218,7 +218,7 @@ class FormattedPrinterNode(base.TargetNode):
                                 "separated by tab character."
             },
             {
-                 "name": "output",
+                 "name": "target",
                  "description": "IO object. If not set then sys.stdout will be used. "
                                 "If it is a string, then it is considered a filename."
             },
@@ -236,12 +236,12 @@ class FormattedPrinterNode(base.TargetNode):
             }
         ]
     }
-    def __init__(self, format = None, output = sys.stdout, delimiter = None, header = None,
+    def __init__(self, format = None, target = sys.stdout, delimiter = None, header = None,
                  footer = None):
         super(FormattedPrinterNode, self).__init__()
         self.format = format
         
-        self.output = output
+        self.target = target
         self.header = header
         self.footer = footer
 
@@ -254,11 +254,11 @@ class FormattedPrinterNode(base.TargetNode):
         self.close_handle = False
 
     def run(self):
-        if type(self.output) == str or type(self.output) == unicode:
-            self.handle = open(self.output, "w")
+        if type(self.target) == str or type(self.target) == unicode:
+            self.handle = open(self.target, "w")
             self.close_handle = True
         else:
-            self.handle = self.output
+            self.handle = self.target
             self.close_handle = False
         
         names = self.input_fields.names()
@@ -295,3 +295,64 @@ class FormattedPrinterNode(base.TargetNode):
             self.handle.flush()
             if self.close_handle:
                 self.handle.close()
+
+class DatabaseTableTargetNode(base.TargetNode):
+    """Feed data rows into a relational database table.
+    """
+    __node_info__ = {
+        "label": "Database Table Target",
+        "icon": "sql_table_target",
+        "description" : "Feed data rows into a relational database table",
+        "attributes" : [
+            {
+                 "name": "url",
+                 "description": "Database URL in form: adapter://user:password@host/database"
+            },
+            {
+                 "name": "connection",
+                 "description": "SQLAlchemy database connection - either this or url should be specified",
+            },
+            {
+                 "name": "table",
+                 "description": "table name"
+            },
+            {
+                 "name": "truncate",
+                 "description": "If set to ``True`` all data table are removed prior to node "
+                                "execution. Default is ``False`` - data are appended to the table"
+            },
+            {
+                 "name": "create",
+                 "description": "create table if it does not exist or not"
+            },
+            {
+                 "name": "replace",
+                 "description": "Set to True if creation should replace existing table or not, "
+                                "otherwise node will fail on attempt to create a table which "
+                                "already exists"
+            },
+            {
+                 "name": "options",
+                 "description": "other SQLAlchemy connect() options"
+            }
+        ]
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(DatabaseTableTargetNode, self).__init__()
+        self.kwargs = kwargs
+        self.args = args
+        self.stream = None
+
+    def initialize(self):
+        self.stream = ds.SQLDataTarget(*self.args, **self.kwargs)
+
+        self.stream.fields = self.input_fields
+        self.stream.initialize()
+
+    def run(self):
+        for row in self.input.rows():
+            self.stream.append(row)
+
+    def finalize(self):
+        self.stream.finalize()

@@ -20,6 +20,21 @@ class NodesTestCase(unittest.TestCase):
         for i in range(0, count):
             pipe.put([i, float(i)/4, "item-%s" % i, custom])
 
+    def test_node_subclasses(self):
+        nodes = pipes.Node.subclasses()
+        self.assertIn(pipes.CSVSourceNode, nodes)
+        self.assertIn(pipes.AggregateNode, nodes)
+        self.assertIn(pipes.ValueThresholdNode, nodes)
+        self.assertNotIn(pipes.Stream, nodes)
+
+    def test_node_dictionary(self):
+        d = pipes.Node.class_dictionary()
+        self.assertIn("aggregate", d)
+        self.assertIn("csv_source", d)
+        self.assertIn("csv_target", d)
+        self.assertNotIn("source", d)
+        self.assertNotIn("aggregate_node", d)
+
     def test_sample_node(self):
         node = pipes.SampleNode()
         self.setup_node(node)

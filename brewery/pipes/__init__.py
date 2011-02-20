@@ -6,6 +6,8 @@ from source_nodes import *
 from target_nodes import *
 
 __all__ = (
+    "Stream",
+    "StreamRuntimeError",
     "Pipe",
     "Node",
     "SourceNode",
@@ -38,6 +40,5 @@ __all__ = (
     "RowListTargetNode",
     "RecordListTargetNode",
     "StreamTargetNode",
-    "Stream",
     "FormattedPrinterNode"
 )
