@@ -411,14 +411,14 @@ class ValueThresholdNode(base.Node):
         thresholds = []
         for t in self.thresholds:
             if len(t) == 1:
-                thresholds.append( (0) )
-            else:
-                if t[2] == None:
-                    thresholds.append( t[1] )
-                if t[1] == None:
-                    thresholds.append( t[2] )
-                else:
-                    thresholds.append( t[1:] )
+                # We have only field name, then use default threshold: 0
+                thresholds.append( (0, ) )
+            elif len(t) == 2:
+                thresholds.append( (t[1], ) )
+            elif len(t) >= 2:
+                thresholds.append( (t[1], t[2]) )
+            elif len(t) == 0:
+                raise ValueError("Invalid threshold specification: should be field name, low and optional high")
         
         if not self.bin_names:
             bin_names = ("low", "medium", "high")
@@ -428,15 +428,21 @@ class ValueThresholdNode(base.Node):
         for row in self.input.rows():
             for i, t in enumerate(thresholds):
                 value = row[self.threshold_field_indexes[i]]
-                
+                bin = None
                 if len(t) == 1:
                     if value < t[0]:
-                        row.append(bin_names[0])
+                        bin = bin_names[0]
                     else:
-                        row.append(bin_names[-1])
-                else:
-                    if t[0] and t[1]:
-                        pass # FIXME: continue here
+                        bin = bin_names[-1]
+                elif len(t) > 1:
+                    if value < t[0]:
+                        bin = bin_names[0]
+                    if value > t[1]:
+                        bin = bin_names[-1]
+                    else:
+                        bin = bin_names[1]
+
+                row.append(bin)
             self.put(row)
 
 class BinningNode(base.Node):

@@ -279,7 +279,7 @@ class FormattedPrinterNode(base.TargetNode):
             
         for record in self.input.records():
             self.handle.write(format_string.format(**record).encode("utf-8"))
-                
+            
             if self.delimiter:
                 self.handle.write(self.delimiter)
 
