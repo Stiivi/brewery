@@ -31,15 +31,15 @@ Problem can be solved using following data stream:
 
     Data stream.
     
-The stream consists of (from left to right):
+The stream consists of following nodes (from left to right):
 
-* two YAML directory sources
-* append node - sequentially concatenate streams
-* coalesce types node - fix field values according to specified type, for example convert strings
-  into integers for fields of type `integer`
-* CSV data target
-* audit node
-* formatted printer
+* two YAML directory sources (:ref:`YamlDirectorySourceNode`)
+* :ref:`AppendNode` - sequentially concatenate streams
+* :ref:`CoalesceValueToTypeNode` - fix field values according to specified type, for example
+  convert strings into integers for fields of type `integer`
+* :ref:`CSVTargetNode`
+* :ref:`AuditNode`
+* :ref:`FormattedPrinterNode`
 
 Code
 ----
@@ -98,7 +98,7 @@ that you convert an array using :func:`brewery.ds.fieldlist`.
     nodes["source1"].fields = ds.fieldlist(fields)
     nodes["source2"].fields = ds.fieldlist(fields)
 
-Configure nodes:
+Configure printer node (:ref:`FormattedPrinterNode`) to create nicely aligned text output:
 
 .. code-block:: python
 
@@ -132,6 +132,81 @@ look something like this::
     received_amount                  4.98%          0        728
     source_comment                  99.98%          0          2
 
+Improvement
+-----------
+
+We know how complete (non-null) our fields are. However, are they complete enough? Say we want at
+least 95% completeness. We can learn from our report which fields are complete enough or not,
+based on the ``nulls`` report coulmn. We still have to read the number and decide.
+
+To aid our decision, in addition to percentage of nulls we add a flag whether the field is ok or
+not based on threshold. If the field null percent is greater than 5% the field quality fails and
+we mark it as ``fail``, otherwise the field test passes and we mark it as ``ok``. To derive the
+flag we insert a :ref:`ValueThresholdNode` node.
+
+.. figure:: pipes_append_clean_audit2.png
+
+    Updated data stream with value threshold node.
+
+
+.. code-block:: python
+
+    nodes = {
+        "source1": pipes.YamlDirectorySourceNode(path = "donations/source1"),
+        "source2": pipes.YamlDirectorySourceNode(path = "donations/source2"),
+        "append": pipes.AppendNode(),
+        "clean": pipes.CoalesceValueToTypeNode(),
+        "output": pipes.CSVTargetNode(resource = "donations.csv"),
+        "audit": pipes.AuditNode(distinct_threshold = None),
+        "threshold": pipes.ValueThresholdNode(), # <-- this was is added
+        "print": pipes.FormattedPrinterNode()
+    }
+
+Rewire nodes:
+
+.. code-block:: python
+
+    connections = [ ("source1", "append"),
+                    ("source2", "append"),
+                    ("append", "clean"),
+                    ("clean", "output"),
+                    ("clean", "audit"),     # \
+                    ("audit", "threshold"), #  |-- rewired
+                    ("threshold", "print")  # /
+                    ]
+
+We consider field to be `ok` when null count is less than 5%, otherwise test fails. Therefore we
+configure threshold node like this:
+
+.. code-block:: python
+
+    nodes["threshold"].thresholds = [ ["null_record_ratio", 0.05] ]
+    nodes["threshold"].bin_names = ("ok", "fail")
+
+
+Update report template to include new derived field:
+
+.. code-block:: python
+
+    nodes["print"].header = u"field                            nulls     status   distinct\n" \
+                             "------------------------------------------------------------"
+    nodes["print"].format = u"{field_name:<30.30} {null_record_ratio: >7.2%} "\
+                             "{null_record_ratio_bin:>10} {distinct_count:>10}"
+
+The output should look like this::
+
+    field                            nulls     status   distinct
+    ------------------------------------------------------------
+    file                             0.00%         ok         32
+    source_code                      0.00%         ok          2
+    id                               9.96%       fail        907
+    receiver_name                    9.10%       fail       1950
+    project                          0.05%         ok       3628
+    requested_amount                22.90%       fail        924
+    received_amount                  4.98%         ok        728
+    source_comment                  99.98%       fail          2
+
+
 .. seealso::
 
     * :ref:`YamlDirectorySourceNode`
@@ -140,3 +215,4 @@ look something like this::
     * :ref:`CSVTargetNode`
     * :ref:`AuditNode`
     * :ref:`FormattedPrinterNode`
+    * :ref:`ValueThresholdNode`

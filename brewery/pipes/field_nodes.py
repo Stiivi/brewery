@@ -448,7 +448,9 @@ class ValueThresholdNode(base.Node):
 class BinningNode(base.Node):
     """Derive a bin/category field from a value.
 
-    *Note: this node is not yet implemented*
+    .. warning::
+    
+        Not yet implemented
     
     Binning modes:
     

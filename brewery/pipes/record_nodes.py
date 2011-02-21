@@ -86,14 +86,86 @@ class AppendNode(base.Node):
                 self.put(row)
 
 class MergeNode(base.Node):
-    """Merge two or more streams (join)"""
+    """Merge two or more streams (join)
+    
+    .. warning::
+    
+        Not yet implemented
+    
+    Inputs are joined in a star-like fashion: one input is considered master and others are 
+    details adding information to the master. By default master is the first input.
+    Joins are specified as list of tuples: (`input_tag`, `master_input_key`, `other_input_key`).
+    
+    Following configuration code shows how to add region and category details:
+
+    .. code-block:: python
+
+        node.keys = [ [1, "region_code", "code"] 
+                      [2, "category_code", "code"] ]
+
+    Master input should have fields `region_code` and `category_code`, other inputs should have
+    `code` field with respective values equal to master keys.
+
+    .. code-block:: python
+
+        node.keys = [ [1, "region_code", "code"] 
+                      [2, ("category_code", "year"), ("code", "year")] ]
+
+    As a key you might use either name of a sigle field or list of fields for compound keys. If
+    you use compound key, both keys should have same number of fields. For example, if there is
+    categorisation based on year:
+
+    The detail key might be omitted if it the same as in master input:
+
+    .. code-block:: python
+
+        node.keys = [ [1, "region_code"] 
+                      [2, "category_code"] ]
+
+    Master input should have fields `region_code` and `category_code`, input #1 should have
+    `region_code` field and input #2 should have `category_code` field.
+
+    .. note::
+    
+        Current implementation performs only inner join between datasets, that means that only
+        those input records are joined that will have matching keys.
+
+    How does it work: all records from detail inputs are read first. Then records from master
+    input are read and joined with cached input records. It is recommended that the master dataset
+    set is the largest from all inputs.
+
+    """
+    
+    __node_info__ = {
+        "label" : "Merge Node",
+        "description" : "Merge two or more streams",
+        "attributes" : [
+            {
+                "name": "joins",
+                "description": "Join specification (see node documentation)"
+            },
+            {
+                "name": "master",
+                "description": "Tag (index) of input dataset which will be considered as master"
+            },
+            {
+                "name": "field_maps",
+                "description": "Specification of which fields are passed from input and how they are going to be (re)named"
+            }
+            # {
+            #     "name": "join_types",
+            #     "description": "Dictionary where keys are stream tags (indexes) and values are "
+            #                    "types of join for the stream. Default is 'inner'."
+            # }
+        ]
+    }
     
     def __init__(self):
         super(MergeNode, self).__init__()
         
     def run(self):
-        # FIXME: Continue here
-        pass
+        """Only inner join is implemented"""
+        
 
 class DistinctNode(base.Node):
     """Node will pass distinct records with given distinct fields.
