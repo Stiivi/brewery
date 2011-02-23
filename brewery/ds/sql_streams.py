@@ -75,7 +75,10 @@ class SQLDataStore(object):
         table = self._table(name, autoload = False)
         return table.exists()
 
-    def create_dataset(self, name, fields, replace = False):
+    def create_dataset(self, name, fields, replace = False,
+                       add_id_key = False, id_key_name = None):
+        """Create a table."""
+
         if self.has_dataset(name):
             if not replace:
                 raise ValueError("Dataset '%s' already exists" % name)
@@ -85,13 +88,24 @@ class SQLDataStore(object):
 
         table = self._table(name, autoload = False)
 
+        if add_id_key:
+            if not id_key_name:
+                id_key_name = 'id'
+
+            sequence_name = "seq_" + name + "_" + id_key_name
+            sequence = sqlalchemy.schema.Sequence(sequence_name, optional = True)
+            
+            col = sqlalchemy.schema.Column(id_key_name, sqlalchemy.types.Integer, 
+                                            sequence, primary_key=True)
+            table.append_column(col)
+
         for field in fields:
-            if not issubclass(type(field), base.Field):
+            if not isinstance(field, base.Field):
                 raise ValueError("field %s is not subclass of brewery.Field" % (field))
 
             concrete_type = field.concrete_storage_type
 
-            if not issubclass(concrete_type.__class__, sqlalchemy.types.TypeEngine):
+            if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
                 concrete_type = _brewery_to_sql_type.get(field.storage_type)
                 if not concrete_type:
                     raise ValueError("unable to create column for field '%s' of type '%s'" % 
@@ -193,7 +207,6 @@ class SQLDataSource(base.DataSource):
         self.schema = schema
         self.options = options
         
-        self._field_names = None
         self._fields = None
                 
     def initialize(self):
@@ -205,13 +218,6 @@ class SQLDataSource(base.DataSource):
     def finalize(self):
         self.datastore.close()
 
-    @property
-    def field_names(self):
-        if self._field_names:
-            return self._field_names
-        self._field_names = self.dataset.field_names
-        return self._field_names
-        
     @property
     def fields(self):
         if self._fields:
@@ -243,7 +249,8 @@ class SQLDataTarget(base.DataTarget):
     """
     def __init__(self, connection = None, url = None,
                     table = None, schema = None, truncate = False, 
-                    create = False, statement = None, replace = False, **options):
+                    create = False, statement = None, replace = False,
+                    add_id_key = False, id_key_name = None, **options):
         """Creates a relational database data target stream.
         
         :Attributes:
@@ -255,6 +262,9 @@ class SQLDataTarget(base.DataTarget):
             * replace: Set to True if creation should replace existing table or not, otherwise
               initialization will fail on attempt to create a table which already exists.
             * options: other SQLAlchemy connect() options
+            * add_id_key: whether to add auto-increment key column or not. Works only if `create`
+              is ``True``
+            * id_key_name: name of the auto-increment key. Default is 'id'
         
         Note: avoid auto-detection when you are reading from remote URL stream.
         
@@ -276,8 +286,13 @@ class SQLDataTarget(base.DataTarget):
         self.replace = replace
         self.create = create
         self.truncate = truncate
+        self.add_id_key = add_id_key
+
+        if id_key_name:
+            self.id_key_name = id_key_name
+        else:
+            self.id_key_name = 'id'
         
-        self._field_names = None
         self._fields = None
                 
     def initialize(self):
@@ -286,44 +301,37 @@ class SQLDataTarget(base.DataTarget):
         self.datastore = SQLDataStore(self.url, self.connection, self.schema, **self.options)
 
         if self.create:
-            self.dataset = self.datastore.create_dataset(self.table_name, self.fields, self.replace)
+            self.dataset = self.datastore.create_dataset(self.table_name, 
+                                                         self.fields, 
+                                                         self.replace, 
+                                                         self.add_id_key, self.id_key_name)
         else:
             self.dataset = self.datastore.dataset(self.table_name)
             
         if self.truncate:
             self.dataset.table.delete().execute()
 
-        self._update_fields()
+        if not self._fields:
+            self._fields = self.dataset.fields
+
         self.insert_command = self.dataset.table.insert()
-        
 
     def finalize(self):
         self.datastore.close()
 
-    @property
-    def field_names(self):
-        if self._field_names:
-            return self._field_names
-        if self._fields:
-            return [field.name for field in self._fields]
-        self._field_names = self.dataset.field_names
-        return self._field_names
-        
-    @property
     def __get_fields(self):
-        if self._fields:
-            return self._fields
-        self._fields = self.dataset.fields
         return self._fields
 
-    def _update_fields(self):
-        self._fields = self.dataset.fields
-        self._field_names = [field.name for field in self._fields]
-        
+    def __set_fields(self, fields):
+        self._fields = fields
+
+    fields = property(__get_fields, __set_fields)
+
     def append(self, obj):
         if type(obj) == dict:
             record = obj
         else:
             record = dict(zip(self.field_names, obj))
-
+            # if self.add_id_key:
+            #     record[self.id_key_name] = None
         self.insert_command.execute(record)
