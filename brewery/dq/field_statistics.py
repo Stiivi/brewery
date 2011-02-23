@@ -83,8 +83,10 @@ class FieldStatistics(object):
 
         self.value_count += 1
         
-        if value == None:
+        # FIXME: check for existence in field.empty_values
+        if value is None:
             self.null_count += 1
+
         if value == '':
             self.empty_string_count += 1
 
