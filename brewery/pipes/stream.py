@@ -38,23 +38,32 @@ class StreamRuntimeError(Exception):
         if not output:
             output = sys.stdout
             
-        text = "stream fail reason: {message}\n" \
-                "node: {node}\n" \
-                "exception: {exception_type}\n" \
-                "           {exception_message}\n" \
-                "traceback:\n{traceback}\n"
+        text =  u"stream fail reason: %s\n" \
+                 "node: %s\n" % (self.message, self.node)
 
-        text = text.format(message = self.message,
-                            node = self.node,
-                            exception_type = self.exception.__class__.__name__,
-                            exception_message = str(self.exception),
-                            traceback = "".join(self.traceback))
+        text += u"exception: %s: " % self.exception.__class__.__name__
+        try:
+            text += unicode(self.exception)
+        except Exception, e:
+            text += u"<unable to get exception string: %s>" % e
+
+        text += "\ntraceback\n"
+
+        try:
+            text += u"".join(self.traceback)
+        except Exception, e:
+            text += u"<unable to get traceback string: %s>" % e
+        
+        text += "\n"
+        
         if self.inputs:
             for i, fields in enumerate(self.inputs):
                 text += "input %i:\n" % i
+                input_text = ""
                 for (index, field) in enumerate(fields):
-                    text += "% 5d %s (storage:%s analytical:%s)\n" \
+                    input_text += u"% 5d %s (storage:%s analytical:%s)\n" \
                                 % (index, field.name, field.storage_type, field.analytical_type)
+                text += unicode(input_text)
         else:
             text += "input: none"
 
@@ -63,7 +72,7 @@ class StreamRuntimeError(Exception):
         if self.output:
             text += "output:\n"
             for field in self.output:
-                text += "    %s (storage:%s analytical:%s)\n" \
+                text += u"    %s (storage:%s analytical:%s)\n" \
                             % (field.name, field.storage_type, field.analytical_type)
         else:
             text += "ouput: none"
@@ -74,7 +83,7 @@ class StreamRuntimeError(Exception):
             text += "attributes:\n"
             for name, attribute in self.attributes.items():
                 try:
-                    value = str(attribute)
+                    value = unicode(attribute)
                 except Exception, e:
                     value = "unable to convert to string (exception: %s)" % e
                 text += "    %s: %s\n" % (name, value)
@@ -464,9 +473,10 @@ class StreamNodeThread(threading.Thread):
         except base.NodeFinished, e:
             logging.info("node %s finished" % (self.node))
         except Exception, e:
-            logging.info("node %s failed: %s" % (self.node, e))
+            logging.info("node %s failed: %s" % (self.node, e.__class__.__name__))
             tb = sys.exc_info()[2]
             self.traceback = traceback.format_list(traceback.extract_tb(tb))
+            print self.traceback
             self.exception = e
             del tb
 

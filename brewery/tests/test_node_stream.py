@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import brewery.pipes as pipes
 import brewery.ds as ds
 import unittest
@@ -89,9 +91,15 @@ class StreamBuildingTestCase(unittest.TestCase):
         self.assertEqual(["str"], node.keys)
 
 class FailNode(pipes.Node):
+    __node_info__ = {
+        "attributes": [ {"name":"message"} ]
+    }
+    
+    def __init__(self):
+        self.message = "This is fail node and it failed as expected"
     def run(self):
         logging.debug("intentionally failing a node")
-        raise Exception("This is fail node and it failed as expected")
+        raise Exception(self.message)
 
 class SlowSourceNode(pipes.Node):
 
@@ -186,6 +194,17 @@ class StreamInitializationTestCase(unittest.TestCase):
 
         stream.initialize()
         self.assertRaises(pipes.StreamRuntimeError, stream.run)
+        stream.finalize()
+        
+        nodes["fail"].message = "Unicode message: čučoriedka ľúbivo ťukala"
+
+        stream.initialize()
+        try:
+            stream.run()
+        except pipes.StreamRuntimeError, e:
+            # This should not raise an exception
+            e.print_exception()
+            
         stream.finalize()
         
     def test_fail_with_slow_source(self):
