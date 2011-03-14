@@ -2,6 +2,7 @@ import csv
 import codecs
 import cStringIO
 import base
+import inspect
 
 # Soft requirement - graceful fail
 try:
@@ -61,7 +62,6 @@ class SQLDataStore(object):
         
         self.metadata = sqlalchemy.MetaData()
         self.metadata.bind = self.engine
-        self.metadata.reflect()
         self.schema = schema
 
     def close(self):
@@ -104,7 +104,7 @@ class SQLDataStore(object):
                 raise ValueError("field %s is not subclass of brewery.Field" % (field))
 
             concrete_type = field.concrete_storage_type
-
+            
             if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
                 concrete_type = _brewery_to_sql_type.get(field.storage_type)
                 if not concrete_type:
@@ -244,12 +244,10 @@ class SQLDataSource(base.DataSource):
         
 class SQLDataTarget(base.DataTarget):
     """docstring for ClassName
-    
-    Some code taken from OKFN Swiss library.
     """
     def __init__(self, connection = None, url = None,
                     table = None, schema = None, truncate = False, 
-                    create = False, statement = None, replace = False,
+                    create = False, replace = False,
                     add_id_key = False, id_key_name = None, **options):
         """Creates a relational database data target stream.
         
@@ -272,9 +270,6 @@ class SQLDataTarget(base.DataTarget):
         if not url and not connection:
             raise AttributeError("Either url or connection should be provided for SQL data source")
 
-        if not table and not statement:
-            raise AttributeError("Either table or statement should be provided for SQL data source")
-
         if not options:
             options = {}
 
@@ -288,16 +283,17 @@ class SQLDataTarget(base.DataTarget):
         self.truncate = truncate
         self.add_id_key = add_id_key
 
+        self._fields = None
+                
         if id_key_name:
             self.id_key_name = id_key_name
         else:
             self.id_key_name = 'id'
-        
-        self._fields = None
-                
+
     def initialize(self):
         """Initialize source stream:
         """
+
         self.datastore = SQLDataStore(self.url, self.connection, self.schema, **self.options)
 
         if self.create:

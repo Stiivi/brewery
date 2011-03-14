@@ -21,6 +21,23 @@ class UTF8Recoder(object):
     def next(self):
         return self.reader.next().encode('utf-8')
 
+class UnicodeReader:
+    """
+    A CSV reader which will iterate over lines in the CSV file "f",
+    which is encoded in the given encoding.
+    """
+
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+        f = UTF8Recoder(f, encoding)
+        self.reader = csv.reader(f, dialect=dialect, **kwds)
+
+    def next(self):
+        row = self.reader.next()
+        return [unicode(s, "utf-8") for s in row]
+
+    def __iter__(self):
+        return self
+
 class UnicodeWriter:
     """
     A CSV writer which will write rows to CSV file "f",
@@ -119,12 +136,8 @@ class CSVDataSource(base.DataSource):
             sample = self.file.read(self.sample_size)
 
             # Encoding test
-            if self.detect_encoding:
-                if type(sample) == unicode:
-                    handle = UTF8Recoder(self.file, None)
-                else:
-                    sample = sample.decode(self.encoding)
-                    handle = UTF8Recoder(self.file, self.encoding)
+            if self.detect_encoding and type(sample) == unicode:
+                self.encoding = "utf-8"
 
             if self.detect_header:
                 sample = sample.encode('utf-8')
@@ -133,10 +146,6 @@ class CSVDataSource(base.DataSource):
 
             self.file.seek(0)
             
-        
-        if not handle:
-            handle = UTF8Recoder(self.file, self.encoding)
-
         if self.dialect:
             if type(self.dialect) == str:
                 dialect = csv.get_dialect(self.dialect)
@@ -145,7 +154,9 @@ class CSVDataSource(base.DataSource):
                 
             self.reader_args["dialect"] = dialect
 
-        self.reader = csv.reader(handle, **self.reader_args)
+        # self.reader = csv.reader(handle, **self.reader_args)
+        self.reader = UnicodeReader(self.file, dialect = self.dialect, encoding = self.encoding, 
+                                    **self.reader_args)
 
         if self.skip_rows:
             for i in range(0, self.skip_rows):
