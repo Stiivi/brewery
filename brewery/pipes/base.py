@@ -52,6 +52,44 @@ class SimpleDataPipe(object):
     def empty(self):
         self.buffer = []
         
+class Pipe2(object):
+    """docstring for Pipe2"""
+    def __init__(self, buffer_size = 1000, queue_size = 1):
+        super(Pipe2, self).__init__()
+        self.buffer_size = buffer_size
+        self.queue_size = queue_size
+
+        self.queue = connections.deque()
+        self.packet = None
+
+        self._ready = False
+        self.consumed = threading.Condition(self.lock)
+
+    # def put(self, obj):
+    #     """Put data object into the pipe buffer. When buffer is full it is enqueued and receiving node
+    #     can get all buffered data objects.
+    # 
+    #     Puttin object into pipe is not thread safe. Only one thread sohuld write to the pipe.
+    #     """
+    #     self.queue.append(obj)
+    # 
+    #     if len(self.queue) >= buffer_size:
+    #         self.not_complete.acquire()
+    #         try:
+    #             while not self.is_empty():
+    #                 self.not_complete().wait()
+                    
+
+    # def rows(self, obj):
+    #     """Get rows ... FIXME"""
+    #     self.ready.acquire()
+    #     while True:
+    #         
+    #     self.ready.release()
+    
+    def is_empty(self):
+        return self.packet == None
+                
 class Pipe(SimpleDataPipe):
     """Pipe for transfer of structured data between processing nodes and node threads.
     Pipe is using ``Queue`` object for sending data. Data are not being send as they come, but
@@ -327,7 +365,7 @@ class SourceNode(Node):
     """
     def __init__(self):
         super(SourceNode, self).__init__()
-        self.fields = None
+        # self.fields = None
     @property
     def output_fields(self):
         raise NotImplementedError("SourceNode subclasses should implement output_fields")

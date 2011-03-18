@@ -58,8 +58,10 @@ class UnicodeWriter:
         for value in row:
             if type(value) == unicode or type(value) == str:
                 new_row.append(value.encode("utf-8"))
-            else:
+            elif value:
                 new_row.append(unicode(value))
+            else:
+                new_row.append(None)
                 
         self.writer.writerow(new_row)
         # Fetch UTF-8 output from the queue ...
@@ -155,7 +157,7 @@ class CSVDataSource(base.DataSource):
             self.reader_args["dialect"] = dialect
 
         # self.reader = csv.reader(handle, **self.reader_args)
-        self.reader = UnicodeReader(self.file, dialect = self.dialect, encoding = self.encoding, 
+        self.reader = UnicodeReader(self.file, encoding = self.encoding, 
                                     **self.reader_args)
 
         if self.skip_rows:

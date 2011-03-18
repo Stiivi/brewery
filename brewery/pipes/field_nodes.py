@@ -38,6 +38,8 @@ class FieldMapNode(base.Node):
             self.dropped_fields = set(drop_fields)
         else:
             self.dropped_fields = set([])
+            
+        self._output_fields = []
         
     def rename_field(self, source, target):
         """Change field name"""
@@ -49,34 +51,19 @@ class FieldMapNode(base.Node):
 
     @property
     def output_fields(self):
-        output_fields = ds.FieldList()
-        
-        for field in self.input.fields:
-            if field.name in self.mapped_fields:
-                # Create a copy and rename field if it is mapped
-                new_field = copy.copy(field)
-                new_field.name = self.mapped_fields[field.name]
-                output_fields.append(new_field)
-            elif field.name not in self.dropped_fields:
-                # Pass field if it is not in dropped field list
-                output_fields.append(field)
-            
-        return output_fields
+        return self._output_fields
+
+    def initialize(self):
+        self.map = ds.FieldMap(rename = self.mapped_fields, drop = self.dropped_fields)
+        self._output_fields = self.map.map(self.input.fields)
+        self.filter = self.map.row_filter(self.input.fields)
 
     def run(self):
         self.mapped_field_names = self.mapped_fields.keys()
 
-        # FIXME: change this to row based processing
-        for record in self.input.records():
-            for field in self.mapped_field_names:
-                if field in record:
-                    value = record[field]
-                    del record[field]
-                    record[self.mapped_fields[field]] = value
-            for field in self.dropped_fields:
-                if field in record:
-                    del record[field]
-            self.put_record(record)
+        for row in self.input.rows():
+            row = self.filter.filter(row)
+            self.put(row)
 
 class TextSubstituteNode(base.Node):
     """Substitute text in a field using regular expression."""

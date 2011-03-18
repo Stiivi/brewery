@@ -170,8 +170,8 @@ class CSVSourceNode(base.SourceNode):
     }
     def __init__(self, *args, **kwargs):
         super(CSVSourceNode, self).__init__()
-        self.kwargs = kwargs
         self.args = args
+        self.kwargs = kwargs
         self.stream = None
         self._fields = None
         
@@ -187,6 +187,8 @@ class CSVSourceNode(base.SourceNode):
 
     def __set_fields(self, fields):
         self._fields = fields
+        if self.stream:
+            self.stream.fields = fields
 
     def __get_fields(self):
         return self._fields

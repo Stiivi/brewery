@@ -292,11 +292,7 @@ Merge Node
 
 **Class:** MergeNode
 
-Merge two or more streams (join)
-
-.. warning::
-
-    Not yet implemented
+Merge two or more streams (join).
 
 Inputs are joined in a star-like fashion: one input is considered master and others are 
 details adding information to the master. By default master is the first input.
@@ -306,7 +302,7 @@ Following configuration code shows how to add region and category details:
 
 .. code-block:: python
 
-    node.keys = [ [1, "region_code", "code"] 
+    node.keys = [ [1, "region_code", "code"], 
                   [2, "category_code", "code"] ]
 
 Master input should have fields `region_code` and `category_code`, other inputs should have
@@ -314,7 +310,7 @@ Master input should have fields `region_code` and `category_code`, other inputs 
 
 .. code-block:: python
 
-    node.keys = [ [1, "region_code", "code"] 
+    node.keys = [ [1, "region_code", "code"], 
                   [2, ("category_code", "year"), ("code", "year")] ]
 
 As a key you might use either name of a sigle field or list of fields for compound keys. If
@@ -325,16 +321,46 @@ The detail key might be omitted if it the same as in master input:
 
 .. code-block:: python
 
-    node.keys = [ [1, "region_code"] 
+    node.keys = [ [1, "region_code"], 
                   [2, "category_code"] ]
 
 Master input should have fields `region_code` and `category_code`, input #1 should have
 `region_code` field and input #2 should have `category_code` field.
 
+To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
+should be a dictionary where keys are input tags and values are either
+:class:`brewery.ds.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+
+Following example renames ``source_region_name`` field in input 0 and drops field `id` in
+input 1:
+
+.. code-block:: python
+
+    node.maps = {
+                    0: ds.FieldMap(rename = {"source_region_name":"region_name"}),
+                    1: ds.FieldMap(drop = ["id"])
+                }
+
+It is the same as:
+
+.. code-block:: python
+
+    node.maps = {
+                    0: { "rename" = {"source_region_name":"region_name"} },
+                    1: { "drop" = ["id"] }
+                }
+
+The first option is preferred, the dicitonary based option is provided for convenience
+in cases nodes are being constructed from external description (such as JSON dictionary).
+
 .. note::
 
-    Current implementation performs only inner join between datasets, that means that only
-    those input records are joined that will have matching keys.
+    Limitations of current implementation (might be improved in the future):
+
+    * only inner join between datasets: that means that only those input records are joined
+      that will have matching keys
+    * "detail" datasets should have unique keys, otherwise the behaviour is undefined
+    * master is considered as the largest dataset
 
 How does it work: all records from detail inputs are read first. Then records from master
 input are read and joined with cached input records. It is recommended that the master dataset
@@ -351,8 +377,10 @@ set is the largest from all inputs.
      - Join specification (see node documentation)
    * - master
      - Tag (index) of input dataset which will be considered as master
-   * - field_maps
+   * - maps
      - Specification of which fields are passed from input and how they are going to be (re)named
+   * - join_types
+     - Dictionary where keys are stream tags (indexes) and values are types of join for the stream. Default is 'inner'. -- **Not implemented**
 
 .. _SampleNode:
 

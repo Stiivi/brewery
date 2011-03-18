@@ -424,4 +424,39 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(["foo", "123", "123.0", "foo", "foo", None], strings) 
         self.assertEqual([123, 123, 123, 123, None, None], integers) 
         self.assertEqual([123, 123, 123, 123, None, None], floats) 
+
+    def test_merge(self):
+        node = pipes.MergeNode()
+        self.create_distinct_sample()
+
+        input2 = pipes.SimpleDataPipe()
+        input2.fields = brewery.ds.fieldlist(["type2", "name"])
+        input2.put(["a", "apple"])
+        input2.put(["b", "bananna"])
+        input2.put(["c", "curry"])
+        input2.put(["d", "dynamite"])
+
+        input_len = len(self.input.buffer)
+
+        node.inputs = [self.input, input2]
+        node.outputs = [self.output]
+
+        node.joins = [
+                    (1, "type", "type2")
+                ]
+
+        node.maps = {
+                        0: ds.FieldMap(drop = ["id2"]),
+                        1: ds.FieldMap(drop = ["type2"])
+                    }
+        self.initialize_node(node)
+
+        self.assertEqual(5, len(node.output_fields)) 
+
+        node.run()
+        node.finalize()
+
+        self.assertEqual(5, len(self.output.buffer[0]))
+        self.assertEqual(input_len, len(self.output.buffer)) 
+        
         

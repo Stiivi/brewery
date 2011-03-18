@@ -193,6 +193,8 @@ class StreamInitializationTestCase(unittest.TestCase):
         stream = pipes.Stream(nodes, connections)
 
         stream.initialize()
+        # FIXME: we are failing here on different exception, should be fixed
+        # self.assertRaisesRegexp(pipes.StreamRuntimeError, "intentionally failing a node", stream.run)
         self.assertRaises(pipes.StreamRuntimeError, stream.run)
         stream.finalize()
         

@@ -86,11 +86,7 @@ class AppendNode(base.Node):
                 self.put(row)
 
 class MergeNode(base.Node):
-    """Merge two or more streams (join)
-    
-    .. warning::
-    
-        Not yet implemented
+    """Merge two or more streams (join).
     
     Inputs are joined in a star-like fashion: one input is considered master and others are 
     details adding information to the master. By default master is the first input.
@@ -100,7 +96,7 @@ class MergeNode(base.Node):
 
     .. code-block:: python
 
-        node.keys = [ [1, "region_code", "code"] 
+        node.keys = [ [1, "region_code", "code"], 
                       [2, "category_code", "code"] ]
 
     Master input should have fields `region_code` and `category_code`, other inputs should have
@@ -108,7 +104,7 @@ class MergeNode(base.Node):
 
     .. code-block:: python
 
-        node.keys = [ [1, "region_code", "code"] 
+        node.keys = [ [1, "region_code", "code"], 
                       [2, ("category_code", "year"), ("code", "year")] ]
 
     As a key you might use either name of a sigle field or list of fields for compound keys. If
@@ -119,16 +115,46 @@ class MergeNode(base.Node):
 
     .. code-block:: python
 
-        node.keys = [ [1, "region_code"] 
+        node.keys = [ [1, "region_code"], 
                       [2, "category_code"] ]
 
     Master input should have fields `region_code` and `category_code`, input #1 should have
     `region_code` field and input #2 should have `category_code` field.
 
+    To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
+    should be a dictionary where keys are input tags and values are either
+    :class:`brewery.ds.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+    
+    Following example renames ``source_region_name`` field in input 0 and drops field `id` in
+    input 1:
+    
+    .. code-block:: python
+
+        node.maps = {
+                        0: ds.FieldMap(rename = {"source_region_name":"region_name"}),
+                        1: ds.FieldMap(drop = ["id"])
+                    }
+
+    It is the same as:
+
+    .. code-block:: python
+
+        node.maps = {
+                        0: { "rename" = {"source_region_name":"region_name"} },
+                        1: { "drop" = ["id"] }
+                    }
+
+    The first option is preferred, the dicitonary based option is provided for convenience
+    in cases nodes are being constructed from external description (such as JSON dictionary).
+
     .. note::
     
-        Current implementation performs only inner join between datasets, that means that only
-        those input records are joined that will have matching keys.
+        Limitations of current implementation (might be improved in the future):
+    
+        * only inner join between datasets: that means that only those input records are joined
+          that will have matching keys
+        * "detail" datasets should have unique keys, otherwise the behaviour is undefined
+        * master is considered as the largest dataset
 
     How does it work: all records from detail inputs are read first. Then records from master
     input are read and joined with cached input records. It is recommended that the master dataset
@@ -149,23 +175,161 @@ class MergeNode(base.Node):
                 "description": "Tag (index) of input dataset which will be considered as master"
             },
             {
-                "name": "field_maps",
+                "name": "maps",
                 "description": "Specification of which fields are passed from input and how they are going to be (re)named"
+            },
+            {
+                "name": "join_types",
+                "description": "Dictionary where keys are stream tags (indexes) and values are "
+                               "types of join for the stream. Default is 'inner'. "
+                               "-- **Not implemented**"
             }
-            # {
-            #     "name": "join_types",
-            #     "description": "Dictionary where keys are stream tags (indexes) and values are "
-            #                    "types of join for the stream. Default is 'inner'."
-            # }
         ]
     }
     
-    def __init__(self):
+    def __init__(self, joins = None, master = None, maps = None):
         super(MergeNode, self).__init__()
+        if joins:
+            self.joins = joins
+        else:
+            self.joins = []
+
+        if master:
+            self.master = master
+        else:
+            self.master = 0
+            
+        self.maps = maps
+            
+        self._output_fields = []
+    
+    def initialize(self):
+        pass
+        # Check joins and normalize them first
+        self._keys = {}
+        self._kindexes = {}
+        
+        self.master_input = self.inputs[self.master]
+        self.detail_inputs = []
+        for (tag, pipe) in enumerate(self.inputs):
+            if pipe is not self.master_input:
+                self.detail_inputs.append( (tag, pipe) )
+
+        for join in self.joins:
+            joinlen = len(join)
+            if joinlen == 3:
+                (detail_tag, master_key, detail_key) = join
+            elif joinlen == 2:
+                # We use same key names for detail as master if no detail key is specified
+                (detail_tag, master_key) = join
+                detail_key = master_key
+            else:
+                raise Exception("Join specification should be a tuple/list of two or three elements.")
+
+            # Convert to tuple if it is just a string (as expected later)
+            if not (type(detail_key) == list or type(detail_key) == tuple):
+                detail_key = (detail_key, )
+            if not (type(master_key) == list or type(master_key) == tuple):
+                master_key = (master_key, )
+
+            if detail_tag == self.master:
+                raise Exception("Can not join master to itself.")
+            
+            self._keys[detail_tag] = (detail_key, master_key)
+            
+            detail_input = self.inputs[detail_tag]
+            
+            # Get field indexes
+            detail_indexes = detail_input.fields.indexes(detail_key)
+            master_indexes = self.master_input.fields.indexes(master_key)
+            self._kindexes[detail_tag] = (detail_indexes, master_indexes)
+
+        # Prepare storage for input data
+        self._input_rows = {}
+        for (tag, pipe) in enumerate(self.inputs):
+            self._input_rows[tag] = {}
+
+        # Create map filters
+        
+        self._filters = {}
+        self._maps = {}
+        if self.maps:
+            for (tag, fmap) in self.maps.items():
+                if type(fmap) == dict:
+                    fmap = ds.FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"))
+                elif type(fmap) != ds.FieldMap:
+                    raise Exception("Unknown field map type: %s" % type(fmap) )
+                f = fmap.row_filter(self.inputs[tag].fields)
+                self._maps[tag] = fmap
+                self._filters[tag] = f
+
+        # Construct output fields
+        fields = []
+        for (tag, pipe) in enumerate(self.inputs):
+            fmap = self._maps[tag]
+            if fmap:
+                fields += fmap.map(pipe.fields)
+            else:
+                fields += pipe.fields
+
+        self._output_fields = ds.FieldList(fields)
+
+
+        
+    @property
+    def output_fields(self):
+        return self._output_fields
         
     def run(self):
         """Only inner join is implemented"""
-        
+        # First, read details, then master. )
+        for (tag, pipe) in self.detail_inputs:
+            detail = self._input_rows[tag]
+
+            key_indexes = self._kindexes[tag][0]
+            self._read_input(tag, pipe, key_indexes, detail)
+
+        rfilter = self._filters.get(self.master)
+
+        for row in self.master_input.rows():
+            if rfilter:
+                joined_row = rfilter.filter(row[:])
+            else:
+                joined_row = row[:]
+                
+            joined = False
+            for (tag, pipe) in self.detail_inputs:
+                detail_data = self._input_rows[tag]
+
+                # Create key from master
+                key = []
+                for i in self._kindexes[tag][1]:
+                    key.append(row[i])
+                key = tuple(key)
+                
+                detail = detail_data.get(tuple(key))
+
+                if not detail:
+                    joined = False
+                    break
+                else:
+                    joined = True
+                    joined_row += detail
+                    
+            if joined:
+                self.put(joined_row)
+                
+    def _read_input(self, tag, pipe, key_indexes, detail):
+        rfilter = self._filters.get(tag)
+        for row in pipe.rows():
+            key = []
+            for i in key_indexes:
+                key.append(row[i])
+
+            if rfilter:
+                detail[tuple(key)] = rfilter.filter(row)
+            else:
+                detail[tuple(key)] = row
 
 class DistinctNode(base.Node):
     """Node will pass distinct records with given distinct fields.

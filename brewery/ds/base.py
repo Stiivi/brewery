@@ -24,6 +24,7 @@ import sys
 import urllib2
 import urlparse
 import brewery.dq
+import copy
 
 def fieldlist(fields):
     """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
@@ -428,17 +429,83 @@ class FieldList(object):
             
         return field in self._fields
 
+    def __iconcat__(self, array):
+        for field in array:
+            self.append(field)
+
+    def __concat__(self, array):
+        fields = self.copy()
+        fields += array
+        return fields
+        
     def copy(self, fields = None):
         """Return a shallow copy of the list.
         
         :Parameters:
             * `fields` - list of fields to be copied.
         """
-        if fields:
+        if fields is not None:
             copy_fields = self.fields(fields)
             return FieldList(copy_fields)
         else:
             return FieldList(self._fields)
+            
+class FieldMap(object):
+    """Filters fields in a stream"""
+    def __init__(self, rename = None, drop = None):
+        super(FieldMap, self).__init__()
+        if rename:
+            self.rename = rename
+        else:
+            self.rename = {}
+        if drop:
+            self.drop = drop
+        else:
+            self.drop = []
+        
+    def map(self, fields):
+        """Map `fields` according to the FieldMap: rename or drop fields as specified. Returns
+        a FieldList object."""
+        output_fields = FieldList()
+        
+        for field in fields:
+            if field.name in self.rename:
+                # Create a copy and rename field if it is mapped
+                new_field = copy.copy(field)
+                new_field.name = self.rename[field.name]
+            else:
+                new_field = field
+
+            if field.name not in self.drop:
+                # Pass field if it is not in dropped field list
+                output_fields.append(new_field)
+            
+        return output_fields
+
+
+    def row_filter(self, fields):
+        """Returns an object that will convert rows with structure specified in `fields`."""
+        indexes = []
+        
+        for i, field in enumerate(fields):
+            if field.name not in self.drop:
+                indexes.append(i)
+                
+        return RowFieldFilter(indexes)
+        
+class RowFieldFilter(object):
+    def __init__(self, indexes = None):
+        super(RowFieldFilter, self).__init__()
+        if indexes is not None:
+            self.indexes = indexes
+        else:
+            self.indexes = []
+        
+    def filter(self, row):
+        nrow = []
+        for i in self.indexes:
+            nrow.append(row[i])
+        return nrow
         
 class DataStream(object):
     """Shared methods for data targets and data sources"""
