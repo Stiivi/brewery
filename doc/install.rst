@@ -9,7 +9,7 @@ Clone mercurial repository from bitbucket::
 
 Or if you prefer git, then you can clone it from Github::
 
-    git clone git://github.com/Stiivi/brewery-py.git
+    git clone git://github.com/Stiivi/brewery.git
 
 .. note::
     

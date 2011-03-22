@@ -18,7 +18,10 @@ class SimpleDataPipe(object):
     def __init__(self):
         self.buffer = []
         self.fields = None
-        self.stop_sending = False
+        self._closed = False
+
+    def closed(self):
+        return self._closed
 
     def rows(self):
         return self.buffer
@@ -42,55 +45,166 @@ class SimpleDataPipe(object):
     def put(self, obj):
         self.buffer.append(obj)
             
-    def stop(self):
-        self.stop_sending = True
+    def done_receiving(self):
+        self._closed = True
         pass
         
-    def flush(self):
+    def done_sending(self):
         pass
         
     def empty(self):
         self.buffer = []
-        
-class Pipe2(object):
-    """docstring for Pipe2"""
-    def __init__(self, buffer_size = 1000, queue_size = 1):
-        super(Pipe2, self).__init__()
+                        
+class Pipe(SimpleDataPipe):
+    """Data pipe:
+    Contains buffer for data that should be thransferred to another node.
+    Data are being sent t other node when the buffer is full. Pipe is one-directional where
+    one thread is sending data to another thread. There is only one backward signalling: closing 
+    the pipe from remote object.
+
+
+    """
+
+    def __init__(self, buffer_size = 1000):
+        """Creates uni-drectional data pipe for passing data between two threads in batches of size
+        `buffer_size`.
+
+        If receiving node is finished with source data and does not want anything any more, it
+        should send ``done_receiving()`` to the pipe. In most cases, stream runner will send
+        ``done_receiving()`` to all input pipes when node's ``run()`` method is finished.
+
+        If sending node is finished, it should send ``done_sending()`` to the pipe, however this
+        is not necessary in most cases, as the method for running stream flushes outputs
+        automatically on when node ``run()`` method is finished.
+        """
+
+        super(Pipe, self).__init__()
         self.buffer_size = buffer_size
-        self.queue_size = queue_size
 
-        self.queue = connections.deque()
-        self.packet = None
+        # Should it be deque or array?
+        self.staging_buffer = []
+        self._ready_buffer = None
 
-        self._ready = False
-        self.consumed = threading.Condition(self.lock)
+        self._done_sending = False
+        self._done_receiving = False
+        self._closed = False
 
-    # def put(self, obj):
-    #     """Put data object into the pipe buffer. When buffer is full it is enqueued and receiving node
-    #     can get all buffered data objects.
-    # 
-    #     Puttin object into pipe is not thread safe. Only one thread sohuld write to the pipe.
-    #     """
-    #     self.queue.append(obj)
-    # 
-    #     if len(self.queue) >= buffer_size:
-    #         self.not_complete.acquire()
-    #         try:
-    #             while not self.is_empty():
-    #                 self.not_complete().wait()
+        # Taken from Python Queue implementation:
+
+        # mutex must beheld whenever the queue is mutating.  All methods
+        # that acquire mutex must release it before returning.  mutex
+        # is shared between the three conditions, so acquiring and
+        # releasing the conditions also acquires and releases mutex.
+        self.mutex = threading.Lock()
+        # Notify not_empty whenever an item is added to the queue; a
+        # thread waiting to get is notified then.
+        self.not_empty = threading.Condition(self.mutex)
+        # Notify not_full whenever an item is removed from the queue;
+        # a thread waiting to put is notified then.
+        self.not_full = threading.Condition(self.mutex)
+
+    def is_full(self):
+        return len(self.staging_buffer) >= self.buffer_size
+
+    def is_consumed(self):
+        return self._ready_buffer is None
+
+    def put(self, obj):
+        """Put data object into the pipe buffer. When buffer is full it is enqueued and receiving node
+        can get all buffered data objects.
+
+        Puttin object into pipe is not thread safe. Only one thread sohuld write to the pipe.
+        """
+        self.staging_buffer.append(obj)
+
+        if self.is_full():
+            self._flush()
+    def _note(self, note):
+        # print note
+        pass
+        
+    def _flush(self, close = False):
+        self._note("P flushing: close? %s closed? %s" % (close, self._closed))
+        self._note("P _nf acq?")
+        self.not_full.acquire()
+        if self._closed:
+            self._note("P _not_full rel!")
+            self.not_full.release()
+            return
+        elif len(self.staging_buffer) == 0:
+            try:
+                self._closed = close
+                self.not_empty.notify()
+            finally:
+                self._note("P _not_full rel!")
+                self.not_full.release()
+            return
+
+        try:
+            self._note("P _not_full wait ...")
+            while not self.is_consumed() and not self._closed:
+                self.not_full.wait()
+            self._note("P _not_full got <")
+            if not self._closed:
+                self._ready_buffer = self.staging_buffer
+                self.staging_buffer = []
+                self._closed = close
+                self._note("P _not_empty notify >")
+                self.not_empty.notify()
+
+        finally:
+            self._note("P _not_full rel!")
+            self.not_full.release()
+
+    def rows(self):
+        done_sending = False
+        while(not done_sending):
+            self._note("C _not_empty acq?")
+            self.not_empty.acquire()
+            try:
+                self._note("C _not_empty wait ...")
+                while not self._ready_buffer and not self._closed:
+                    self.not_empty.wait()
+                self._note("C _not_empty got <")
+
+                if self._ready_buffer:
+                    rows = self._ready_buffer
+                    self._ready_buffer = None
+                    self._note("C _not_full notify >")
+                    self.not_full.notify()
+
+                    for row in rows:
+                        yield row
+                else:
+                    self._note("C no buffer")
                     
 
-    # def rows(self, obj):
-    #     """Get rows ... FIXME"""
-    #     self.ready.acquire()
-    #     while True:
-    #         
-    #     self.ready.release()
-    
-    def is_empty(self):
-        return self.packet == None
-                
-class Pipe(SimpleDataPipe):
+                done_sending = self._closed
+            finally:
+                self._note("_not_empty rel!")
+                self.not_empty.release()
+
+    def closed(self):
+        """Return ``True`` if pipe is closed - not sending or not receiving data any more."""
+        return self._closed
+
+    def done_sending(self):
+        """Close pipe from sender side"""
+        self._flush(True)
+
+    def done_receiving(self):
+        """Close pipe from either side"""
+        self._note("C not_empty acq? r")
+        self.not_empty.acquire()
+        self._note("C closing")
+        self._closed = True
+        self._note("C notif close")
+        self.not_full.notify()
+        self.not_empty.release()        
+        
+        self._note("C not_empty rel! r")
+        
+class _OldPipe(SimpleDataPipe):
     """Pipe for transfer of structured data between processing nodes and node threads.
     Pipe is using ``Queue`` object for sending data. Data are not being send as they come, but
     they are buffered instead. When buffer is full or when pipe flush is requeted, then the buffer
@@ -258,7 +372,7 @@ class Node(object):
         """Put row into all output pipes. Convenience method."""
         active_outputs = 0
         for output in self.outputs:
-            if not output.stop_sending:
+            if not output.closed():
                 output.put(obj)
                 active_outputs += 1
                 

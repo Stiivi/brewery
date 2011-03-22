@@ -16,6 +16,7 @@ test_cases = [FieldListCase,
               DataSourceUtilsTestCase,
               DataSourceTestCase,
               PipeTestCase,
+              Pipe2TestCase,
               NodesTestCase,
               StreamBuildingTestCase,
               StreamInitializationTestCase

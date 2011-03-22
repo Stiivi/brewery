@@ -5,6 +5,7 @@ import traceback
 import sys
 import inspect
 import utils
+import StringIO
 
 class StreamRuntimeError(Exception):
     """Exception raised when a node fails during `run()` phase.
@@ -38,10 +39,11 @@ class StreamRuntimeError(Exception):
         if not output:
             output = sys.stdout
             
-        text =  u"stream fail reason: %s\n" \
-                 "node: %s\n" % (self.message, self.node)
+        text =  u"stream failed. reason: %s\n" % self.message
+        text += u"exception: %s: \n" % self.exception.__class__.__name__
 
-        text += u"exception: %s: " % self.exception.__class__.__name__
+        text += u"node: %s\n" % self.node
+
         try:
             text += unicode(self.exception)
         except Exception, e:
@@ -89,10 +91,20 @@ class StreamRuntimeError(Exception):
                 text += "    %s: %s\n" % (name, value)
         else:
             text += "attributes: none"
-            
+        print "TEEEXT: %s"  % type(text)
         output.write(text)
         
-    
+    def __str__(self):
+        s = StringIO.StringIO()
+        try:
+            self.print_exception(s)
+            v = s.getvalue()
+        except Exception as e:
+            v = "Unable to print strem exception. Reason: %s (%s)" % (e, type(e))
+        finally:
+            s.close()
+        
+        return v
 
 class Stream(object):
     """Data processing stream"""
@@ -484,10 +496,12 @@ class StreamNodeThread(threading.Thread):
         logging.debug("%s: finished" % self)
         logging.debug("%s: flushing outputs" % self)
         for pipe in self.node.outputs:
-            pipe.flush()
+            if not pipe.closed():
+                pipe.done_sending()
         logging.debug("%s: flushed" % self)
         logging.debug("%s: stopping inputs" % self)
         for pipe in self.node.inputs:
-            pipe.stop()
+            if not pipe.closed():
+                pipe.done_sending()
         logging.debug("%s: stopped" % self)
 

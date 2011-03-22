@@ -57,7 +57,6 @@ class SampleNode(base.Node):
             self.put(row)
             count += 1
             if count >= self.sample_size:
-                pipe.stop()
                 break
 
 class AppendNode(base.Node):

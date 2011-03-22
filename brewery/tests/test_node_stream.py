@@ -6,6 +6,8 @@ import unittest
 import logging
 import threading
 import time
+import os
+import StringIO
 
 logging.basicConfig(level=logging.WARN)
 
@@ -198,14 +200,17 @@ class StreamInitializationTestCase(unittest.TestCase):
         self.assertRaises(pipes.StreamRuntimeError, stream.run)
         stream.finalize()
         
-        nodes["fail"].message = "Unicode message: čučoriedka ľúbivo ťukala"
+        nodes["fail"].message = u"Unicode message: čučoriedka ľúbivo ťukala"
 
         stream.initialize()
         try:
             stream.run()
         except pipes.StreamRuntimeError, e:
+            # handle = file(os.devnull, "w")
+            handle = StringIO.StringIO()
             # This should not raise an exception
-            e.print_exception()
+            e.print_exception(handle)
+            handle.close()
             
         stream.finalize()
         
