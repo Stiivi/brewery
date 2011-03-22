@@ -157,6 +157,9 @@ class Pipe(SimpleDataPipe):
             self.not_full.release()
 
     def rows(self):
+        """Get data object from pipe. If there is no buffer ready, wait until source object sends
+        some data."""
+
         done_sending = False
         while(not done_sending):
             self._note("C _not_empty acq?")
@@ -204,113 +207,6 @@ class Pipe(SimpleDataPipe):
         
         self._note("C not_empty rel! r")
         
-class _OldPipe(SimpleDataPipe):
-    """Pipe for transfer of structured data between processing nodes and node threads.
-    Pipe is using ``Queue`` object for sending data. Data are not being send as they come, but
-    they are buffered instead. When buffer is full or when pipe flush is requeted, then the buffer
-    is send through the queue.
-
-    If receiving node is finished with source data and does not want anything any more, it should
-    send ``stop()`` to the pipe. In most cases, stream runner will send ``stop()`` to all input
-    pipes when node ``run()`` method is finished.
-
-    If sending node is finished, it should send ``flush()`` to the pipe, however this is not
-    necessary in most cases, as the method for running stream flushes outputs automatically on
-    when node ``run()`` method is finished.
-    """
-
-    def __init__(self, buffer_size = 1000, queue_size = 1):
-        """Create a pipe for transfer of structured data between processing nodes.
-
-        Pipe passes structured data between processing nodes and node threads by using ``Queue``
-        object. Data are not being send as they come, but they are buffered instead. When buffer
-        is full or when pipe ``flush()`` is requeted, then the buffer is send through the queue.
-
-        If receiving node is finished with source data and does not want anything any more, it should
-        send ``stop()`` to the pipe. In most cases, stream runner will send ``stop()`` to all input
-        pipes when node ``run()`` method is finished.
-
-        If sending node is finished, it should send ``flush()`` to the pipe, however this is not
-        necessary in most cases, as the method for running stream flushes outputs automatically on
-        when node ``run()`` method is finished.
-        
-        :Parameters:
-            * `buffer_size`: number of data objects (rows or records) to be collected before they can
-              be acquired by receiving object. Default is 1000.
-            * `queue_size`: number of buffers in a processing queue. Default is 1. Set to 0 for
-              unlimited.
-        """
-        super(Pipe, self).__init__()
-        self.buffer_size = buffer_size
-        self.queue_size = queue_size
-        self.queue = Queue.Queue(queue_size)
-        self.stop_sending_lock = threading.RLock()
-        
-        self.buffer = []
-
-        self.finished = False
-        self.stop_sending = False
-
-    def put(self, obj):
-        """Put data object into the pipe buffer. When buffer is full it is enqueued and receiving node
-        can get all buffered data objects."""
-
-        if self.stop_sending:
-            return
-
-        self.buffer.append(obj)
-        if len(self.buffer) >= self.buffer_size:
-            self._send_buffer()
-            self.buffer = []
-        
-    def _send_buffer(self):
-        if self.stop_sending:
-            logging.debug("stop sending - not sending anything")
-            return
-
-        self.queue.put(self.buffer)
-
-    def flush(self):
-        """Send all remaining data objects into the pipe buffer and signalize end of source."""
-        self._send_buffer()
-        self.finished = True
-
-    def rows(self):
-        """Get data object from pipe. If there is no buffer ready, wait until source object sends some
-        data."""
-
-        while True:
-            data_buffer = self.queue.get()
-            for obj in data_buffer:
-                yield obj
-
-            self.queue.task_done()
-
-            if self.finished and self.queue.empty():
-                break
-
-    def records(self):
-        """Get data objects from pipe as records (dict objects). This is convenience method with
-        performance costs. Nodes are recommended to process rows instead."""
-        if not self.fields:
-            raise Exception("Can not provide records: fields for pipe are not initialized.")
-
-        fields = self.fields.names()
-        for row in self.rows():
-            yield dict(zip(fields, row))
-
-    def stop(self):
-        """Close the pipe from target node: no more data needed."""
-        logging.debug("stop requested: stop flag: %s queue empty: %s" % 
-                        (self.stop_sending, self.queue.empty()))
-        self.stop_sending = True
-
-        while True:
-            try:
-                self.queue.get_nowait()
-            except Queue.Empty:
-                break
-
 class Node(object):
     """Base class for procesing node
     
@@ -341,7 +237,8 @@ class Node(object):
         pass
 
     def run(self):
-        """Main method for running the node code. Subclasses should implement this method."""
+        """Main method for running the node code. Subclasses should implement this method.
+        """
         
         raise NotImplementedError("Subclasses of Node should implement the run() method")
         
@@ -369,21 +266,36 @@ class Node(object):
             raise Exception("Output %s already connected" % pipe)
     
     def put(self, obj):
-        """Put row into all output pipes. Convenience method."""
+        """Put row into all output pipes.
+        
+        Raises `NodeFinished` exception when node's target nodes are not receiving data anymore.
+        In most cases this exception might be ignored, as it is handled in the node thread
+        wrapper. If you want to perform necessary clean-up in the `run()` method before exiting,
+        you should handle this exception and then re-reaise it or just simply return from `run()`.
+
+        This method can be called only from node's `run()` method. Do not call it from
+        `initialize()` or `finalize()`.
+        """
         active_outputs = 0
         for output in self.outputs:
             if not output.closed():
                 output.put(obj)
                 active_outputs += 1
-                
+        
+        # This is not very safe, as run() might not expect it
         if not active_outputs:
             raise NodeFinished
 
     def put_record(self, obj):
-        """Put record into all output pipes. Convenience method. Not recommended to be used."""
+        """Put record into all output pipes. Convenience method. Not recommended to be used.
+        
+        .. warning::
+        
+            Depreciated.
+            
+        """
         for output in self.outputs:
             output.put_record(obj)
-    
 
     @property
     def input_fields(self):
@@ -392,8 +304,11 @@ class Node(object):
         
     @property
     def output_fields(self):
-        """Return fields passed to the output by the node. Subclasses should override this method.
-        Default implementation raises a NotImplementedError."""
+        """Return fields passed to the output by the node.
+        
+        Subclasses should override this method. Default implementation returns same fields as
+        input has, raises exception when there are more inputs or if there is no input
+        connected."""
         if not len(self.inputs) == 1:
             raise ValueError("Can not get default list of output fields: node has more than one input"
                              " or no input is provided. Subclasses should override this method")

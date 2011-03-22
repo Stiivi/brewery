@@ -54,7 +54,7 @@ class SQLDataStore(object):
         if connection:
             self.connection = connection
             self.engine = self.connection.engine
-            self.close_connection = True
+            self.close_connection = False
         else:
             self.engine = sqlalchemy.create_engine(url, **options)
             self.connection = self.engine.connect()
@@ -108,8 +108,8 @@ class SQLDataStore(object):
             if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
                 concrete_type = _brewery_to_sql_type.get(field.storage_type)
                 if not concrete_type:
-                    raise ValueError("unable to create column for field '%s' of type '%s'" % 
-                                        (field.name, field.storage_type))
+                    raise ValueError("unable to find concrete storage type for field '%s' "
+                                     "of type '%s'" % (field.name, field.storage_type))
 
             col = sqlalchemy.schema.Column(field.name, concrete_type)
             table.append_column(col)
@@ -171,8 +171,6 @@ class SQLDataset(object):
 
 class SQLDataSource(base.DataSource):
     """docstring for ClassName
-    
-    Some code taken from OKFN Swiss library.
     """
     def __init__(self, connection = None, url = None,
                     table = None, statement = None, schema = None, **options):
@@ -322,6 +320,8 @@ class SQLDataTarget(base.DataTarget):
         self._buffer = []
 
     def finalize(self):
+        """Closes the stream, flushes buffered data"""
+        
         self._flush()
         self.datastore.close()
 
