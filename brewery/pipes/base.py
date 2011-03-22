@@ -116,7 +116,7 @@ class Pipe(SimpleDataPipe):
         Puttin object into pipe is not thread safe. Only one thread sohuld write to the pipe.
         """
         self.staging_buffer.append(obj)
-
+        
         if self.is_full():
             self._flush()
     def _note(self, note):

@@ -195,9 +195,7 @@ class StreamInitializationTestCase(unittest.TestCase):
         stream = pipes.Stream(nodes, connections)
 
         stream.initialize()
-        # FIXME: we are failing here on different exception, should be fixed
-        # self.assertRaisesRegexp(pipes.StreamRuntimeError, "intentionally failing a node", stream.run)
-        self.assertRaises(pipes.StreamRuntimeError, stream.run)
+        self.assertRaisesRegexp(pipes.StreamRuntimeError, "This is fail node", stream.run)
         stream.finalize()
         
         nodes["fail"].message = u"Unicode message: čučoriedka ľúbivo ťukala"
@@ -206,7 +204,6 @@ class StreamInitializationTestCase(unittest.TestCase):
         try:
             stream.run()
         except pipes.StreamRuntimeError, e:
-            # handle = file(os.devnull, "w")
             handle = StringIO.StringIO()
             # This should not raise an exception
             e.print_exception(handle)

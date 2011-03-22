@@ -332,6 +332,12 @@ class DatabaseTableTargetNode(base.TargetNode):
                                 "already exists"
             },
             {
+                "name": "buffer_size",
+                "description": "how many records are collected before they are "
+                              "inserted using multi-insert statement. "
+                              "Default is 1000"
+            },
+            {
                  "name": "options",
                  "description": "other SQLAlchemy connect() options"
             }

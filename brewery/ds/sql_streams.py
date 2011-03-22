@@ -248,7 +248,8 @@ class SQLDataTarget(base.DataTarget):
     def __init__(self, connection = None, url = None,
                     table = None, schema = None, truncate = False, 
                     create = False, replace = False,
-                    add_id_key = False, id_key_name = None, **options):
+                    add_id_key = False, id_key_name = None, 
+                    buffer_size = None, **options):
         """Creates a relational database data target stream.
         
         :Attributes:
@@ -263,6 +264,8 @@ class SQLDataTarget(base.DataTarget):
             * add_id_key: whether to add auto-increment key column or not. Works only if `create`
               is ``True``
             * id_key_name: name of the auto-increment key. Default is 'id'
+            * buffer_size: size of INSERT buffer - how many records are collected before they are
+              inserted using multi-insert statement. Default is 1000
         
         Note: avoid auto-detection when you are reading from remote URL stream.
         
@@ -289,6 +292,11 @@ class SQLDataTarget(base.DataTarget):
             self.id_key_name = id_key_name
         else:
             self.id_key_name = 'id'
+        
+        if buffer_size:
+            self.buffer_size = buffer_size
+        else:
+            self.buffer_size = 1000
 
     def initialize(self):
         """Initialize source stream:
@@ -311,8 +319,10 @@ class SQLDataTarget(base.DataTarget):
             self._fields = self.dataset.fields
 
         self.insert_command = self.dataset.table.insert()
+        self._buffer = []
 
     def finalize(self):
+        self._flush()
         self.datastore.close()
 
     def __get_fields(self):
@@ -323,7 +333,7 @@ class SQLDataTarget(base.DataTarget):
 
     fields = property(__get_fields, __set_fields)
 
-    def append(self, obj):
+    def __append(self, obj):
         if type(obj) == dict:
             record = obj
         else:
@@ -331,3 +341,18 @@ class SQLDataTarget(base.DataTarget):
             # if self.add_id_key:
             #     record[self.id_key_name] = None
         self.insert_command.execute(record)
+
+    def append(self, obj):
+        if type(obj) == dict:
+            record = obj
+        else:
+            record = dict(zip(self.field_names, obj))
+
+        self._buffer.append(record)
+        if len(self._buffer) >= self.buffer_size:
+            self._flush()
+
+    def _flush(self):
+        if len(self._buffer) > 0:
+            self.datastore.connection.execute(self.insert_command, self._buffer)
+            self._buffer = []
