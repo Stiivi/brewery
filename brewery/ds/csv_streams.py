@@ -166,7 +166,10 @@ class CSVDataSource(base.DataSource):
                 
         # Initialize field list
         if self.read_header:
-            fields = self.reader.next()
+            field_names = self.reader.next()
+            
+            fields = [ (name, "string", "default") for name in field_names]
+            
             self._fields = base.fieldlist(fields)
         
     def finalize(self):

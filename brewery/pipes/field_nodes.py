@@ -269,6 +269,7 @@ class CoalesceValueToTypeNode(base.Node):
                     
                 if value == "":
                     value = None
+
                 row[i] = value
 
             for i in self.integer_indexes:
