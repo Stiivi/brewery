@@ -62,9 +62,7 @@ Data Processing Streams
     # Create and run stream
 
     stream = pipes.Stream(nodes, connections)
-    stream.initialize()
     stream.run()
-    stream.finalize()
 
 The created audit.txt file will contain::
 
@@ -85,5 +83,5 @@ The created audit.txt file will contain::
 Running Streams
 ===============
 
-Streams are being run using ``Stream.run()``. Stream has to be initialized before running. Stream
-is run in parallel - each node is run in separate thread.
+Streams are being run using ``Stream.run()``. The stream nodes are executed in parallel - each node
+is run in separate thread.

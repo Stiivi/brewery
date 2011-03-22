@@ -114,9 +114,7 @@ Crate :class:`brewery.pipes.Steram` and run it:
 .. code-block:: python
 
     stream = pipes.Stream(nodes, connections)
-    stream.initialize()
     stream.run()
-    stream.finalize()
 
 Stream will create the ``donations.csv`` and will produce a report on standard output that will
 look something like this::

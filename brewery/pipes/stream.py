@@ -316,7 +316,7 @@ class Stream(object):
                 nodes.append(connection[0])
         return nodes
 
-    def initialize(self):
+    def _initialize(self):
         """Initializes the data processing stream:
         
         * sorts nodes based on connection dependencies
@@ -374,6 +374,15 @@ class Stream(object):
         attribute `exceptions`.
         
         """
+        self._initialize()
+
+        # FIXME: do better exception handling here: what if both will raise exception?
+        try:
+            self._run()
+        finally:
+            self._finalize()
+        
+    def _run(self):
         
         
         logging.info("running stream")
@@ -456,8 +465,10 @@ class Stream(object):
     def kill_threads(self):
         logging.info("killing threads")
 
-    def finalize(self):
+    def _finalize(self):
         logging.info("finalizing nodes")
+        
+        # FIXME: encapsulate finalization in exception handler, collect exceptions
         for node in self.sorted_nodes():
             logging.debug("finalizing node %s" % node)
             node.finalize()

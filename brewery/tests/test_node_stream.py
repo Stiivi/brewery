@@ -148,7 +148,7 @@ class StreamInitializationTestCase(unittest.TestCase):
         self.stream = pipes.Stream(nodes, connections)
 
     def test_initialization(self):
-        self.stream.initialize()
+        self.stream._initialize()
 
         target = self.stream.node("map")
         names = target.output_fields.names()
@@ -159,9 +159,7 @@ class StreamInitializationTestCase(unittest.TestCase):
         self.assertEqual(['str', 'record_count'], names)
 
     def test_run(self):
-        self.stream.initialize()
         self.stream.run()
-        self.stream.finalize()
 
         target = self.stream.node("target")
         data = target.list
@@ -178,9 +176,7 @@ class StreamInitializationTestCase(unittest.TestCase):
     def test_run_removed(self):
         self.stream.remove("aggregate")
         self.stream.remove("aggtarget")
-        self.stream.initialize()
         self.stream.run()
-        self.stream.finalize()
         
     def test_fail_run(self):
         nodes = {
@@ -194,13 +190,10 @@ class StreamInitializationTestCase(unittest.TestCase):
         }
         stream = pipes.Stream(nodes, connections)
 
-        stream.initialize()
         self.assertRaisesRegexp(pipes.StreamRuntimeError, "This is fail node", stream.run)
-        stream.finalize()
         
         nodes["fail"].message = u"Unicode message: čučoriedka ľúbivo ťukala"
 
-        stream.initialize()
         try:
             stream.run()
         except pipes.StreamRuntimeError, e:
@@ -209,8 +202,6 @@ class StreamInitializationTestCase(unittest.TestCase):
             e.print_exception(handle)
             handle.close()
             
-        stream.finalize()
-        
     def test_fail_with_slow_source(self):
         nodes = {
             "source": SlowSourceNode(),
@@ -224,7 +215,5 @@ class StreamInitializationTestCase(unittest.TestCase):
         
         stream = pipes.Stream(nodes, connections)
 
-        stream.initialize()
         self.assertRaises(pipes.StreamRuntimeError, stream.run)
-        stream.finalize()
     
