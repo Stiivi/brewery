@@ -596,6 +596,31 @@ class StreamFork(object):
         forked."""
         fork = StreamFork(self.stream, self.node)
         return fork
+        
+    def merge(self, obj, **kwargs):
+        """Joins two streams using the MergeNode (please refer to the node documentaton
+        for more information).
+        
+        `obj` is a fork or a node to be merged. `kwargs` are MergeNode configuration arguments,
+        such as `joins`.
+        
+        """
+        
+        # if type(obj) == StreamFork:
+        #     node = obj.node
+        # else:
+        #     node = obj
+        # 
+        # self.stream.append(node)
+        # 
+        # merge = MergeNode(**kwargs)
+        # self.stream.append(merge)
+        # self.stream.connect()
+        pass
+        
+    def append(self, obj):
+        """Appends data from nodes using AppendNode"""
+        pass
     
     def __getattr__(self, name):
         """Returns node class"""
