@@ -15,6 +15,7 @@ Contents:
    tools
    examples/index
    api/index
+   notes
 
 Contact and Getting Help
 ------------------------
