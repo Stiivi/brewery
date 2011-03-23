@@ -8,6 +8,7 @@ from target_nodes import *
 __all__ = (
     "Stream",
     "StreamRuntimeError",
+    "StreamFork",
     "Pipe",
     "Node",
     "SourceNode",

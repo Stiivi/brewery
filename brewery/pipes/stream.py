@@ -160,6 +160,23 @@ class Stream(object):
         if node not in self.nodes:
             self.nodes.append(node)
     
+    def set_node_name(self, node, name):
+        """Sets a name for `node`. If `name` is ``None`` then node name will be removed.
+        
+        Raises an exception if the `node` is not part of the stream or there is already node with
+        same name.
+        """
+        if node not in self.nodes:
+            raise KeyError("Node %s does not belong to stream" % node)
+
+        if name:
+            if name in self.node_dict:
+                raise KeyError("Node with name %s already exists" % name)
+            
+            self.node_dict[name] = node
+        else:
+            del self.node_dict[name]
+    
     def remove(self, node):
         """Remove a `node` from the stream. Also all connections will be removed."""
 
@@ -263,7 +280,42 @@ class Stream(object):
             raise Exception("Steram has at least one cycle")
             
         return sorted_nodes
+    def fork(self, node = None):
+        """Creates a construction fork of the stream. Used for constructing streams in functional
+        fashion. Example::
+        
+            stream = Stream()
 
+            fork = stream.fork()
+            fork.csv_source("fork.csv")
+            fork.formatted_printer()
+
+            stream.run()
+        
+        Fork responds to node names as functions. The function arguments are the same as node
+        constructor (__init__ method) arguments. Each call will append new node to the fork and
+        will connect the new node to the previous node in the fork.
+        
+        To configure current node you can use ``fork.node``, like::
+        
+            fork.csv_source("fork.csv")
+            fork.node.read_header = True
+            
+        To set actual node name use ``set_name()``::
+
+            fork.csv_source("fork.csv")
+            fork.set_name("source")
+            
+            ...
+            
+            source_node = stream.node("source")
+        
+        To fork a fork, just call ``fork()``
+        """
+        
+        return StreamFork(self, self.node(node))
+        
+        
     def update(self, dictionary):
         """Adds nodes and connections specified in the dictionary. Dictionary might contain
         node names instead of real classes. You can use this method for creating stream
@@ -516,3 +568,55 @@ class StreamNodeThread(threading.Thread):
                 pipe.done_sending()
         logging.debug("%s: stopped" % self)
 
+class StreamFork(object):
+    """docstring for StreamFork"""
+    def __init__(self, stream, node = None):
+        """Creates a stream fork - class for building streams."""
+        super(StreamFork, self).__init__()
+        self.stream = stream
+        self.node = node
+        
+    def __iadd__(self, node):
+        """Appends a node to the actual stream. The new node becomes actual node of the
+        for."""
+        
+        self.stream.add(node)
+        if self.node:
+            self.stream.connect(self.node, node)
+        self.node = node
+    
+        return self
+    
+    def set_name(self, name):
+        """Sets name of current node."""
+        self.stream.set_node_name(self.node, name)
+        
+    def fork(self):
+        """Forks current fork. Returns a new fork with same actual node as the fork being
+        forked."""
+        fork = StreamFork(self.stream, self.node)
+        return fork
+    
+    def __getattr__(self, name):
+        """Returns node class"""
+        class_dict = base.Node.class_dictionary()
+
+        if not name in class_dict:
+            raise AttributeError(name)
+
+        node_class = class_dict[name]
+        
+        constructor = _StreamForkConstructor(self, node_class)
+        return constructor
+        
+class _StreamForkConstructor(object):
+    """Helper class to append new node."""
+    def __init__(self, fork, node_class):
+        self.fork = fork
+        self.node_class = node_class
+    
+    def __call__(self, *args, **kwargs):
+        node = self.node_class(*args, **kwargs)
+        self.fork += node
+        return self.fork
+        

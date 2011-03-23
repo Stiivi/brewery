@@ -354,16 +354,36 @@ class Node(object):
         
         for c in classes:
             try:
-                info = getattr(c, "__node_info__")
-                name = info.get("name")
-                if not name:
-                    name = utils.to_identifier(utils.decamelize(c.__name__))
-                    name = re.sub(r"_node$", "", name)
+                name = c.identifier()
                 dictionary[name] = c
             except AttributeError:
                 pass
 
         return dictionary
+        
+    @classmethod
+    def identifier(cls):
+        """Returns an identifier name of the node class. Identifier is used for construction
+        of streams from dictionaries or for any other out-of-program constructions.
+        
+        Node identifier is specified in the `__node_info__` dictioanry as ``name``. If no explicit
+        identifier is specified, then decamelized class name will be used with `node` suffix
+        removed. For example: ``CSVSourceNode`` will be ``csv_source``.
+        """
+        
+        info = getattr(cls, "__node_info__")
+        ident = None
+        if info:
+            ident = info.get("name")
+            
+        if not ident:
+            ident = utils.to_identifier(utils.decamelize(cls.__name__))
+            if ident.endswith("_node"):
+                ident = ident[:-5]
+                
+        return ident
+            
+        
         
     def configure(self, config, safe = False):
         """Configure node.
