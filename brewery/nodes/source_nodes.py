@@ -28,8 +28,11 @@ class RowListSourceNode(base.SourceNode):
             }
         ]
     }
-    def __init__(self, a_list = [], fields = None):
-        self.list = a_list
+    def __init__(self, a_list = None, fields = None):
+        if a_list:
+            self.list = a_list
+        else:
+            self.list = []
         self.fields = fields
         
     @property
@@ -61,8 +64,11 @@ class RecordListSourceNode(base.SourceNode):
         ]
     }
 
-    def __init__(self, a_list = [], fields = None):
-        self.list = a_list
+    def __init__(self, a_list = None, fields = None):
+        if a_list:
+            self.list = a_list
+        else:
+            self.list = []
         self.fields = fields
 
     @property
