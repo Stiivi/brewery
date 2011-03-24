@@ -12,7 +12,7 @@ several data processing node types:
 
 .. seealso::
 
-    Stream class documentation: :class:`brewery.pipes.Stream`
+    Stream class documentation: :class:`brewery.streams.Stream`
 
 Data Processing Streams
 =======================
@@ -27,16 +27,19 @@ Data Processing Streams
     * Perform data audit and pretty-print it using formatted text printer
 
 .. code-block:: python
+    
+    from brewery.nodes import *
+    from brewery.streams import *
 
     # Prepare nodes
 
     nodes = {
-        "source": pipes.YamlDirectorySourceNode(path = "data/donations"),
-        "strip": pipes.StringStripNode(),
-        "distinct": pipes.DistinctNode(keys = ["year", "receiver", "project"]),
-        "target": pipes.SQLTableTarget(url = "postgres://localhost/data", table = "donations"),
-        "audit": pipes.AuditNode(),
-        "print": pipes.FormattedPrinterNode(output = "audit.txt")
+        "source": YamlDirectorySourceNode(path = "data/donations"),
+        "strip": StringStripNode(),
+        "distinct": DistinctNode(keys = ["year", "receiver", "project"]),
+        "target": SQLTableTarget(url = "postgres://localhost/data", table = "donations"),
+        "audit": AuditNode(),
+        "print": FormattedPrinterNode(output = "audit.txt")
     }
 
     # Configure nodes
@@ -61,7 +64,7 @@ Data Processing Streams
 
     # Create and run stream
 
-    stream = pipes.Stream(nodes, connections)
+    stream = Stream(nodes, connections)
     stream.run()
 
 The created audit.txt file will contain::

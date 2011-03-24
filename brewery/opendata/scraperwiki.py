@@ -1,5 +1,5 @@
 import brewery.ds as ds
-import brewery.pipes as pipes
+from brewery.nodes import Node
 import urllib
 
 SWIKI_BASEURL = "http://api.scraperwiki.com/api/1.0/datastore/getdata"
@@ -21,7 +21,7 @@ class ScraperWikiDataSource(ds.CSVDataSource):
         super(ScraperWikiDataSource, self).__init__(data_url, read_header = True, 
                                                     encoding = "utf-8")
 
-class ScraperWikiSourceNode(pipes.Node):
+class ScraperWikiSourceNode(Node):
     """Source node that reads data from a Scraper Wiki scraper.
     
     See: http://scraperwiki.com/

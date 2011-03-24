@@ -44,26 +44,26 @@ The stream consists of following nodes (from left to right):
 Code
 ----
 
-Import brewery pipes:
+Import brewery streams and nodes:
 
 .. code-block:: python
 
-    import brewery.pipes as pipes
+    from brewery.streams import *
+    from brewery.nodes import *
 
 
 Create a dictionary containing nodes. We will refer to the nodes by name later.
 
-
 .. code-block:: python
 
     nodes = {
-        "source1": pipes.YamlDirectorySourceNode(path = "donations/source1"),
-        "source2": pipes.YamlDirectorySourceNode(path = "donations/source2"),
-        "append": pipes.AppendNode(),
-        "clean": pipes.CoalesceValueToTypeNode(),
-        "output": pipes.CSVTargetNode(resource = "donations.csv"),
-        "audit": pipes.AuditNode(distinct_threshold = None),
-        "print": pipes.FormattedPrinterNode()
+        "source1": YamlDirectorySourceNode(path = "donations/source1"),
+        "source2": YamlDirectorySourceNode(path = "donations/source2"),
+        "append": AppendNode(),
+        "clean": CoalesceValueToTypeNode(),
+        "output": CSVTargetNode(resource = "donations.csv"),
+        "audit": AuditNode(distinct_threshold = None),
+        "print": FormattedPrinterNode()
     }
 
 Connect the nodes:
@@ -109,11 +109,11 @@ Configure printer node (:ref:`FormattedPrinterNode`) to create nicely aligned te
                              "{empty_string_count:>10} {distinct_count:>10}"
 
 
-Crate :class:`brewery.pipes.Steram` and run it:
+Crate :class:`brewery.streams.Steram` and run it:
 
 .. code-block:: python
 
-    stream = pipes.Stream(nodes, connections)
+    stream = Stream(nodes, connections)
     stream.run()
 
 Stream will create the ``donations.csv`` and will produce a report on standard output that will
@@ -150,14 +150,14 @@ flag we insert a :ref:`ValueThresholdNode` node.
 .. code-block:: python
 
     nodes = {
-        "source1": pipes.YamlDirectorySourceNode(path = "donations/source1"),
-        "source2": pipes.YamlDirectorySourceNode(path = "donations/source2"),
-        "append": pipes.AppendNode(),
-        "clean": pipes.CoalesceValueToTypeNode(),
-        "output": pipes.CSVTargetNode(resource = "donations.csv"),
-        "audit": pipes.AuditNode(distinct_threshold = None),
-        "threshold": pipes.ValueThresholdNode(), # <-- this was is added
-        "print": pipes.FormattedPrinterNode()
+        "source1": YamlDirectorySourceNode(path = "donations/source1"),
+        "source2": YamlDirectorySourceNode(path = "donations/source2"),
+        "append": AppendNode(),
+        "clean": CoalesceValueToTypeNode(),
+        "output": CSVTargetNode(resource = "donations.csv"),
+        "audit": AuditNode(distinct_threshold = None),
+        "threshold": ValueThresholdNode(), # <-- this was is added
+        "print": FormattedPrinterNode()
     }
 
 Rewire nodes:

@@ -2,10 +2,10 @@ import unittest
 import brewery
 import os
 import brewery.ds
-import brewery.tests
 import json
 import csv
 import shutil
+from common import TESTS_PATH
 
 class DataSourceUtilsTestCase(unittest.TestCase):
     def test_expand_collapse(self):
@@ -52,7 +52,7 @@ class DataSourceTestCase(unittest.TestCase):
         pass
         
     def setUp(self):
-        self.data_dir = os.path.join(brewery.tests.tests_path, 'data')
+        self.data_dir = os.path.join(TESTS_PATH, 'data')
         self.output_dir = DataSourceTestCase.output_dir
     
     def data_file(self, file):

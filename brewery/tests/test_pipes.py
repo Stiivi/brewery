@@ -1,11 +1,9 @@
 import unittest
-import brewery
-import brewery.ds as ds
-import brewery.pipes as pipes
 import csv
 import os
 import threading
 import time
+import brewery.streams as streams
 
 class PipeTestCase(unittest.TestCase):
     def setUp(self):
@@ -50,7 +48,7 @@ class PipeTestCase(unittest.TestCase):
 
 
     def test_put_get(self):
-        self.pipe = pipes.Pipe(buffer_size = 10)
+        self.pipe = streams.Pipe(buffer_size = 10)
         src = threading.Thread(target=self.source_function)
         target = threading.Thread(target=self.target_function)
         src.start()
@@ -60,7 +58,7 @@ class PipeTestCase(unittest.TestCase):
         self.assertEqual(self.processed_count, 1000)
 
     def test_early_get_finish(self):
-        self.pipe = pipes.Pipe(buffer_size = 10)
+        self.pipe = streams.Pipe(buffer_size = 10)
         src = threading.Thread(target=self.source_function)
         target = threading.Thread(target=self.target_limit_function)
         src.start()
@@ -71,7 +69,7 @@ class PipeTestCase(unittest.TestCase):
         # self.assertEqual(self.sent_count, 1000)
 
     def test_early_get_finish_watched(self):
-        self.pipe = pipes.Pipe(buffer_size = 10)
+        self.pipe = streams.Pipe(buffer_size = 10)
         src = threading.Thread(target=self.source_limit_function)
         target = threading.Thread(target=self.target_limit_function)
         src.start()
@@ -83,7 +81,7 @@ class PipeTestCase(unittest.TestCase):
 class Pipe2TestCase(unittest.TestCase):
 
     def setUp(self):
-        self.pipe = pipes.Pipe(100)
+        self.pipe = streams.Pipe(100)
 
     def stest_put_one(self):
         self.pipe.put(1)
@@ -132,7 +130,7 @@ class Pipe2TestCase(unittest.TestCase):
         consumer.join()
         self.assertEqual(100, self.consumed_count)
 
-        self.pipe = pipes.Pipe(100)
+        self.pipe = streams.Pipe(100)
         producer = threading.Thread(target = self.producer, kwargs = {"count": 200})
         consumer = threading.Thread(target = self.consumer)
         producer.start()
@@ -141,7 +139,7 @@ class Pipe2TestCase(unittest.TestCase):
         consumer.join()
         self.assertEqual(200, self.consumed_count)
 
-        self.pipe = pipes.Pipe(100)
+        self.pipe = streams.Pipe(100)
         producer = threading.Thread(target = self.producer, kwargs = {"count": 150})
         consumer = threading.Thread(target = self.consumer)
         producer.start()
@@ -151,7 +149,7 @@ class Pipe2TestCase(unittest.TestCase):
         self.assertEqual(150, self.consumed_count)
 
     def test_receiving(self):
-        self.pipe = pipes.Pipe(100)
+        self.pipe = streams.Pipe(100)
         producer = threading.Thread(target = self.producer, kwargs = {"count": 15})
         consumer = threading.Thread(target = self.consumer, kwargs = {"count": 5})
         producer.start()

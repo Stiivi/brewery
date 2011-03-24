@@ -1,18 +1,14 @@
 from base import *
-from stream import *
 from record_nodes import *
 from field_nodes import *
 from source_nodes import *
 from target_nodes import *
 
 __all__ = (
-    "Stream",
-    "StreamRuntimeError",
-    "StreamFork",
-    "Pipe",
     "Node",
     "SourceNode",
     "TargetNode",
+    "NodeFinished",
     
     # Field nodes
     "FieldMapNode",

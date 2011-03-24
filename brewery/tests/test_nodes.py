@@ -1,12 +1,12 @@
 import unittest
-import brewery.pipes as pipes
 import brewery
 import brewery.ds as ds
+import brewery.nodes
 
 class NodesTestCase(unittest.TestCase):
     def setUp(self):
-        self.input = pipes.SimpleDataPipe()
-        self.output = pipes.SimpleDataPipe()
+        self.input = brewery.streams.SimpleDataPipe()
+        self.output = brewery.streams.SimpleDataPipe()
             
     def setup_node(self, node):
         node.inputs = [self.input]
@@ -21,14 +21,14 @@ class NodesTestCase(unittest.TestCase):
             pipe.put([i, float(i)/4, "item-%s" % i, custom])
 
     def test_node_subclasses(self):
-        nodes = pipes.Node.subclasses()
-        self.assertIn(pipes.CSVSourceNode, nodes)
-        self.assertIn(pipes.AggregateNode, nodes)
-        self.assertIn(pipes.ValueThresholdNode, nodes)
-        self.assertNotIn(pipes.Stream, nodes)
+        nodes = brewery.streams.Node.subclasses()
+        self.assertIn(brewery.nodes.CSVSourceNode, nodes)
+        self.assertIn(brewery.nodes.AggregateNode, nodes)
+        self.assertIn(brewery.nodes.ValueThresholdNode, nodes)
+        self.assertNotIn(brewery.streams.Stream, nodes)
 
     def test_node_dictionary(self):
-        d = pipes.Node.class_dictionary()
+        d = brewery.nodes.Node.class_dictionary()
         self.assertIn("aggregate", d)
         self.assertIn("csv_source", d)
         self.assertIn("csv_target", d)
@@ -36,7 +36,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertNotIn("aggregate_node", d)
 
     def test_sample_node(self):
-        node = pipes.SampleNode()
+        node = brewery.nodes.SampleNode()
         self.setup_node(node)
         self.create_sample()
         node.sample_size = 5
@@ -48,7 +48,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertAllRows()
 
     def test_replace_node(self):
-        node = pipes.TextSubstituteNode("str")
+        node = brewery.nodes.TextSubstituteNode("str")
         self.setup_node(node)
         self.create_sample(10)
         node.add_substitution("[1-5]", "X")
@@ -63,13 +63,13 @@ class NodesTestCase(unittest.TestCase):
         self.assertAllRows()
 
     def test_append_node(self):
-        node = pipes.AppendNode()
+        node = brewery.nodes.AppendNode()
         self.setup_node(node)
 
-        pipe1 = pipes.SimpleDataPipe()
+        pipe1 = brewery.streams.SimpleDataPipe()
         self.create_sample(4, custom = "a", pipe = pipe1)
 
-        pipe2 = pipes.SimpleDataPipe()
+        pipe2 = brewery.streams.SimpleDataPipe()
         self.create_sample(4, custom = "b", pipe = pipe2)
         
         node.inputs = [pipe1, pipe2]
@@ -92,7 +92,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertAllRows()
         
     def test_field_map(self):
-        node = pipes.FieldMapNode()
+        node = brewery.nodes.FieldMapNode()
         
         self.setup_node(node)
         self.create_sample(custom = "foo")
@@ -129,7 +129,7 @@ class NodesTestCase(unittest.TestCase):
             pipe.put([i*100, i*1000, float(i)/4, "c", "y"])
         
     def test_distinct(self):
-        node = pipes.DistinctNode()
+        node = brewery.nodes.DistinctNode()
         self.setup_node(node)
         self.create_distinct_sample()
 
@@ -210,7 +210,7 @@ class NodesTestCase(unittest.TestCase):
             output.fields = node.output_fields
 
     def test_aggregate_node(self):
-        node = pipes.AggregateNode()
+        node = brewery.nodes.AggregateNode()
         self.setup_node(node)
         self.create_distinct_sample()
 
@@ -239,7 +239,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual([18,9,9], counts)
         
         # Test no keys - only counts
-        node = pipes.AggregateNode()
+        node = brewery.nodes.AggregateNode()
         self.setup_node(node)
         self.output.empty()
         self.create_distinct_sample()
@@ -282,7 +282,7 @@ class NodesTestCase(unittest.TestCase):
         def select_greater_than(value, threshold):
             return value > threshold
             
-        node = pipes.SelectNode(function = select, fields = ["i"])
+        node = brewery.nodes.SelectNode(function = select, fields = ["i"])
 
         self.setup_node(node)
         self.create_sample()
@@ -325,7 +325,7 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual(8, len(self.output.buffer)) 
     def test_set_select(self):
-        node = pipes.SetSelectNode(field = "type", value_set = ["a"])
+        node = brewery.nodes.SetSelectNode(field = "type", value_set = ["a"])
 
         self.setup_node(node)
         self.create_distinct_sample()
@@ -337,7 +337,7 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual(18, len(self.output.buffer)) 
     def test_audit(self):
-        node = pipes.AuditNode()
+        node = brewery.nodes.AuditNode()
         self.setup_node(node)
         self.create_distinct_sample()
 
@@ -351,7 +351,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(5, len(self.output.buffer)) 
         
     def test_strip(self):
-        node = pipes.StringStripNode(fields = ["custom"])
+        node = brewery.nodes.StringStripNode(fields = ["custom"])
 
         self.setup_node(node)
         self.create_sample(custom = "  foo  ")
@@ -372,7 +372,7 @@ class NodesTestCase(unittest.TestCase):
         for i in range(0, 5):
             self.input.put([" foo ", " bar ", " baz ", " moo "])
 
-        node = pipes.StringStripNode()
+        node = brewery.nodes.StringStripNode()
 
         self.setup_node(node)
 
@@ -403,7 +403,7 @@ class NodesTestCase(unittest.TestCase):
             self.input.put(row)
 
 
-        node = pipes.CoalesceValueToTypeNode()
+        node = brewery.nodes.CoalesceValueToTypeNode()
 
         self.setup_node(node)
 
@@ -426,10 +426,10 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual([123, 123, 123, 123, None, None], floats) 
 
     def test_merge(self):
-        node = pipes.MergeNode()
+        node = brewery.nodes.MergeNode()
         self.create_distinct_sample()
 
-        input2 = pipes.SimpleDataPipe()
+        input2 = brewery.streams.SimpleDataPipe()
         input2.fields = brewery.ds.fieldlist(["type2", "name"])
         input2.put(["a", "apple"])
         input2.put(["b", "bananna"])

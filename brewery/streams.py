@@ -1,11 +1,23 @@
 import logging
-import base
 import threading
 import traceback 
 import sys
 import inspect
 import utils
 import StringIO
+
+from brewery.nodes import *
+
+__all__ = [
+    "Stream",
+    "StreamRuntimeError",
+    "FieldError",
+    "Pipe"
+]
+
+class FieldError(Exception):
+    """Exception raised on field incompatibility or missing fields."""
+    pass
 
 class StreamRuntimeError(Exception):
     """Exception raised when a node fails during `run()` phase.
@@ -106,6 +118,200 @@ class StreamRuntimeError(Exception):
         
         return v
 
+class SimpleDataPipe(object):
+    """Dummy pipe for testing nodes"""
+    def __init__(self):
+        self.buffer = []
+        self.fields = None
+        self._closed = False
+
+    def closed(self):
+        return self._closed
+
+    def rows(self):
+        return self.buffer
+
+    def records(self):
+        """Get data objects from pipe as records (dict objects). This is convenience method with
+        performance costs. Nodes are recommended to process rows instead."""
+        if not self.fields:
+            raise Exception("Can not provide records: fields for pipe are not initialized.")
+        fields = self.fields.names()
+        for row in self.rows():
+            yield dict(zip(fields, row))
+
+    def put_record(self, record):
+        """Convenience method that will transform record into a row based on pipe fields."""
+        row = []
+        for field in self.fields.names():
+            row.append(record.get(field))
+        self.put(row)
+
+    def put(self, obj):
+        self.buffer.append(obj)
+
+    def done_receiving(self):
+        self._closed = True
+        pass
+
+    def done_sending(self):
+        pass
+
+    def empty(self):
+        self.buffer = []
+
+class Pipe(SimpleDataPipe):
+    """Data pipe:
+    Contains buffer for data that should be thransferred to another node.
+    Data are being sent t other node when the buffer is full. Pipe is one-directional where
+    one thread is sending data to another thread. There is only one backward signalling: closing 
+    the pipe from remote object.
+
+
+    """
+
+    def __init__(self, buffer_size = 1000):
+        """Creates uni-drectional data pipe for passing data between two threads in batches of size
+        `buffer_size`.
+
+        If receiving node is finished with source data and does not want anything any more, it
+        should send ``done_receiving()`` to the pipe. In most cases, stream runner will send
+        ``done_receiving()`` to all input pipes when node's ``run()`` method is finished.
+
+        If sending node is finished, it should send ``done_sending()`` to the pipe, however this
+        is not necessary in most cases, as the method for running stream flushes outputs
+        automatically on when node ``run()`` method is finished.
+        """
+
+        super(Pipe, self).__init__()
+        self.buffer_size = buffer_size
+
+        # Should it be deque or array?
+        self.staging_buffer = []
+        self._ready_buffer = None
+
+        self._done_sending = False
+        self._done_receiving = False
+        self._closed = False
+
+        # Taken from Python Queue implementation:
+
+        # mutex must beheld whenever the queue is mutating.  All methods
+        # that acquire mutex must release it before returning.  mutex
+        # is shared between the three conditions, so acquiring and
+        # releasing the conditions also acquires and releases mutex.
+        self.mutex = threading.Lock()
+        # Notify not_empty whenever an item is added to the queue; a
+        # thread waiting to get is notified then.
+        self.not_empty = threading.Condition(self.mutex)
+        # Notify not_full whenever an item is removed from the queue;
+        # a thread waiting to put is notified then.
+        self.not_full = threading.Condition(self.mutex)
+
+    def is_full(self):
+        return len(self.staging_buffer) >= self.buffer_size
+
+    def is_consumed(self):
+        return self._ready_buffer is None
+
+    def put(self, obj):
+        """Put data object into the pipe buffer. When buffer is full it is enqueued and receiving node
+        can get all buffered data objects.
+
+        Puttin object into pipe is not thread safe. Only one thread sohuld write to the pipe.
+        """
+        self.staging_buffer.append(obj)
+
+        if self.is_full():
+            self._flush()
+    def _note(self, note):
+        # print note
+        pass
+
+    def _flush(self, close = False):
+        self._note("P flushing: close? %s closed? %s" % (close, self._closed))
+        self._note("P _nf acq?")
+        self.not_full.acquire()
+        if self._closed:
+            self._note("P _not_full rel!")
+            self.not_full.release()
+            return
+        elif len(self.staging_buffer) == 0:
+            try:
+                self._closed = close
+                self.not_empty.notify()
+            finally:
+                self._note("P _not_full rel!")
+                self.not_full.release()
+            return
+
+        try:
+            self._note("P _not_full wait ...")
+            while not self.is_consumed() and not self._closed:
+                self.not_full.wait()
+            self._note("P _not_full got <")
+            if not self._closed:
+                self._ready_buffer = self.staging_buffer
+                self.staging_buffer = []
+                self._closed = close
+                self._note("P _not_empty notify >")
+                self.not_empty.notify()
+
+        finally:
+            self._note("P _not_full rel!")
+            self.not_full.release()
+
+    def rows(self):
+        """Get data object from pipe. If there is no buffer ready, wait until source object sends
+        some data."""
+
+        done_sending = False
+        while(not done_sending):
+            self._note("C _not_empty acq?")
+            self.not_empty.acquire()
+            try:
+                self._note("C _not_empty wait ...")
+                while not self._ready_buffer and not self._closed:
+                    self.not_empty.wait()
+                self._note("C _not_empty got <")
+
+                if self._ready_buffer:
+                    rows = self._ready_buffer
+                    self._ready_buffer = None
+                    self._note("C _not_full notify >")
+                    self.not_full.notify()
+
+                    for row in rows:
+                        yield row
+                else:
+                    self._note("C no buffer")
+
+
+                done_sending = self._closed
+            finally:
+                self._note("_not_empty rel!")
+                self.not_empty.release()
+
+    def closed(self):
+        """Return ``True`` if pipe is closed - not sending or not receiving data any more."""
+        return self._closed
+
+    def done_sending(self):
+        """Close pipe from sender side"""
+        self._flush(True)
+
+    def done_receiving(self):
+        """Close pipe from either side"""
+        self._note("C not_empty acq? r")
+        self.not_empty.acquire()
+        self._note("C closing")
+        self._closed = True
+        self._note("C notif close")
+        self.not_full.notify()
+        self.not_empty.release()        
+
+        self._note("C not_empty rel! r")
+
 class Stream(object):
     """Data processing stream"""
     def __init__(self, nodes = None, connections = None):
@@ -127,7 +333,7 @@ class Stream(object):
                 for name, node in nodes.items():
                     self.add(node, name)
             else:
-                raise base.StreamError("Nodes should be a dictionary, is %s" % type(nodes))
+                raise StreamError("Nodes should be a dictionary, is %s" % type(nodes))
 
         if connections:
             for connection in connections:
@@ -313,7 +519,7 @@ class Stream(object):
         To fork a fork, just call ``fork()``
         """
         
-        return StreamFork(self, self.node(node))
+        return _StreamFork(self, self.node(node))
         
         
     def update(self, dictionary):
@@ -325,12 +531,12 @@ class Stream(object):
         nodes = dictionary.get("nodes")
         connections = dictionary.get("connections")
         
-        class_dict = base.Node.class_dictionary()
+        class_dict = Node.class_dictionary()
         
         for (name, obj) in nodes.items():
-            if isinstance(obj, base.Node):
+            if isinstance(obj, Node):
                 node_instance = obj
-            elif isinstance(obj, type) and issubclass(obj, base.Node):
+            elif isinstance(obj, type) and issubclass(obj, brewery.nodes.Node):
                 node_instance = obj() 
             else:
                 if not "type" in obj:
@@ -395,7 +601,7 @@ class Stream(object):
             targets = self.node_targets(node)
             for target in targets:
                 logging.debug("  connecting with %s" % (target))
-                pipe = base.Pipe()
+                pipe = Pipe()
                 node.add_output(pipe)
                 target.add_input(pipe)
                 self.pipes.append(pipe)
@@ -408,7 +614,7 @@ class Stream(object):
             node.initialize()
 
             # Ignore target nodes
-            if isinstance(node, base.TargetNode):
+            if isinstance(node, TargetNode):
                 logging.debug("  node is target, ignoring creation of output pipes" )
                 continue
 
@@ -445,7 +651,7 @@ class Stream(object):
         logging.debug("launching threads")
         for node in sorted_nodes:
             logging.debug("launching thread for node %s" % node)
-            thread = StreamNodeThread(node)
+            thread = _StreamNodeThread(node)
             thread.start()
             threads.append( (thread, node) )
 
@@ -488,7 +694,7 @@ class Stream(object):
             array.append(pipe.fields)
         exception.inputs = array
         
-        if not isinstance(node, base.TargetNode):
+        if not isinstance(node, TargetNode):
             try:
                 exception.ouputs = node.output_fields
             except:
@@ -525,7 +731,7 @@ class Stream(object):
             logging.debug("finalizing node %s" % node)
             node.finalize()
 
-class StreamNodeThread(threading.Thread):
+class _StreamNodeThread(threading.Thread):
     def __init__(self, node):
         """Creates a stream node thread.
         
@@ -535,7 +741,7 @@ class StreamNodeThread(threading.Thread):
             * `traceback`: will contain traceback if exception occurs
         
         """
-        super(StreamNodeThread, self).__init__()
+        super(_StreamNodeThread, self).__init__()
         self.node = node
         self.exception = None
         self.traceback = None
@@ -545,7 +751,7 @@ class StreamNodeThread(threading.Thread):
         logging.debug("%s: start" % self)
         try:
             self.node.run()
-        except base.NodeFinished, e:
+        except NodeFinished, e:
             logging.info("node %s finished" % (self.node))
         except Exception, e:
             logging.info("node %s failed: %s" % (self.node, e.__class__.__name__))
@@ -568,11 +774,11 @@ class StreamNodeThread(threading.Thread):
                 pipe.done_sending()
         logging.debug("%s: stopped" % self)
 
-class StreamFork(object):
+class _StreamFork(object):
     """docstring for StreamFork"""
     def __init__(self, stream, node = None):
         """Creates a stream fork - class for building streams."""
-        super(StreamFork, self).__init__()
+        super(_StreamFork, self).__init__()
         self.stream = stream
         self.node = node
         
@@ -594,7 +800,7 @@ class StreamFork(object):
     def fork(self):
         """Forks current fork. Returns a new fork with same actual node as the fork being
         forked."""
-        fork = StreamFork(self.stream, self.node)
+        fork = _StreamFork(self.stream, self.node)
         return fork
         
     def merge(self, obj, **kwargs):
@@ -624,7 +830,7 @@ class StreamFork(object):
     
     def __getattr__(self, name):
         """Returns node class"""
-        class_dict = base.Node.class_dictionary()
+        class_dict = Node.class_dictionary()
 
         if not name in class_dict:
             raise AttributeError(name)

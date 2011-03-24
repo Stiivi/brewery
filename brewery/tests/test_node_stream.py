@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import brewery.pipes as pipes
 import brewery.ds as ds
 import unittest
 import logging
@@ -8,6 +7,9 @@ import threading
 import time
 import os
 import StringIO
+
+from brewery.streams import *
+from brewery.nodes import *
 
 logging.basicConfig(level=logging.WARN)
 
@@ -20,20 +22,20 @@ class StreamBuildingTestCase(unittest.TestCase):
         #            +---> sample ----> html_target
         
         
-        self.stream = pipes.Stream()
-        self.node1 = pipes.Node()
+        self.stream = Stream()
+        self.node1 = Node()
         self.node1.description = "source"
         self.stream.add(self.node1, "source")
 
-        self.node2 = pipes.Node()
+        self.node2 = Node()
         self.node2.description = "csv_target"
         self.stream.add(self.node2, "csv_target")
 
-        self.node4 = pipes.Node()
+        self.node4 = Node()
         self.node4.description = "html_target"
         self.stream.add(self.node4, "html_target")
 
-        self.node3 = pipes.Node()
+        self.node3 = Node()
         self.node3.description = "sample"
         self.stream.add(self.node3, "sample")
 
@@ -47,7 +49,7 @@ class StreamBuildingTestCase(unittest.TestCase):
 
         self.assertRaises(KeyError, self.stream.connect, "sample", "unknown")
 
-        node = pipes.Node()
+        node = Node()
         self.assertRaises(KeyError, self.stream.add, node, "sample")
         
         self.stream.remove("sample")
@@ -84,15 +86,15 @@ class StreamBuildingTestCase(unittest.TestCase):
             }
         }
         
-        stream = pipes.Stream()
+        stream = Stream()
         stream.update(stream_desc)
-        self.assertTrue(isinstance(stream.node("source"), pipes.Node))
-        self.assertTrue(isinstance(stream.node("aggregate"), pipes.AggregateNode))
+        self.assertTrue(isinstance(stream.node("source"), Node))
+        self.assertTrue(isinstance(stream.node("aggregate"), AggregateNode))
 
         node = stream.node("aggregate")
         self.assertEqual(["str"], node.keys)
 
-class FailNode(pipes.Node):
+class FailNode(Node):
     __node_info__ = {
         "attributes": [ {"name":"message"} ]
     }
@@ -103,7 +105,7 @@ class FailNode(pipes.Node):
         logging.debug("intentionally failing a node")
         raise Exception(self.message)
 
-class SlowSourceNode(pipes.Node):
+class SlowSourceNode(Node):
 
     @property
     def output_fields(self):
@@ -129,12 +131,12 @@ class StreamInitializationTestCase(unittest.TestCase):
         self.aggtarget_list = []
         
         nodes = {
-            "source": pipes.RowListSourceNode(self.src_list, self.fields),
-            "target": pipes.RecordListTargetNode(self.target_list),
-            "aggtarget": pipes.RecordListTargetNode(self.aggtarget_list),
-            "sample": pipes.SampleNode("sample"),
-            "map": pipes.FieldMapNode(drop_fields = ["c"]),
-            "aggregate": pipes.AggregateNode(keys = ["str"])
+            "source": RowListSourceNode(self.src_list, self.fields),
+            "target": RecordListTargetNode(self.target_list),
+            "aggtarget": RecordListTargetNode(self.aggtarget_list),
+            "sample": SampleNode("sample"),
+            "map": FieldMapNode(drop_fields = ["c"]),
+            "aggregate": AggregateNode(keys = ["str"])
         }
         
         connections = {
@@ -145,7 +147,7 @@ class StreamInitializationTestCase(unittest.TestCase):
             ("aggregate", "aggtarget")
         }
 
-        self.stream = pipes.Stream(nodes, connections)
+        self.stream = Stream(nodes, connections)
 
     def test_initialization(self):
         self.stream._initialize()
@@ -180,23 +182,23 @@ class StreamInitializationTestCase(unittest.TestCase):
         
     def test_fail_run(self):
         nodes = {
-            "source": pipes.RowListSourceNode(self.src_list, self.fields),
+            "source": RowListSourceNode(self.src_list, self.fields),
             "fail": FailNode(),
-            "target": pipes.RecordListTargetNode(self.target_list)
+            "target": RecordListTargetNode(self.target_list)
         }
         connections = {
             ("source", "fail"),
             ("fail", "target")
         }
-        stream = pipes.Stream(nodes, connections)
+        stream = Stream(nodes, connections)
 
-        self.assertRaisesRegexp(pipes.StreamRuntimeError, "This is fail node", stream.run)
+        self.assertRaisesRegexp(StreamRuntimeError, "This is fail node", stream.run)
         
         nodes["fail"].message = u"Unicode message: čučoriedka ľúbivo ťukala"
 
         try:
             stream.run()
-        except pipes.StreamRuntimeError, e:
+        except StreamRuntimeError, e:
             handle = StringIO.StringIO()
             # This should not raise an exception
             e.print_exception(handle)
@@ -206,14 +208,14 @@ class StreamInitializationTestCase(unittest.TestCase):
         nodes = {
             "source": SlowSourceNode(),
             "fail": FailNode(),
-            "target": pipes.RecordListTargetNode(self.target_list)
+            "target": RecordListTargetNode(self.target_list)
         }
         connections = {
             ("source", "fail"),
             ("fail", "target")
         }
         
-        stream = pipes.Stream(nodes, connections)
+        stream = Stream(nodes, connections)
 
-        self.assertRaises(pipes.StreamRuntimeError, stream.run)
+        self.assertRaises(StreamRuntimeError, stream.run)
     
