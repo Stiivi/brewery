@@ -768,6 +768,8 @@ Feed data rows into a relational database table.
      - create table if it does not exist or not
    * - replace
      - Set to True if creation should replace existing table or not, otherwise node will fail on attempt to create a table which already exists
+   * - buffer_size
+     - how many records are collected before they are inserted using multi-insert statement. Default is 1000
    * - options
      - other SQLAlchemy connect() options
 

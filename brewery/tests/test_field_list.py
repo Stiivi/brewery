@@ -1,7 +1,6 @@
 import unittest
 import brewery
 import brewery.ds as ds
-import brewery.pipes as pipes
 
 class FieldListCase(unittest.TestCase):
     def test_names(self):

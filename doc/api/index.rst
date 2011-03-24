@@ -8,4 +8,4 @@ Contents:
 
    datastores
    quality
-   pipes
+   streams

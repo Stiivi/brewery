@@ -3,9 +3,10 @@ import inspect
 import sys
 import re
 import string
+from brewery.nodes import *
+import brewery
 
 sys.path.insert(0, "..")
-import brewery.pipes
 
 node_types = [
     {"type": "source", "label": "Sources"},
@@ -43,9 +44,9 @@ def node_documentation(class_name, node):
     node_type = info.get("type")
 
     if not node_type:
-        if issubclass(node, brewery.pipes.SourceNode):
+        if issubclass(node, SourceNode):
             node_type = "source"
-        elif issubclass(node, brewery.pipes.TargetNode):
+        elif issubclass(node, TargetNode):
             node_type = "target"
         else:
             node_type = "record"
@@ -115,7 +116,7 @@ def document_nodes_in_module(module):
                  "++++++++++++++\n\n")
 
     for name, member in inspect.getmembers(module):
-        if inspect.isclass(member) and issubclass(member, brewery.pipes.Node):
+        if inspect.isclass(member) and issubclass(member, Node):
             doc = node_documentation(name, member)
             if doc:
                 node_type = doc["type"]
@@ -138,4 +139,4 @@ def document_nodes_in_module(module):
     output.close()
 
 
-document_nodes_in_module(brewery.pipes)
+document_nodes_in_module(brewery.nodes)

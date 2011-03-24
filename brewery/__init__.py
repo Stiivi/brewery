@@ -6,6 +6,8 @@ import sys
 import brewery.ds
 import brewery.dq
 import brewery.utils
+import brewery.streams
+import brewery.nodes
 
 try:
     import json
@@ -24,5 +26,3 @@ def set_brewery_search_paths(paths):
 
 def default_logger_name():
     return 'brewery'
-
-    

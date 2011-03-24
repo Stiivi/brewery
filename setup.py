@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "brewery",
-    version = '0.5.0',
+    version = '0.6.0',
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
@@ -28,7 +28,7 @@ setup(
         'Topic :: Utilities'
     ],
     
-    test_suite = "brewery.tests.test_suite",
+    test_suite = "brewery.tests",
 
     # metadata for upload to PyPI
     author = "Stefan Urbanek",
