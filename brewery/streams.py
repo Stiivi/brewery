@@ -20,6 +20,10 @@ class FieldError(Exception):
     """Exception raised on field incompatibility or missing fields."""
     pass
 
+class StreamError(Exception):
+    """Exception raised on stream."""
+    pass
+
 class StreamRuntimeError(Exception):
     """Exception raised when a node fails during `run()` phase.
 
@@ -537,7 +541,7 @@ class Stream(object):
         for (name, obj) in nodes.items():
             if isinstance(obj, Node):
                 node_instance = obj
-            elif isinstance(obj, type) and issubclass(obj, brewery.nodes.Node):
+            elif isinstance(obj, type) and issubclass(obj, Node):
                 node_instance = obj()
             else:
                 if not "type" in obj:

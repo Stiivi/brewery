@@ -4,9 +4,7 @@
 import brewery.ds as ds
 import unittest
 import logging
-import threading
 import time
-import os
 import StringIO
 
 from brewery.streams import *
@@ -78,13 +76,13 @@ class StreamBuildingTestCase(unittest.TestCase):
                 "map":  {"type": "field_map"},
                 "aggregate": {"type": "aggregate", "keys": ["str"] }
             },
-            "connections": {
+            "connections": [
                 ("source", "sample"),
                 ("sample", "map"),
                 ("map", "target"),
                 ("source", "aggregate"),
                 ("aggregate", "aggtarget")
-            }
+            ]
         }
         
         stream = Stream()
@@ -140,13 +138,13 @@ class StreamInitializationTestCase(unittest.TestCase):
             "aggregate": AggregateNode(keys = ["str"])
         }
         
-        connections = {
+        connections = [
             ("source", "sample"),
             ("sample", "map"),
             ("map", "target"),
             ("source", "aggregate"),
             ("aggregate", "aggtarget")
-        }
+        ]
 
         self.stream = Stream(nodes, connections)
 
@@ -187,10 +185,10 @@ class StreamInitializationTestCase(unittest.TestCase):
             "fail": FailNode(),
             "target": RecordListTargetNode(self.target_list)
         }
-        connections = {
+        connections = [
             ("source", "fail"),
             ("fail", "target")
-        }
+        ]
         stream = Stream(nodes, connections)
 
         self.assertRaisesRegexp(StreamRuntimeError, "This is fail node", stream.run)
@@ -211,10 +209,10 @@ class StreamInitializationTestCase(unittest.TestCase):
             "fail": FailNode(),
             "target": RecordListTargetNode(self.target_list)
         }
-        connections = {
+        connections = [
             ("source", "fail"),
             ("fail", "target")
-        }
+        ]
         
         stream = Stream(nodes, connections)
 

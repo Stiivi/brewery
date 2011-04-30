@@ -5,7 +5,6 @@ import unittest
 import os
 import json
 import re
-from common import TESTS_PATH
 
 from test_data_source import *
 from test_pipes import *

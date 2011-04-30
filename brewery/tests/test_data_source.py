@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import brewery
 import os
 import brewery.ds
-import json
-import csv
-import shutil
-from common import TESTS_PATH
+
+TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
 class DataSourceUtilsTestCase(unittest.TestCase):
     def test_expand_collapse(self):
