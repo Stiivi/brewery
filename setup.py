@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-install_requires = ['pymongo', "SQLAlchemy"]
+install_requires = ['pymongo', "SQLAlchemy", "gdata"]
 
 setup(
     name="brewery",
