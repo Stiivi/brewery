@@ -2,7 +2,6 @@
 
 import base
 import re
-import copy
 import brewery.ds as ds
 import itertools
 

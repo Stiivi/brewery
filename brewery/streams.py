@@ -2,8 +2,6 @@ import logging
 import threading
 import traceback
 import sys
-import inspect
-import utils
 import StringIO
 
 from brewery.nodes import *

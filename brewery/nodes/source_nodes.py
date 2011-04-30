@@ -1,6 +1,5 @@
 import base
 import brewery.ds as ds
-import logging
 
 # data_sources = {
 #     "csv": {"class": CSVDataSource},
@@ -124,7 +123,7 @@ class StreamSourceNode(base.SourceNode):
         return self.stream.fields
         
     def run(self):
-        for row in stream.rows():
+        for row in self.stream.rows():
             self.put(row)
         
     def finalize(self):

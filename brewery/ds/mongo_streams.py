@@ -211,6 +211,6 @@ class MongoDBDataTarget(base.DataTarget):
             record = dict(zip(self.field_names, obj))
 
         if self.expand:
-            record = expand_record(record)
+            record = base.expand_record(record)
 
         self.collection.insert(record)

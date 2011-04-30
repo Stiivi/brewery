@@ -1,5 +1,4 @@
 import base
-import datetime
 
 class SimpleHTMLDataTarget(base.DataTarget):
     def __init__(self, resource, html_header = True, html_footer = None, 
