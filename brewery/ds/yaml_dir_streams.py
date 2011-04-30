@@ -3,16 +3,12 @@ import base
 import string
 import os
 import shutil
-
-try:
-    import yaml
-except:
-    pass
+import yaml
 
 class YamlDirectoryDataSource(base.DataSource):
     """docstring for ClassName
     """
-    def __init__(self, path, extension = "yml", expand = False, filename_field = None):
+    def __init__(self, path, extension="yml", expand=False, filename_field=None):
         """Creates a YAML directory data source stream.
         
         The data source reads files from a directory and treats each file as single record. For example,
@@ -40,10 +36,10 @@ class YamlDirectoryDataSource(base.DataSource):
         self.expand = expand
         self.filename_field = filename_field
         self.extension = extension
-        
+
     def initialize(self):
         pass
-  
+
     def records(self):
         files = os.listdir(self.path)
 
@@ -77,8 +73,8 @@ class YamlDirectoryDataSource(base.DataSource):
 class YamlDirectoryDataTarget(base.DataTarget):
     """docstring for YamlDirectoryDataTarget
     """
-    def __init__(self, path, filename_template = "record_${__index}.yml", expand = False, 
-                    filename_start_index = 0, truncate = False):
+    def __init__(self, path, filename_template="record_${__index}.yml", expand=False,
+                    filename_start_index=0, truncate=False):
         """Creates a directory data target with YAML files as records.
         
         :Attributes:
@@ -113,20 +109,20 @@ class YamlDirectoryDataTarget(base.DataTarget):
                 os.makedirs(self.path)
         else:
             os.makedirs(self.path)
-                
-        
+
+
     def append(self, obj):
-        
+
         if type(obj) == dict:
             record = obj
         else:
             record = dict(zip(self.field_names, obj))
-            
-        base_name = self.template.substitute(__index = self.index, **record)
+
+        base_name = self.template.substitute(__index=self.index, **record)
         path = os.path.join(self.path, base_name)
 
         handle = open(path, "w")
-        yaml.safe_dump(record, stream = handle, encoding= None, default_flow_style = False)
+        yaml.safe_dump(record, stream=handle, encoding=None, default_flow_style=False)
         handle.close()
-        
+
         self.index += 1
