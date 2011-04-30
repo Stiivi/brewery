@@ -4,6 +4,7 @@
 import base
 import re
 import brewery.ds as ds
+from brewery.streams import FieldError
 import itertools
 
 class FieldMapNode(base.Node):
@@ -391,7 +392,7 @@ class ValueThresholdNode(base.Node):
         # Check input fields
         for name in field_names:
             if not name in self.input.fields:
-                raise base.FieldError("No input field with name %s" % name)
+                raise FieldError("No input field with name %s" % name)
                 
         self.threshold_field_indexes = self.input.fields.indexes(field_names)
         

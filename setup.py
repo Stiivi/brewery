@@ -2,6 +2,13 @@ from setuptools import setup, find_packages
 
 install_requires = ['pymongo', "SQLAlchemy", "gdata", "xlrd", "PyYAML"]
 
+try:
+    # For Python >= 2.6
+    import json
+except ImportError:
+    # For Python < 2.6 or people using a newer version of simplejson
+    install_requires.append("simplejson")
+    
 setup(
     name="brewery",
     version='0.6.0',

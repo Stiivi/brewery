@@ -399,9 +399,8 @@ class FieldList(object):
     def field(self, name):
         """Return a field with name `name`"""
         if name in self._field_dict:
-            fields.append(self._field_dict[name])
-        else:
-            raise KeyError("Field list has no field with name '%s'" % name)
+            return self._field_dict[name]
+        raise KeyError("Field list has no field with name '%s'" % name)
     
     def __len__(self):
         return len(self._fields)
