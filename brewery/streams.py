@@ -1,6 +1,6 @@
 import logging
 import threading
-import traceback 
+import traceback
 import sys
 import inspect
 import utils
@@ -30,7 +30,7 @@ class StreamRuntimeError(Exception):
         * `inputs`: array of field lists for each input
         * `output`: output field list
     """
-    def __init__(self, message = None, node = None, exception = None):
+    def __init__(self, message=None, node=None, exception=None):
         super(StreamRuntimeError, self).__init__()
         if message:
             self.message = message
@@ -44,14 +44,14 @@ class StreamRuntimeError(Exception):
         self.output = []
         self.attributes = {}
 
-    def print_exception(self, output = None):
+    def print_exception(self, output=None):
         """Prints exception. You can specify IO stream object in `output` parameter. By default
         text is printed to standard output."""
-        
+
         if not output:
             output = sys.stdout
-            
-        text =  u"stream failed. reason: %s\n" % self.message
+
+        text = u"stream failed. reason: %s\n" % self.message
         text += u"exception: %s: \n" % self.exception.__class__.__name__
 
         text += u"node: %s\n" % self.node
@@ -67,9 +67,9 @@ class StreamRuntimeError(Exception):
             text += u"".join(self.traceback)
         except Exception, e:
             text += u"<unable to get traceback string: %s>" % e
-        
+
         text += "\n"
-        
+
         if self.inputs:
             for i, fields in enumerate(self.inputs):
                 text += "input %i:\n" % i
@@ -81,7 +81,7 @@ class StreamRuntimeError(Exception):
         else:
             text += "input: none"
 
-        text += "\n"    
+        text += "\n"
 
         if self.output:
             text += "output:\n"
@@ -90,9 +90,9 @@ class StreamRuntimeError(Exception):
                             % (field.name, field.storage_type, field.analytical_type)
         else:
             text += "ouput: none"
-            
-        text += "\n"    
-        
+
+        text += "\n"
+
         if self.attributes:
             text += "attributes:\n"
             for name, attribute in self.attributes.items():
@@ -103,9 +103,9 @@ class StreamRuntimeError(Exception):
                 text += "    %s: %s\n" % (name, value)
         else:
             text += "attributes: none"
-        print "TEEEXT: %s"  % type(text)
+        print "TEEEXT: %s" % type(text)
         output.write(text)
-        
+
     def __str__(self):
         s = StringIO.StringIO()
         try:
@@ -115,7 +115,7 @@ class StreamRuntimeError(Exception):
             v = "Unable to print strem exception. Reason: %s (%s)" % (e, type(e))
         finally:
             s.close()
-        
+
         return v
 
 class SimpleDataPipe(object):
@@ -170,7 +170,7 @@ class Pipe(SimpleDataPipe):
 
     """
 
-    def __init__(self, buffer_size = 1000):
+    def __init__(self, buffer_size=1000):
         """Creates uni-drectional data pipe for passing data between two threads in batches of size
         `buffer_size`.
 
@@ -228,7 +228,7 @@ class Pipe(SimpleDataPipe):
         # print note
         pass
 
-    def _flush(self, close = False):
+    def _flush(self, close=False):
         self._note("P flushing: close? %s closed? %s" % (close, self._closed))
         self._note("P _nf acq?")
         self.not_full.acquire()
@@ -308,13 +308,13 @@ class Pipe(SimpleDataPipe):
         self._closed = True
         self._note("C notif close")
         self.not_full.notify()
-        self.not_empty.release()        
+        self.not_empty.release()
 
         self._note("C not_empty rel! r")
 
 class Stream(object):
     """Data processing stream"""
-    def __init__(self, nodes = None, connections = None):
+    def __init__(self, nodes=None, connections=None):
         """Creates a data stream.
 
         :Parameters:
@@ -327,7 +327,7 @@ class Stream(object):
         self.nodes = []
         self.node_dict = {}
         self.connections = set()
-        
+
         if nodes:
             if type(nodes) == dict:
                 for name, node in nodes.items():
@@ -338,9 +338,9 @@ class Stream(object):
         if connections:
             for connection in connections:
                 self.connect(connection[0], connection[1])
-        
+
         self.exceptions = []
-        
+
     def node(self, node):
         """Returns a node in the stream or node with name. This method is used for coalescing in
         other methods, where you can pass either node name or node object.
@@ -348,7 +348,7 @@ class Stream(object):
         :Parameters:
             * `node` - node object or node name
         """
-        
+
         if type(node) == str or type(node) == unicode:
             if not node in self.node_dict:
                 raise KeyError("Node with name '%s' does not exist" % node)
@@ -356,7 +356,7 @@ class Stream(object):
         else:
             return node
 
-    def add(self, node, name = None):
+    def add(self, node, name=None):
         """Add a `node` into the stream."""
         if name:
             if name in self.node_dict:
@@ -365,7 +365,7 @@ class Stream(object):
 
         if node not in self.nodes:
             self.nodes.append(node)
-    
+
     def set_node_name(self, node, name):
         """Sets a name for `node`. If `name` is ``None`` then node name will be removed.
         
@@ -378,16 +378,16 @@ class Stream(object):
         if name:
             if name in self.node_dict:
                 raise KeyError("Node with name %s already exists" % name)
-            
+
             self.node_dict[name] = node
         else:
             del self.node_dict[name]
-    
+
     def remove(self, node):
         """Remove a `node` from the stream. Also all connections will be removed."""
 
         node = self.node(node)
-        
+
         self.nodes.remove(node)
         for (name, current_node) in self.node_dict.items():
             if current_node == node:
@@ -397,23 +397,23 @@ class Stream(object):
         for connection in self.connections:
             if connection[0] == node or connection[1] == node:
                 to_be_removed.add(connection)
-                
+
         for connection in to_be_removed:
             self.connections.remove(connection)
-    
+
     def connect(self, source, target):
         """Connects source node and target node. Nodes can be provided as objects or names."""
-        
+
         source_node = self.node(source)
         target_node = self.node(target)
-        self.connections.add( (source_node, target_node) )
-        
+        self.connections.add((source_node, target_node))
+
     def remove_connection(self, source, target):
         """Remove connection between source and target nodes, if exists."""
         source_node = self.node(source)
         target_node = self.node(target)
 
-        self.connections.discard( (source_node, target_node) )
+        self.connections.discard((source_node, target_node))
 
 
     def sorted_nodes(self):
@@ -441,14 +441,14 @@ class Stream(object):
                 if node == connection[1]:
                     return False
             return True
-       
+
         def source_connections(node, connections):
             conns = set()
             for connection in connections:
                 if node == connection[0]:
                     conns.add(connection)
             return conns
-        
+
         nodes = set(self.nodes)
         connections = self.connections.copy()
         sorted_nodes = []
@@ -458,7 +458,7 @@ class Stream(object):
         for node in nodes:
             if is_source(node, connections):
                 source_nodes.add(node)
-        
+
         # while S is non-empty do
         while source_nodes:
             # remove a node n from S
@@ -484,9 +484,9 @@ class Stream(object):
 
         if connections:
             raise Exception("Steram has at least one cycle")
-            
+
         return sorted_nodes
-    def fork(self, node = None):
+    def fork(self, node=None):
         """Creates a construction fork of the stream. Used for constructing streams in functional
         fashion. Example::
         
@@ -518,31 +518,31 @@ class Stream(object):
         
         To fork a fork, just call ``fork()``
         """
-        
+
         return _StreamFork(self, self.node(node))
-        
-        
+
+
     def update(self, dictionary):
         """Adds nodes and connections specified in the dictionary. Dictionary might contain
         node names instead of real classes. You can use this method for creating stream
         from a dictionary that was created from a JSON file, for example.
         """
-        
+
         nodes = dictionary.get("nodes")
         connections = dictionary.get("connections")
-        
+
         class_dict = Node.class_dictionary()
-        
+
         for (name, obj) in nodes.items():
             if isinstance(obj, Node):
                 node_instance = obj
             elif isinstance(obj, type) and issubclass(obj, brewery.nodes.Node):
-                node_instance = obj() 
+                node_instance = obj()
             else:
                 if not "type" in obj:
                     raise Exception("Node dictionary has no type key")
                 node_type = obj["type"]
-                
+
                 if node_type in class_dict:
                     node_class = class_dict[node_type]
                     node_instance = node_class()
@@ -555,7 +555,7 @@ class Stream(object):
         if connections:
             for connection in connections:
                 self.connect(connection[0], connection[1])
-        
+
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
         nodes = []
@@ -564,7 +564,7 @@ class Stream(object):
             if connection[0] == node:
                 nodes.append(connection[1])
         return nodes
-        
+
     def node_sources(self, node):
         """Return nodes that provide data for `node`."""
         nodes = []
@@ -605,17 +605,17 @@ class Stream(object):
                 node.add_output(pipe)
                 target.add_input(pipe)
                 self.pipes.append(pipe)
-                
+
         # Initialize fields
         for node in sorted_nodes:
             logging.debug("initializing node of type %s" % node.__class__)
-            logging.debug("  node has %d inputs and %d outputs" 
+            logging.debug("  node has %d inputs and %d outputs"
                                 % (len(node.inputs), len(node.outputs)))
             node.initialize()
 
             # Ignore target nodes
             if isinstance(node, TargetNode):
-                logging.debug("  node is target, ignoring creation of output pipes" )
+                logging.debug("  node is target, ignoring creation of output pipes")
                 continue
 
             fields = node.output_fields
@@ -639,12 +639,12 @@ class Stream(object):
             self._run()
         finally:
             self._finalize()
-        
+
     def _run(self):
-        
-        
+
+
         logging.info("running stream")
-        
+
         threads = []
         sorted_nodes = self.sorted_nodes()
 
@@ -653,7 +653,7 @@ class Stream(object):
             logging.debug("launching thread for node %s" % node)
             thread = _StreamNodeThread(node)
             thread.start()
-            threads.append( (thread, node) )
+            threads.append((thread, node))
 
         self.exceptions = []
         for (thread, node) in threads:
@@ -685,7 +685,7 @@ class Stream(object):
         values.
         """
         node = thread.node
-        exception = StreamRuntimeError(node = node, exception = thread.exception)
+        exception = StreamRuntimeError(node=node, exception=thread.exception)
 
         exception.traceback = thread.traceback
 
@@ -693,13 +693,13 @@ class Stream(object):
         for pipe in node.inputs:
             array.append(pipe.fields)
         exception.inputs = array
-        
+
         if not isinstance(node, TargetNode):
             try:
                 exception.ouputs = node.output_fields
             except:
                 pass
-        
+
         node_info = node.__class__.__dict__.get("__node_info__")
 
         attrs = {}
@@ -711,21 +711,21 @@ class Stream(object):
                         value = getattr(node, attr_name)
                     except AttributeError:
                         value = "<attribute %s does not exist>" % attr_name
-                    except Exception ,e:
+                    except Exception , e:
                         value = e
                     attrs[attr_name] = value
-        
+
         exception.attributes = attrs
-        
+
         self.exceptions.append(exception)
-        
-        
+
+
     def kill_threads(self):
         logging.info("killing threads")
 
     def _finalize(self):
         logging.info("finalizing nodes")
-        
+
         # FIXME: encapsulate finalization in exception handler, collect exceptions
         for node in self.sorted_nodes():
             logging.debug("finalizing node %s" % node)
@@ -745,7 +745,7 @@ class _StreamNodeThread(threading.Thread):
         self.node = node
         self.exception = None
         self.traceback = None
-        
+
     def run(self):
         """Wrapper method for running a node"""
         logging.debug("%s: start" % self)
@@ -776,33 +776,33 @@ class _StreamNodeThread(threading.Thread):
 
 class _StreamFork(object):
     """docstring for StreamFork"""
-    def __init__(self, stream, node = None):
+    def __init__(self, stream, node=None):
         """Creates a stream fork - class for building streams."""
         super(_StreamFork, self).__init__()
         self.stream = stream
         self.node = node
-        
+
     def __iadd__(self, node):
         """Appends a node to the actual stream. The new node becomes actual node of the
         for."""
-        
+
         self.stream.add(node)
         if self.node:
             self.stream.connect(self.node, node)
         self.node = node
-    
+
         return self
-    
+
     def set_name(self, name):
         """Sets name of current node."""
         self.stream.set_node_name(self.node, name)
-        
+
     def fork(self):
         """Forks current fork. Returns a new fork with same actual node as the fork being
         forked."""
         fork = _StreamFork(self.stream, self.node)
         return fork
-        
+
     def merge(self, obj, **kwargs):
         """Joins two streams using the MergeNode (please refer to the node documentaton
         for more information).
@@ -811,7 +811,7 @@ class _StreamFork(object):
         such as `joins`.
         
         """
-        
+
         # if type(obj) == StreamFork:
         #     node = obj.node
         # else:
@@ -823,11 +823,11 @@ class _StreamFork(object):
         # self.stream.append(merge)
         # self.stream.connect()
         pass
-        
+
     def append(self, obj):
         """Appends data from nodes using AppendNode"""
         pass
-    
+
     def __getattr__(self, name):
         """Returns node class"""
         class_dict = Node.class_dictionary()
@@ -836,18 +836,17 @@ class _StreamFork(object):
             raise AttributeError(name)
 
         node_class = class_dict[name]
-        
+
         constructor = _StreamForkConstructor(self, node_class)
         return constructor
-        
+
 class _StreamForkConstructor(object):
     """Helper class to append new node."""
     def __init__(self, fork, node_class):
         self.fork = fork
         self.node_class = node_class
-    
+
     def __call__(self, *args, **kwargs):
         node = self.node_class(*args, **kwargs)
         self.fork += node
         return self.fork
-        

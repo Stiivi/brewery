@@ -1,16 +1,12 @@
 import base
 import brewery.dq
-try:
-    import pymongo
-except: 
-    pass
-
+import pymongo
 
 class MongoDBDataSource(base.DataSource):
     """docstring for ClassName
     """
-    def __init__(self, collection, database = None, host = None, port = None,
-                 expand = False, **mongo_args):
+    def __init__(self, collection, database=None, host=None, port=None,
+                 expand=False, **mongo_args):
         """Creates a MongoDB data source stream.
         
         :Attributes:
@@ -30,7 +26,7 @@ class MongoDBDataSource(base.DataSource):
 
         self.collection = None
         self._fields = None
-        
+
     def initialize(self):
         """Initialize Mongo source stream:
         """
@@ -46,11 +42,11 @@ class MongoDBDataSource(base.DataSource):
         self.collection = self.database[self.collection_name]
 
 
-    def read_fields(self, limit = 0):
+    def read_fields(self, limit=0):
         keys = []
         probes = {}
 
-        def probe_record(record, parent = None):
+        def probe_record(record, parent=None):
             for key, value in record.items():
                 if parent:
                     full_key = parent + "." + key
@@ -60,7 +56,7 @@ class MongoDBDataSource(base.DataSource):
                 if self.expand and type(value) == dict:
                     probe_record(value, full_key)
                     continue
-                    
+
                 if not full_key in probes:
                     probe = brewery.dq.FieldTypeProbe(full_key)
                     probes[full_key] = probe
@@ -69,7 +65,7 @@ class MongoDBDataSource(base.DataSource):
                     probe = probes[full_key]
                 probe.probe(value)
 
-        for record in self.collection.find(limit = limit):
+        for record in self.collection.find(limit=limit):
             probe_record(record)
 
         fields = []
@@ -86,19 +82,19 @@ class MongoDBDataSource(base.DataSource):
             else:
                 field.storage_type = "unknown"
                 field.concrete_storage_type = storage_type
-                
+
             # FIXME: Set analytical type
 
             fields.append(field)
 
         self._fields = list(fields)
         return self._fields
-        
+
     def rows(self):
         if not self.collection:
             raise RuntimeError("Stream is not initialized")
         fields = self.field_names
-        iterator = self.collection.find(fields = fields)
+        iterator = self.collection.find(fields=fields)
         return MongoDBRowIterator(iterator, fields)
 
     def records(self):
@@ -109,7 +105,7 @@ class MongoDBDataSource(base.DataSource):
             fields = self.field_names
         else:
             fields = None
-        iterator = self.collection.find(fields = fields)
+        iterator = self.collection.find(fields=fields)
         return MongoDBRecordIterator(iterator, self.expand)
 
 class MongoDBRowIterator(object):
@@ -138,12 +134,12 @@ class MongoDBRowIterator(object):
 class MongoDBRecordIterator(object):
     """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as 
     dictionaries"""
-    def __init__(self, cursor, expand = False):
+    def __init__(self, cursor, expand=False):
         self.cursor = cursor
         self.expand = expand
 
     def __getitem__(self, index):
-        def expand_record(record, parent = None):
+        def expand_record(record, parent=None):
             ret = {}
             for key, value in record.items():
                 if parent:
@@ -167,8 +163,8 @@ class MongoDBRecordIterator(object):
 class MongoDBDataTarget(base.DataTarget):
     """docstring for ClassName
     """
-    def __init__(self, collection, database = None, host = None, port = None,
-                 truncate = False, expand = False, **mongo_args):
+    def __init__(self, collection, database=None, host=None, port=None,
+                 truncate=False, expand=False, **mongo_args):
         """Creates a MongoDB data target stream.
 
         :Attributes:
@@ -204,7 +200,7 @@ class MongoDBDataTarget(base.DataTarget):
         self.connection = pymongo.connection.Connection(**args)
         self.database = self.connection[self.database_name]
         self.collection = self.database[self.collection_name]
-        
+
         if self.truncate:
             self.collection.remove()
 
@@ -216,6 +212,5 @@ class MongoDBDataTarget(base.DataTarget):
 
         if self.expand:
             record = expand_record(record)
-            
+
         self.collection.insert(record)
-        
