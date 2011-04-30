@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import brewery.ds as ds
@@ -15,7 +16,7 @@ logging.basicConfig(level=logging.WARN)
 
 class StreamBuildingTestCase(unittest.TestCase):
     def setUp(self):
-        # Steram we have here:
+        # Stream we have here:
         #
         #  source ---+---> csv_target
         #            |

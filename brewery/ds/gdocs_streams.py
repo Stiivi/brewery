@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import base
-import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
 
 # Documentation:

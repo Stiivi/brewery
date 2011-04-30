@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import brewery.utils as utils
 
 class NodeFinished(Exception):

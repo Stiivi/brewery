@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import brewery.ds as ds
 from brewery.nodes import Node
 import urllib
