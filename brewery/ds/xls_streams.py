@@ -1,10 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import base
 import datetime
 
 try:
     import xlrd
-except ImportError: # xlrd not installed
-    pass
+except:
+    from brewery.utils import MissingPackage
+    xlrd = MissingPackage("xlrd", "Reading MS Excel XLS Files", "http://pypi.python.org/pypi/xlrd")
 
 class XLSDataSource(base.DataSource):
     """Reading Microsoft Excel XLS Files
@@ -13,7 +17,7 @@ class XLSDataSource(base.DataSource):
 
     Based on the OKFN Swiss library.
     """
-    def __init__(self, resource, sheet = None, encoding = None, skip_rows = None, read_header = True):
+    def __init__(self, resource, sheet=None, encoding=None, skip_rows=None, read_header=True):
         """Creates a XLS spreadsheet data source stream.
         
         :Attributes:
@@ -30,7 +34,7 @@ class XLSDataSource(base.DataSource):
         self._fields = None
         self.close_file = True
         self.encoding = encoding
-        
+
     def initialize(self):
         """Initialize XLS source stream:
         """
@@ -49,13 +53,13 @@ class XLSDataSource(base.DataSource):
             self.sheet = self.workbook.sheet_by_name(self.sheet_reference)
 
         self.row_count = self.sheet.nrows
-        
+
         self._read_fields()
 
     def finalize(self):
         if self.file and self.close_file:
             self.file.close()
-        
+
     def rows(self):
         if not self.sheet:
             raise RuntimeError("XLS Stream is not initialized - there is no sheet")
@@ -79,7 +83,7 @@ class XLSRowIterator(object):
     """
     Iterator that reads XLS spreadsheet
     """
-    def __init__(self, workbook, sheet, row_offset = 0):
+    def __init__(self, workbook, sheet, row_offset=0):
         self.workbook = workbook
         self.sheet = sheet
         self.row_count = sheet.nrows
@@ -94,20 +98,20 @@ class XLSRowIterator(object):
     def next(self):
         if self.current_row >= self.row_count:
             raise StopIteration
-            
+
         row = self.sheet.row(self.current_row)
         row = [self._cell_value(cell) for cell in row]
         self.current_row += 1
         return row
-        
+
     def _cell_value(self, cell):
         """Convert Excel cell into value of a python type
         
         (from Swiss XlsReader.cell_to_python)"""
-        
+
         # annoying need book argument for datemode
         # info on types: http://www.lexicon.net/sjmachin/xlrd.html#xlrd.Cell-class
-        if cell.ctype == xlrd.XL_CELL_NUMBER: 
+        if cell.ctype == xlrd.XL_CELL_NUMBER:
             return float(cell.value)
         elif cell.ctype == xlrd.XL_CELL_DATE:
             # TODO: distinguish date and datetime

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import base
@@ -42,7 +43,7 @@ class StreamTargetNode(base.TargetNode):
             
     def run(self):
         for row in self.input.rows():
-            stream.append(row)
+            self.stream.append(row)
         
     def finalize(self):
         self.stream.finalize()

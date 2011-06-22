@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from base import *
 from brewery.ds.csv_streams import *
 from brewery.ds.xls_streams import *

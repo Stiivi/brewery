@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import base
 try:
-    import gdata.spreadsheet.service
     import gdata.spreadsheet.text_db
 except:
-    pass
+    from brewery.utils import MissingPackage
+    gdata = MissingPackage("gdata", "Google data (spreadsheet) source/target")
 
 # Documentation:
 # http://gdata-python-client.googlecode.com/svn/trunk/pydocs/
@@ -13,10 +16,10 @@ class GoogleSpreadsheetDataSource(base.DataSource):
     
     Some code taken from OKFN Swiss library.
     """
-    def __init__(self, spreadsheet_key = None, spreadsheet_name = None, 
-                worksheet_id = None, worksheet_name = None,
-                query_string = "",
-                username = None, password = None):
+    def __init__(self, spreadsheet_key=None, spreadsheet_name=None,
+                worksheet_id=None, worksheet_name=None,
+                query_string="",
+                username=None, password=None):
         """Creates a Google Spreadsheet data source stream.
         
         :Attributes:
@@ -49,32 +52,32 @@ class GoogleSpreadsheetDataSource(base.DataSource):
         self.password = password
 
         self.client = None
-        
+
         self._fields = None
-        
+
     def initialize(self):
         """Connect to the Google documents, authenticate.
         """
-        self.client = gdata.spreadsheet.text_db.DatabaseClient( username=self.username,
-                                                                password=self.password)
+            
+        self.client = gdata.spreadsheet.text_db.DatabaseClient(username=self.username, password=self.password)
 
-        dbs = self.client.GetDatabases(spreadsheet_key = self.spreadsheet_key,
+        dbs = self.client.GetDatabases(spreadsheet_key=self.spreadsheet_key,
                                         name=self.spreadsheet_name)
 
         if len(dbs) < 1:
-            raise Exception("No spreadsheets with key '%s' or name '%s'" % 
+            raise Exception("No spreadsheets with key '%s' or name '%s'" %
                                 (self.spreadsheet_key, self.spreadsheet_key))
 
         db = dbs[0]
-        worksheets = db.GetTables(worksheet_id = self.worksheet_id, 
-                                  name = self.worksheet_name)
+        worksheets = db.GetTables(worksheet_id=self.worksheet_id,
+                                  name=self.worksheet_name)
 
         self.worksheet = worksheets[0]
         self.worksheet.LookupFields()
 
         # FIXME: try to determine field types from next row
         self._fields = base.fieldlist(self.worksheet.fields)
-        
+
     def rows(self):
         if not self.worksheet:
             raise RuntimeError("Stream is not initialized (no worksheet)")

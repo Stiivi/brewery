@@ -1,27 +1,32 @@
-import csv
-import codecs
-import cStringIO
-import base
-import inspect
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# Soft requirement - graceful fail
+import base
+
 try:
     import sqlalchemy
+except:
+    from brewery.utils import MissingPackage
+    sqlalchemy = MissingPackage("sqlalchemy", "SQL streams", "http://www.sqlalchemy.org/",
+                                comment = "Recommended version is > 0.7")
+    _sql_to_brewery_types = ()
+    _brewery_to_sql_type = {}
 
+if sqlalchemy:
     # (sql type, storage type, analytical type)
     _sql_to_brewery_types = (
-        (sqlalchemy.types.UnicodeText, "text",    "typeless"),
-        (sqlalchemy.types.Text,        "text",    "typeless"),
-        (sqlalchemy.types.Unicode,     "string",  "set"),
-        (sqlalchemy.types.String,      "string",  "set"),
-        (sqlalchemy.types.Integer,     "integer", "discrete"),
-        (sqlalchemy.types.Numeric,     "float",   "range"),
-        (sqlalchemy.types.DateTime,    "date",    "typeless"),
-        (sqlalchemy.types.Date,        "date",    "typeless"),
-        (sqlalchemy.types.Time,        "unknown", "typeless"),
-        (sqlalchemy.types.Interval,    "unknown", "typeless"),
-        (sqlalchemy.types.Boolean,     "boolean", "flag"),
-        (sqlalchemy.types.Binary,      "unknown", "typeless")
+        (sqlalchemy.types.UnicodeText, "text", "typeless"),
+        (sqlalchemy.types.Text, "text", "typeless"),
+        (sqlalchemy.types.Unicode, "string", "set"),
+        (sqlalchemy.types.String, "string", "set"),
+        (sqlalchemy.types.Integer, "integer", "discrete"),
+        (sqlalchemy.types.Numeric, "float", "range"),
+        (sqlalchemy.types.DateTime, "date", "typeless"),
+        (sqlalchemy.types.Date, "date", "typeless"),
+        (sqlalchemy.types.Time, "unknown", "typeless"),
+        (sqlalchemy.types.Interval, "unknown", "typeless"),
+        (sqlalchemy.types.Boolean, "boolean", "flag"),
+        (sqlalchemy.types.Binary, "unknown", "typeless")
     )
 
     _brewery_to_sql_type = {
@@ -33,9 +38,6 @@ try:
         "float": sqlalchemy.types.Numeric,
         "boolean": sqlalchemy.types.SmallInteger
     }
-except:
-    _sql_to_brewery_types = []
-    _brewery_to_sql_type = {}
 
 def split_table_schema(table_name):
     """Get schema and table name from table reference.
@@ -50,7 +52,7 @@ def split_table_schema(table_name):
         return (None, split[0])
 
 class SQLDataStore(object):
-    def __init__(self, url = None, connection = None, schema = None, **options):
+    def __init__(self, url=None, connection=None, schema=None, **options):
         if connection:
             self.connection = connection
             self.engine = self.connection.engine
@@ -59,7 +61,7 @@ class SQLDataStore(object):
             self.engine = sqlalchemy.create_engine(url, **options)
             self.connection = self.engine.connect()
             self.close_connection = True
-        
+
         self.metadata = sqlalchemy.MetaData()
         self.metadata.bind = self.engine
         self.schema = schema
@@ -72,30 +74,30 @@ class SQLDataStore(object):
         return SQLDataset(self._table(name))
 
     def has_dataset(self, name):
-        table = self._table(name, autoload = False)
+        table = self._table(name, autoload=False)
         return table.exists()
 
-    def create_dataset(self, name, fields, replace = False,
-                       add_id_key = False, id_key_name = None):
+    def create_dataset(self, name, fields, replace=False,
+                       add_id_key=False, id_key_name=None):
         """Create a table."""
 
         if self.has_dataset(name):
             if not replace:
                 raise ValueError("Dataset '%s' already exists" % name)
             else:
-                table = self._table(name, autoload = False)
+                table = self._table(name, autoload=False)
                 table.drop(checkfirst=False)
 
-        table = self._table(name, autoload = False)
+        table = self._table(name, autoload=False)
 
         if add_id_key:
             if not id_key_name:
                 id_key_name = 'id'
 
             sequence_name = "seq_" + name + "_" + id_key_name
-            sequence = sqlalchemy.schema.Sequence(sequence_name, optional = True)
-            
-            col = sqlalchemy.schema.Column(id_key_name, sqlalchemy.types.Integer, 
+            sequence = sqlalchemy.schema.Sequence(sequence_name, optional=True)
+
+            col = sqlalchemy.schema.Column(id_key_name, sqlalchemy.types.Integer,
                                             sequence, primary_key=True)
             table.append_column(col)
 
@@ -104,7 +106,7 @@ class SQLDataStore(object):
                 raise ValueError("field %s is not subclass of brewery.Field" % (field))
 
             concrete_type = field.concrete_storage_type
-            
+
             if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
                 concrete_type = _brewery_to_sql_type.get(field.storage_type)
                 if not concrete_type:
@@ -119,7 +121,7 @@ class SQLDataStore(object):
         dataset = SQLDataset(table)
         return dataset
 
-    def _table(self, name, autoload = True):
+    def _table(self, name, autoload=True):
         split = split_table_schema(name)
         schema = split[0]
         table_name = split[1]
@@ -127,7 +129,7 @@ class SQLDataStore(object):
         if not schema:
             schema = self.schema
 
-        table = sqlalchemy.Table(table_name, self.metadata, autoload = autoload, schema = schema)
+        table = sqlalchemy.Table(table_name, self.metadata, autoload=autoload, schema=schema)
         return table
 
 class SQLDataset(object):
@@ -135,12 +137,12 @@ class SQLDataset(object):
         super(SQLDataset, self).__init__()
         self.table = table
         self._fields = None
-        
+
     @property
     def field_names(self):
         names = [column.name for column in self.table.columns]
         return names
-        
+
     @property
     def fields(self):
         if self._fields:
@@ -148,21 +150,21 @@ class SQLDataset(object):
 
         fields = []
         for column in self.table.columns:
-            field = base.Field(name = column.name)
+            field = base.Field(name=column.name)
             field.concrete_storage_type = column.type
-            
+
             for conv in _sql_to_brewery_types:
                 if issubclass(column.type.__class__, conv[0]):
                     field.storage_type = conv[1]
                     field.analytical_type = conv[2]
                     break
-                    
+
             if not field.storage_type:
                 field.storaget_tpye = "unknown"
 
             if not field.analytical_type:
                 field.analytical_type = "unknown"
-            
+
             fields.append(field)
 
         self._fields = fields
@@ -172,8 +174,8 @@ class SQLDataset(object):
 class SQLDataSource(base.DataSource):
     """docstring for ClassName
     """
-    def __init__(self, connection = None, url = None,
-                    table = None, statement = None, schema = None, **options):
+    def __init__(self, connection=None, url=None,
+                    table=None, statement=None, schema=None, **options):
         """Creates a relational database data source stream.
         
         :Attributes:
@@ -186,6 +188,7 @@ class SQLDataSource(base.DataSource):
         Note: avoid auto-detection when you are reading from remote URL stream.
         
         """
+
         if not url and not connection:
             raise AttributeError("Either url or connection should be provided for SQL data source")
 
@@ -204,9 +207,9 @@ class SQLDataSource(base.DataSource):
         self.statement = statement
         self.schema = schema
         self.options = options
-        
+
         self._fields = None
-                
+
     def initialize(self):
         """Initialize source stream:
         """
@@ -239,15 +242,15 @@ class SQLDataSource(base.DataSource):
         for row in self.rows():
             record = dict(zip(fields, row))
             yield record
-        
+
 class SQLDataTarget(base.DataTarget):
     """docstring for ClassName
     """
-    def __init__(self, connection = None, url = None,
-                    table = None, schema = None, truncate = False, 
-                    create = False, replace = False,
-                    add_id_key = False, id_key_name = None, 
-                    buffer_size = None, **options):
+    def __init__(self, connection=None, url=None,
+                    table=None, schema=None, truncate=False,
+                    create=False, replace=False,
+                    add_id_key=False, id_key_name=None,
+                    buffer_size=None, **options):
         """Creates a relational database data target stream.
         
         :Attributes:
@@ -285,12 +288,12 @@ class SQLDataTarget(base.DataTarget):
         self.add_id_key = add_id_key
 
         self._fields = None
-                
+
         if id_key_name:
             self.id_key_name = id_key_name
         else:
             self.id_key_name = 'id'
-        
+
         if buffer_size:
             self.buffer_size = buffer_size
         else:
@@ -303,13 +306,13 @@ class SQLDataTarget(base.DataTarget):
         self.datastore = SQLDataStore(self.url, self.connection, self.schema, **self.options)
 
         if self.create:
-            self.dataset = self.datastore.create_dataset(self.table_name, 
-                                                         self.fields, 
-                                                         self.replace, 
+            self.dataset = self.datastore.create_dataset(self.table_name,
+                                                         self.fields,
+                                                         self.replace,
                                                          self.add_id_key, self.id_key_name)
         else:
             self.dataset = self.datastore.dataset(self.table_name)
-            
+
         if self.truncate:
             self.dataset.table.delete().execute()
 
@@ -321,7 +324,7 @@ class SQLDataTarget(base.DataTarget):
 
     def finalize(self):
         """Closes the stream, flushes buffered data"""
-        
+
         self._flush()
         self.datastore.close()
 

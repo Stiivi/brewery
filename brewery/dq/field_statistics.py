@@ -1,11 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Field statistics"""
 
 import sets
-
-try:
-    import bson
-except:
-    pass
 
 class FieldStatistics(object):
     """Data quality statistics for a dataset field

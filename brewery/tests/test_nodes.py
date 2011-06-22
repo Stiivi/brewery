@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import unittest
 import brewery
 import brewery.ds as ds
@@ -16,7 +19,7 @@ class NodesTestCase(unittest.TestCase):
         if not pipe:
             pipe = self.input
         pipe.empty()
-        pipe.fields = brewery.ds.fieldlist(["i", "q", "str", "custom"])
+        pipe.fields = ds.fieldlist(["i", "q", "str", "custom"])
         for i in range(0, count):
             pipe.put([i, float(i)/4, "item-%s" % i, custom])
 
@@ -121,7 +124,7 @@ class NodesTestCase(unittest.TestCase):
         if not pipe:
             pipe = self.input
         pipe.empty()
-        pipe.fields = brewery.ds.fieldlist(["id", "id2", "q", "type", "class"])
+        pipe.fields = ds.fieldlist(["id", "id2", "q", "type", "class"])
         for i in range(1, 10):
             pipe.put([i, i, float(i)/4, "a", "x"])
             pipe.put([i, i*10, float(i)/4, "a", "y"])
@@ -364,7 +367,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual("foo", self.output.buffer[0][3]) 
 
     def test_strip_auto(self):
-        fields = brewery.ds.fieldlist([("str1", "string"), 
+        fields = ds.fieldlist([("str1", "string"), 
                                        ("x","unknown"), 
                                        ("str2","string"), 
                                        ("f", "unknown")])
@@ -385,7 +388,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(["foo", " bar ", "baz", " moo "], row) 
 
     def test_consolidate_type(self):
-        fields = brewery.ds.fieldlist([("s", "string"), 
+        fields = ds.fieldlist([("s", "string"), 
                                        ("i","integer"), 
                                        ("f","float"), 
                                        ("u", "unknown")])
@@ -430,7 +433,7 @@ class NodesTestCase(unittest.TestCase):
         self.create_distinct_sample()
 
         input2 = brewery.streams.SimpleDataPipe()
-        input2.fields = brewery.ds.fieldlist(["type2", "name"])
+        input2.fields = ds.fieldlist(["type2", "name"])
         input2.put(["a", "apple"])
         input2.put(["b", "bananna"])
         input2.put(["c", "curry"])

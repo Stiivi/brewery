@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """Data stores, data sets and data sources
 """
 
@@ -20,7 +23,6 @@
 # * append_row(row) - row is tuple of values, raises exception if there are more values than fields
 # * append_record(record) - record is a dictionary, raises exception if dict key is not in field list
 
-import sys
 import urllib2
 import urlparse
 import brewery.dq
@@ -29,7 +31,7 @@ import copy
 def fieldlist(fields):
     """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
 
-    How fields are consutrcuted:
+    How fields are constructed:
 
     * string: `field name` is set 
     * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
@@ -397,9 +399,8 @@ class FieldList(object):
     def field(self, name):
         """Return a field with name `name`"""
         if name in self._field_dict:
-            fields.append(self._field_dict[name])
-        else:
-            raise KeyError("Field list has no field with name '%s'" % name)
+            return self._field_dict[name]
+        raise KeyError("Field list has no field with name '%s'" % name)
     
     def __len__(self):
         return len(self._fields)

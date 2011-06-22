@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import brewery.utils as utils
-import re
 
 class NodeFinished(Exception):
     """Exception raised when node has no active outputs - each output node signalised that it

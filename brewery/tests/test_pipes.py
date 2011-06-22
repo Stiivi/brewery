@@ -1,6 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import unittest
-import csv
-import os
 import threading
 import time
 import brewery.streams as streams
