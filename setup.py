@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "brewery",
-    version = '0.6.0',
+    version = '0.7.0',
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
@@ -18,7 +18,7 @@ setup(
     scripts = ['bin/mongoaudit', 'bin/brewery'],
     
     classifiers = [
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License (GPL)',

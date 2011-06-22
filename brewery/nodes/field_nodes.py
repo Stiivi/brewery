@@ -233,15 +233,20 @@ class CoalesceValueToTypeNode(base.Node):
             {
                 "name": "empty_values",
                 "description": "dictionary of type -> value pairs to be set when field is "
-                               "considered empty (null) - not yet used"
+                               "considered empty (null)"
             }
         ]
     }
 
-    def __init__(self, fields = None, types = None):
+    def __init__(self, fields = None, types = None, empty_values = None):
         super(CoalesceValueToTypeNode, self).__init__()
         self.fields = fields
         self.types = types
+
+        if empty_values:
+            self.empty_values = empty_values
+        else:
+            self.empty_values = {}
         
     def initialize(self):
         if self.fields:
@@ -257,6 +262,10 @@ class CoalesceValueToTypeNode(base.Node):
         self.integer_indexes = self.input.fields.indexes(self.integer_fields)
         self.float_indexes = self.input.fields.indexes(self.float_fields)
         
+        self.string_none = self.empty_values.get("string")
+        self.integer_none = self.empty_values.get("integer")
+        self.float_none = self.empty_values.get("float")
+        
     def run(self):
         
         for row in self.input.rows():
@@ -267,8 +276,8 @@ class CoalesceValueToTypeNode(base.Node):
                 elif value:
                     value = unicode(value)
                     
-                if value == "":
-                    value = None
+                if value == "" or value is None:
+                    value = self.string_none
 
                 row[i] = value
 
@@ -280,7 +289,7 @@ class CoalesceValueToTypeNode(base.Node):
                 try:
                     value = int(value)
                 except:
-                    value = None
+                    value = self.integer_none
 
                 row[i] = value
 
@@ -292,7 +301,7 @@ class CoalesceValueToTypeNode(base.Node):
                 try:
                     value = float(value)
                 except:
-                    value = None
+                    value = self.float_none
 
                 row[i] = value
         

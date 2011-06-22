@@ -282,3 +282,100 @@ class YamlDirectorySourceNode(base.SourceNode):
 
     def finalize(self):
         self.stream.finalize()
+
+class GoogleSpreadsheetSourceNode(base.SourceNode):
+    """Source node that reads Google Spreadsheet.
+
+    You should provide either spreadsheet_key or spreadsheet_name, if more than one spreadsheet with
+    given name are found, then the first in list returned by Google is used.
+    
+    For worksheet selection you should provide either worksheet_id or worksheet_name. If more than
+    one worksheet with given name are found, then the first in list returned by Google is used. If
+    no worksheet_id nor worksheet_name are provided, then first worksheet in the workbook is used.
+    
+    For details on query string syntax see the section on sq under
+    http://code.google.com/apis/spreadsheets/reference.html#list_Parameters
+    """
+    __node_info__ = {
+        "label" : "Google Spreadsheet Source",
+        "icon": "google_spreadsheet_source_node",
+        "description" : "Read data from a Google Spreadsheet.",
+        "attributes" : [
+            {
+                 "name": "spreadsheet_key",
+                 "description": "The unique key for the spreadsheet"
+            },
+            {
+                 "name": "spreadsheet_name",
+                 "description": "The title of the spreadsheets",
+            },
+            {
+                 "name": "worksheet_id",
+                 "description": "ID of a worksheet"
+            },
+            {
+                 "name": "worksheet_name",
+                 "description": "name of a worksheet"
+            },
+            {
+                 "name": "query_string",
+                 "description": "optional query string for row selection"
+            },
+            {
+                 "name": "username",
+                 "description": "Google account user name"
+            },
+            {
+                 "name": "password",
+                 "description": "Google account password"
+            }
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(GoogleSpreadsheetSourceNode, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.stream = None
+        self._fields = None
+
+    @property
+    def output_fields(self):
+        if not self.stream:
+            raise ValueError("Stream is not initialized")
+
+        if not self.stream.fields:
+            raise ValueError("Fields are not initialized")
+
+        return self.stream.fields
+
+    def __getattr__(self, key):
+        try:
+            return getattr(self.stream, key)
+        except AttributeError:
+            return object.__getattr__(self, key)
+
+    def __set_fields(self, fields):
+        self._fields = fields
+        if self.stream:
+            self.stream.fields = fields
+
+    def __get_fields(self):
+        return self._fields
+
+    fields = property(__get_fields, __set_fields)
+
+    def initialize(self):
+        self.stream = ds.GoogleSpreadsheetDataSource(*self.args, **self.kwargs)
+
+        if self._fields:
+            self.stream.fields = self._fields
+
+        self.stream.initialize()
+        self._fields = self.stream.fields
+
+    def run(self):
+        for row in self.stream.rows():
+            self.put(row)
+
+    def finalize(self):
+        self.stream.finalize()
