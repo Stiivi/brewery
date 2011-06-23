@@ -43,9 +43,9 @@ setup(
     # metadata for upload to PyPI
     author="Stefan Urbanek",
     author_email="stefan.urbanek@gmail.com",
-    description="Framework for processing, analysing and measuring quality of structured data streams",
+    description="Framework for analysing data and measuring quality of data using structured data streams",
     license="GPL",
-    keywords="data analysis quality",
+    keywords="data analysis quality datamining",
     url="http://www.databrewery.org"
 
     # could also include long_description, download_url, classifiers, etc.
