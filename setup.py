@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-install_requires = ['pymongo', "SQLAlchemy", "gdata", "xlrd", "PyYAML"]
+install_requires = []
 
 try:
     # For Python >= 2.6
@@ -10,13 +10,8 @@ except ImportError:
     install_requires.append("simplejson")
     
 setup(
-<<<<<<< local
     name = "brewery",
     version = '0.7.0',
-=======
-    name="brewery",
-    version='0.6.0',
->>>>>>> other
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
@@ -29,17 +24,11 @@ setup(
         # If any package contains *.txt or *.rst files, include them:
         '': ['*.txt', '*.rst'],
     },
-<<<<<<< local
-    scripts = ['bin/mongoaudit', 'bin/brewery'],
-    
-    classifiers = [
-        'Development Status :: 4 - Beta',
-=======
+
     scripts=['bin/mongoaudit', 'bin/brewery'],
 
     classifiers=[
-        'Development Status :: 3 - Alpha',
->>>>>>> other
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License (GPL)',
