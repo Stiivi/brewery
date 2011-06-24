@@ -11,6 +11,7 @@ from test_pipes import *
 from test_nodes import *
 from test_field_list import *
 from test_node_stream import *
+from test_data_quality import *
 
 test_cases = [FieldListCase,
               DataSourceUtilsTestCase,
@@ -19,7 +20,8 @@ test_cases = [FieldListCase,
               Pipe2TestCase,
               NodesTestCase,
               StreamBuildingTestCase,
-              StreamInitializationTestCase
+              StreamInitializationTestCase,
+              DataQualityTestCase
                 ]
 
 def load_tests(loader, tests, pattern):
