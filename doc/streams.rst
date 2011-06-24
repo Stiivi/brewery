@@ -1,5 +1,14 @@
-Data Streams
-++++++++++++
+:mod:`ds` --- Data Streams
+==========================
+
+.. module:: ds
+   :synopsis: data sources and data targets
+
+.. warning::
+
+	This module will be renamed from `ds` meaning 'data streams' to something else, most likely
+	`resources`. Currently there are two things called `streams`: data sources/targets and processing
+	streams based on nodes connected with pipes.
 
 Overview
 --------
@@ -31,7 +40,7 @@ Metadata
 --------
 
 At any time you are able to retrieve stream metadata: list of fields being streamed. For more information
-see documentation for :class:`brewery.ds.Field` where you can find list of field attributes, data storage types,
+see documentation for :class:`brewery.metadata.Field` where you can find list of field attributes, data storage types,
 analytical types and more.
 
 Data Sources
@@ -45,20 +54,13 @@ csv           Comma separated values (CSV) file/URI      file path, file-like ob
               
 xls           MS Excel spreadsheet                       file path, URL
 gdoc          Google Spreadsheet                         spreadsheet key or name
-rdb           Relational database table (using DB API 2  connection + table name
-              interface)
+sql           Relational database table                  connection + table name
 mongodb       MongoDB database collection                connection + table name
 yamldir       Directory containing yaml files            directory
               - one file per record
 jsondir       Directory containing json files            directory
-              - one file per record
+              - one file per record (not yet)
 ============= ========================================== ============================
-
-.. seealso::
-
-    Class :class:`brewery.ds.DataSource`
-        Data source documentation
-
 
 Data Targets
 ============
@@ -67,10 +69,11 @@ Data Targets
 Data target          Description
 ==================== ======================================================
 csv                  Comma separated values (CSV) file/URI resource
-rdb                  Relational database table
+sql                  Relational database table
 mongodb              MongoDB database collection
 yamldir              Directory containing yaml files - one file per record
 jsondir              Directory containing json files - one file per record
+                     (not yet)
 html                 HTML file or a string target
 ==================== ======================================================
 
@@ -78,13 +81,8 @@ html                 HTML file or a string target
  relational database table
  non-relational database collection
 
- .. seealso::
-
-     Class :class:`brewery.ds.DataTarget`
-         Data target documentation
-
 API
-===
+---
 
 Data sources should implement:
 
@@ -99,7 +97,43 @@ Data targets should implement:
 * initialize() - create dataset if required, open file stream, open db connection, ...
 * append(object) - appends object as row or record depending whether it is a dictionary or a list
 
-.. seealso::
+Base Abstract Classes
+---------------------
 
-    Module :mod:`brewery.ds`
-        API Documentation for data streams objects
+Use these classes as super classes for your custom structured data sources or data targets.
+
+.. autoclass:: brewery.ds.DataStream
+
+.. autoclass:: brewery.ds.DataSource
+
+.. autoclass:: brewery.ds.DataTarget
+
+Sources
+-------
+
+.. autoclass:: brewery.ds.CSVDataSource
+
+.. autoclass:: brewery.ds.GoogleSpreadsheetDataSource
+
+.. autoclass:: brewery.ds.XLSDataSource
+
+.. autoclass:: brewery.ds.SQLDataSource
+
+.. autoclass:: brewery.ds.MongoDBDataSource
+
+.. autoclass:: brewery.ds.YamlDirectoryDataSource
+
+Targets
+-------
+
+.. autoclass:: brewery.ds.CSVDataTarget
+
+.. autoclass:: brewery.ds.SQLDataTarget
+
+.. autoclass:: brewery.ds.MongoDBDataTarget
+
+.. autoclass:: brewery.ds.YamlDirectoryDataTarget
+
+.. autoclass:: brewery.ds.StreamAuditor
+
+.. autoclass:: brewery.ds.SimpleHTMLDataTarget
