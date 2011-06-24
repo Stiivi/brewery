@@ -3,7 +3,7 @@
 
 import base
 import datetime
-import brewery.fields
+import brewery.metadata
 
 try:
     import xlrd
@@ -77,7 +77,7 @@ class XLSDataSource(base.DataSource):
         # FIXME: be more sophisticated and read field types from next row
         if self.read_header:
             row = self.sheet.row_values(self.header_row)
-            self._fields = brewery.fields.fieldlist(row)
+            self._fields = brewery.metadata.FieldList(row)
             self.skip_rows = self.header_row + 1
 
 class XLSRowIterator(object):

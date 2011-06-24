@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base
+import brewery.metadata
 
 try:
     import sqlalchemy
@@ -102,8 +103,8 @@ class SQLDataStore(object):
             table.append_column(col)
 
         for field in fields:
-            if not isinstance(field, brewery.fields.Field):
-                raise ValueError("field %s is not subclass of brewery.Field" % (field))
+            if not isinstance(field, brewery.metadata.Field):
+                raise ValueError("field %s is not subclass of brewery.metadata.Field" % (field))
 
             concrete_type = field.concrete_storage_type
 

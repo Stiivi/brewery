@@ -51,8 +51,8 @@ class StreamRuntimeError(Exception):
         self.attributes = {}
 
     def print_exception(self, output=None):
-        """Prints exception. You can specify IO stream object in `output` parameter. By default
-        text is printed to standard output."""
+        """Prints exception and details in human readable form. You can specify IO stream object in
+        `output` parameter. By default text is printed to standard output."""
 
         if not output:
             output = sys.stdout

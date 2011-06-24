@@ -1,5 +1,5 @@
 Data Quality
-++++++++++++
+============
 
 Functions and classes for measuring data quality.
 
@@ -56,10 +56,7 @@ Auditing using :class:`brewery.ds.StreamAuditor`:
     stats = auditor.field_statistics
 
 
-API
-===
+.. autoclass:: brewery.dq.FieldStatistics
 
-.. seealso::
+.. autoclass:: brewery.dq.FieldTypeProbe
 
-    Module :mod:`brewery.dq`
-        API Documentation for data quality

@@ -9,12 +9,13 @@ Contents:
 	introduction
 	install
 	metadata
+	stores
 	streams
-	data_quality
 	node_reference
+	probes
+	data_quality
 	tools
 	examples/index
-	api/index
 	notes
 
 Contact and Getting Help

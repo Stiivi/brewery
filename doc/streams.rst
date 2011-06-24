@@ -1,139 +1,241 @@
-:mod:`ds` --- Data Streams
-==========================
+:mod:`streams` --- Data Analysis and Processing Streams
+====================================================
 
-.. module:: ds
-   :synopsis: data sources and data targets
+.. module:: streams
+   :synopsis: data analysis and processing streams
 
-.. warning::
+Data processing stream is a network of data processing nodes connected by data pipes. There are
+several data processing node types:
 
-	This module will be renamed from `ds` meaning 'data streams' to something else, most likely
-	`resources`. Currently there are two things called `streams`: data sources/targets and processing
-	streams based on nodes connected with pipes.
+* *source nodes* - provide data from data sources such as CSV files or database tables
+* *target nodes* - nodes for consuming data and storing them or creating data visualisations
+* *record nodes* - perform operations on whole records, such as merging, joining, aggregations
+* *field nodes* - perform operations on particuliar fields, such as text substitution, field
+  renaming, deriving new fields, restructuring
 
-Overview
---------
+Data Processing Streams
+-----------------------
 
-Data streams provide interface for common way of reading from and writing to various structured data
-sources. With streams you can easily read CSV file and merge it with Excel spreadsheet or Google
-spreadsheet, then perform cleansing and write it to a relational database table or create a report.
+.. figure:: stream_example.png
 
-.. figure:: data_streams_overview.png
+    Example of a processing stream:
+    
+    * load YAML fiels from a directory - each file represents one record
+    * Strip all string fields. 
+    * Remove duplicates and store unique records in a SQL database table
+    * Perform data audit and pretty-print it using formatted text printer
 
-    Example of data streams.
+Constructing a stream the "object way":
+
+.. code-block:: python
+    
+    from brewery.nodes import *
+    from brewery.streams import *
+    import brewery.metadata as metadata
+    
+    # Prepare nodes
+
+    nodes = {
+        "source": YamlDirectorySourceNode(path = "data/donations"),
+        "strip": StringStripNode(),
+        "distinct": DistinctNode(keys = ["year", "receiver", "project"]),
+        "target": SQLTableTarget(url = "postgres://localhost/data", table = "donations"),
+        "audit": AuditNode(),
+        "print": FormattedPrinterNode(output = "audit.txt")
+    }
+
+    # Configure nodes
+
+    nodes["source"].fields = metadata.FieldList([ 
+                                            ("year", "integer"),
+                                            ("receiver", "string"),
+                                            ("project", "string"),
+                                            ("requested_amount", "float"),
+                                            ("received_amount", "float"),
+                                            ("source_comment", "string")])
+
+    nodes["print"].header = u"field                          nulls      empty\n" \
+                             "-----------------------------------------------"
+    nodes["print"].format = u"{field_name:<30.30} {null_record_ratio:3.2%} {empty_string_count:>10}"
+
+    connections = [ ("source", "strip"),
+                    ("strip", "distinct"),
+                    ("distinct", "target"),
+                    ("strip", "audit"),
+                    ("audit", "print")
+                    ]
+
+    # Create and run stream
+
+    stream = Stream(nodes, connections)
+    stream.run()
+
+The created audit.txt file will contain::
+
+    field                          nulls      empty
+    -----------------------------------------------
+    year                           0.00%          0
+    receiver                       0.00%          5
+    project                        0.51%          0
+    requested_amount               0.70%          0
+    received_amount                6.40%          0
+    source_comment                99.97%          0
 
 
-The streams can be compared to file-like stream objects where structured data is being passed instead of
-bytes. There are two ways how to look at structured data: as a set of lists of values or as a set of
-key-value pairs (set of dictionaries). Some sources provide one or the other way of looking at the data,
-some processing is better with the list form, another might be better with the dictionary form. Brewery
-allows you to use the form which is most suitable for you.
+The core class is ``Stream``:
 
-.. figure:: records_streaming.png
+.. autoclass:: brewery.streams.Stream
 
-    Example of streaming data as sequence of rows - tuples of values.
-
-.. figure:: rows_streaming.png
-
-    Example of streaming data as sequence of records - dictionaries with key-value pairs.
-
-Metadata
---------
-
-At any time you are able to retrieve stream metadata: list of fields being streamed. For more information
-see documentation for :class:`brewery.metadata.Field` where you can find list of field attributes, data storage types,
-analytical types and more.
-
-Data Sources
-============
-
-============= ========================================== ============================
-Data source   Description                                Dataset reference
-============= ========================================== ============================
-csv           Comma separated values (CSV) file/URI      file path, file-like object,
-              resource                                   URL
-              
-xls           MS Excel spreadsheet                       file path, URL
-gdoc          Google Spreadsheet                         spreadsheet key or name
-sql           Relational database table                  connection + table name
-mongodb       MongoDB database collection                connection + table name
-yamldir       Directory containing yaml files            directory
-              - one file per record
-jsondir       Directory containing json files            directory
-              - one file per record (not yet)
-============= ========================================== ============================
-
-Data Targets
-============
-
-==================== ======================================================
-Data target          Description
-==================== ======================================================
-csv                  Comma separated values (CSV) file/URI resource
-sql                  Relational database table
-mongodb              MongoDB database collection
-yamldir              Directory containing yaml files - one file per record
-jsondir              Directory containing json files - one file per record
-                     (not yet)
-html                 HTML file or a string target
-==================== ======================================================
+The stream is constructed using nodes. For more information about nodes see :doc:`/node_reference`.
 
 
- relational database table
- non-relational database collection
+Running Streams
+---------------
 
-API
----
+Streams are being run using ``Stream.run()``. The stream nodes are executed in parallel - each node
+is run in separate thread.
 
-Data sources should implement:
+Stream raises ``StreamError`` if there are issues with the network before or during initialization and
+finalization phases. When the stream is run and something happens, then ``StreamRuntimeError`` is
+raised which contains more detailed information:
 
-* initialize() - delayed initialisation: get fields if they are not set, open file stream, ...
-* rows() - returns iterable with value tuples
-* records() - returns iterable with dictionaries of key-value pairs
+.. autoclass:: brewery.streams.StreamRuntimeError
 
-Should provide property ``fields``, optionally might provide assignment of this property.
+Preferred way of running the stream in manually written scripts is:
 
-Data targets should implement:
+.. code-block:: python
 
-* initialize() - create dataset if required, open file stream, open db connection, ...
-* append(object) - appends object as row or record depending whether it is a dictionary or a list
+    try:
+        stream.run()
+    except brewery.streams.StreamRuntimeError as e:
+        e.print_exception()
 
-Base Abstract Classes
----------------------
+Forking Forks with Higher Order Messaging
+-----------------------------------------
 
-Use these classes as super classes for your custom structured data sources or data targets.
+There is another way of constructing streams which uses “higher order messaging”. It means, that
+instead of constructing the stream from nodes and connections, you pretend to “call” functions that
+process your data. In fact the function call is interpreted as step in processing stream construction.
 
-.. autoclass:: brewery.ds.DataStream
+.. code-block:: python
 
-.. autoclass:: brewery.ds.DataSource
+    trunk.csv_source("data.csv")
+    trunk.sample(1000)
+    trunk.aggregate(keys = ["year"])
+    trunk.formatted_printer(...)
 
-.. autoclass:: brewery.ds.DataTarget
+Executing the functions as written might be be very expensive from time and memory perspective. What is
+in fact happening is that instead of executing the data processing functions a stream network is being
+constructed and the construction is being done by using forked branches. To start, an empty stream
+and first fork has to be created:
 
-Sources
--------
+.. code-block:: python
 
-.. autoclass:: brewery.ds.CSVDataSource
+    from brewery.streams import *
 
-.. autoclass:: brewery.ds.GoogleSpreadsheetDataSource
+    stream = Stream()
+    main = stream.fork()
+    ...
 
-.. autoclass:: brewery.ds.XLSDataSource
+Now we have fork main. Each function call on main will append new processing node to the fork and the
+new node will be connected to the previous node of the fork.
 
-.. autoclass:: brewery.ds.SQLDataSource
+.. image:: fork_construction01.png
+    :align: center
 
-.. autoclass:: brewery.ds.MongoDBDataSource
+Function names are based on node names in most of the cases. There might be custom function names for
+some nodes in the future, but now there is just simple rule:
 
-.. autoclass:: brewery.ds.YamlDirectoryDataSource
 
-Targets
--------
+#. decamelize node name: CSVSourceNode to csv source node
+#. replace spaces with underscores: csv_source_node
+#. remove ‘node’ suffix: csv_source
 
-.. autoclass:: brewery.ds.CSVDataTarget
+Arguments to the function are the same as arguments for node constructor. If you want to do more node
+configuration you can access current node with node attribute of the fork:
 
-.. autoclass:: brewery.ds.SQLDataTarget
+.. code-block:: python
 
-.. autoclass:: brewery.ds.MongoDBDataTarget
+    main.node.keys = ["country"]
+    
+Run the stream as if it was constructed manually from nodes and connections:
 
-.. autoclass:: brewery.ds.YamlDirectoryDataTarget
+.. code-block:: python
 
-.. autoclass:: brewery.ds.StreamAuditor
+    stream.run()
 
-.. autoclass:: brewery.ds.SimpleHTMLDataTarget
+There are plenty of situations where linear processing is not sufficient and we will need to have
+branches. To create another branch, we fork() a fork. For example, to attach data audit to the stream
+insert following code right after the node we want to audit:
+
+.. code-block:: python
+
+    # we are in main at node after which we want to have multiple branches
+
+    audit = trunk.fork()
+    audit.audit()
+    audit.value_threshold(...)
+    audit.formatted_printer(...)
+
+    # continue main.* branch here...
+
+Example
+^^^^^^^
+
+.. code-block:: python
+
+    from brewery.streams import Stream
+    from brewery.metadata import FieldList
+
+    stream = Stream()
+
+    a_list = [
+        {"i": 1, "name": "apple"},
+        {"i": 2, "name": "bananna"},
+        {"i": 3, "name": "orange"}
+    ]
+
+    fields = FieldList(["i", "name"])
+
+    trunk = stream.fork()
+    trunk.record_list_source(a_list = a_list, fields = fields)
+    trunk.derive("i*100 + len(name)")
+    csv_branch = trunk.fork()
+    trunk.record_list_target()
+    record_target = trunk.node
+    csv_branch.csv_target("test_stream.csv")
+
+    stream.run()
+
+    for record in record_target.records:
+        print record
+
+Output will be::
+
+    {'i': 1, 'name': 'apple', 'new_field': 105}
+    {'i': 2, 'name': 'bananna', 'new_field': 207}
+    {'i': 3, 'name': 'orange', 'new_field': 306}
+
+The newly created `test_stream.csv` file will contain::
+
+    i,name,new_field
+    1,apple,105
+    2,bananna,207
+    3,orange,306
+
+Custom nodes
+------------
+
+To implement custom node, one has to subclass the ``Node`` class:
+
+.. autoclass:: brewery.streams.Node
+
+Node uses pipes for communication. ``SimplePipe`` is abstract class that should be used as base class
+for any Pipe implementation:
+
+.. autoclass:: brewery.streams.SimplePipe
+
+The ``Pipe`` class uses Python threading for node thread concurrency:
+
+.. autoclass:: brewery.streams.Pipe
+
