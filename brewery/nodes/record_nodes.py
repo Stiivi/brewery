@@ -564,6 +564,78 @@ class AggregateNode(base.Node):
             self.put(row)
 
 class SelectNode(base.Node):
+    """Select or discard records from the stream according to a predicate.
+
+    The parameter names of the callable function should reflect names of the fields:
+
+    .. code-block:: python
+
+        def is_big_enough(i, **args):
+            return i > 1000000
+
+        node.condition = is_big_enough
+
+    You can use ``**record`` to catch all or rest of the fields as dictionary:
+
+    .. code-block:: python
+
+        def is_big_enough(**record):
+            return record["i"] > 1000000
+            
+        node.condition = is_big_enough
+        
+
+    The condition can be also a string with python expression where local variables are record field
+    values:
+
+    .. code-block:: python
+
+        node.condition = "i > 1000000"
+
+    """
+
+    __node_info__ = {
+        "label" : "Select",
+        "description" : "Select or discard records from the stream according to a predicate.",
+        "output" : "same fields as input",
+        "attributes" : [
+            {
+                 "name": "condition",
+                 "description": "Callable or a string with python expression that will evaluate to " \
+                                "a boolean value"
+            },
+            {
+                "name": "discard",
+                 "description": "flag whether the records matching condition are discarded or included",
+                 "default": "False"
+            }
+        ]
+    }
+
+
+    def __init__(self, condition = None, discard = False):
+        """Creates and initializes selection node
+        """
+        super(SelectNode, self).__init__()
+        self.condition = condition
+        self.discard = discard
+
+    def initialize(self):
+        if isinstance(self.condition, basestring):
+            self._expression = compile(self.condition, "SelectNode condition", "eval")
+            self._condition_callable = self._eval_expression
+        else:
+            self._condition_callable = self.condition
+
+    def _eval_expression(self, **record):
+        return eval(self._expression, None, record)
+
+    def run(self):
+        for record in self.input.records():
+            if self._condition_callable(**record):
+                self.put_record(record)
+
+class FunctionSelectNode(base.Node):
     """Select records that will be selected by a predicate function.
 
 
@@ -584,8 +656,8 @@ class SelectNode(base.Node):
     """
     
     __node_info__ = {
-        "label" : "Select",
-        "description" : "Select records by a predicate function.",
+        "label" : "Function Select",
+        "description" : "Select records by a predicate function (python callable).",
         "output" : "same fields as input",
         "attributes" : [
             {
@@ -620,7 +692,7 @@ class SelectNode(base.Node):
             * `kwargs`: additional arguments passed to the function
         
         """
-        super(SelectNode, self).__init__()
+        super(FunctionSelectNode, self).__init__()
         self.function = function
         self.fields = fields
         self.discard = discard

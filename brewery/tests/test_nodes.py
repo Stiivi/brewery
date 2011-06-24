@@ -279,13 +279,13 @@ class NodesTestCase(unittest.TestCase):
             if not (type(row) == list or type(row) == tuple):
                 self.fail('pipe should contain only rows (lists/tuples), found: %s' % type(row))
 
-    def test_select(self):
+    def test_function_select(self):
         def select(value):
             return value < 5
         def select_greater_than(value, threshold):
             return value > threshold
             
-        node = brewery.nodes.SelectNode(function = select, fields = ["i"])
+        node = brewery.nodes.FunctionSelectNode(function = select, fields = ["i"])
 
         self.setup_node(node)
         self.create_sample()
@@ -327,6 +327,76 @@ class NodesTestCase(unittest.TestCase):
         node.finalize()
 
         self.assertEqual(8, len(self.output.buffer)) 
+
+    def test_select(self):
+        def select_dict(**record):
+            return record["i"] < 5
+        def select_local(i, **args):
+            return i < 5
+
+        node = brewery.nodes.SelectNode(condition = select_dict)
+
+        self.setup_node(node)
+        self.create_sample()
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        self.assertEqual(5, len(self.output.buffer)) 
+
+        self.output.empty()
+        self.setup_node(node)
+        self.create_sample()
+        node.condition = select_local
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        self.assertEqual(5, len(self.output.buffer)) 
+
+        self.output.empty()
+        self.setup_node(node)
+        self.create_sample()
+        node.condition = "i < 5"
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        self.assertEqual(5, len(self.output.buffer)) 
+
+    def test_derive(self):
+        def derive_dict(**record):
+            return record["i"] * 10
+        def derive_local(i, **args):
+            return i * 10
+
+        node = brewery.nodes.DeriveNode(formula = derive_dict)
+
+        self.setup_node(node)
+        self.create_sample()
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        val = sum([row[4] for row in self.output.buffer])
+        self.assertEqual(49500, val)
+
+        self.output.empty()
+        self.setup_node(node)
+        self.create_sample()
+        node.formula = derive_local
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        val = sum([row[4] for row in self.output.buffer])
+        self.assertEqual(49500, val)
+
+        self.output.empty()
+        self.setup_node(node)
+        self.create_sample()
+        node.formula = "i * 10"
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        val = sum([row[4] for row in self.output.buffer])
+        self.assertEqual(49500, val)
+
     def test_set_select(self):
         node = brewery.nodes.SetSelectNode(field = "type", value_set = ["a"])
 
@@ -339,6 +409,7 @@ class NodesTestCase(unittest.TestCase):
         node.finalize()
 
         self.assertEqual(18, len(self.output.buffer)) 
+
     def test_audit(self):
         node = brewery.nodes.AuditNode()
         self.setup_node(node)

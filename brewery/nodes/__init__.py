@@ -19,6 +19,7 @@ __all__ = (
     "ValueThresholdNode",
     "BinningNode",
     "StringStripNode",
+    "DeriveNode",
     "CoalesceValueToTypeNode",
 
     # Record nodes
@@ -29,6 +30,7 @@ __all__ = (
     "AuditNode",
     "SelectNode",
     "SetSelectNode",
+    "FunctionSelectNode",
     "AuditNode",
     
     "RowListSourceNode",

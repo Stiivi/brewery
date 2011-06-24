@@ -394,7 +394,7 @@ class ValueThresholdNode(base.Node):
             field = ds.Field(prefix + name + suffix)
             field.storage_type = "string"
             field.analytical_type = "set"
-            self._output_fields.append(prefix + name + suffix)
+            self._output_fields.append(field)
 
         input_fields = self.input.fields
 
@@ -442,6 +442,97 @@ class ValueThresholdNode(base.Node):
 
                 row.append(bin)
             self.put(row)
+
+class DeriveNode(base.Node):
+    """Dreive a new field from other fields using an expression or callable function.
+
+    The parameter names of the callable function should reflect names of the fields:
+
+    .. code-block:: python
+
+        def get_half(i, **args):
+            return i / 2
+
+        node.formula = get_half
+
+    You can use ``**record`` to catch all or rest of the fields as dictionary:
+
+    .. code-block:: python
+
+        def get_half(**record):
+            return record["i"] / 2
+            
+        node.formula = get_half
+        
+
+    The formula can be also a string with python expression where local variables are record field
+    values:
+
+    .. code-block:: python
+
+        node.formula = "i / 2"
+
+    """
+
+    __node_info__ = {
+        "label" : "Derive Node",
+        "description" : "Derive a new field using an expression.",
+        "attributes" : [
+            {
+                 "name": "field_name",
+                 "description": "Derived field name",
+                 "default": "new_field"
+            },
+            {
+                 "name": "formula",
+                 "description": "Callable or a string with python expression that will evaluate to " \
+                                "new field value"
+            },
+            {
+                "name": "field_type",
+                 "description": "Analytical type of the new field",
+                 "default": "unknown"
+            }
+        ]
+    }
+
+
+    def __init__(self, formula = None, field_name = "new_field", field_type = "unknown"):
+        """Creates and initializes selection node
+        """
+        super(DeriveNode, self).__init__()
+        self.formula = formula
+        self.field_name = field_name
+        self.field_type = field_type
+        self._output_fields = None
+
+    @property
+    def output_fields(self):
+        return self._output_fields
+
+    def initialize(self):
+        if isinstance(self.formula, basestring):
+            self._expression = compile(self.formula, "SelectNode condition", "eval")
+            self._formula_callable = self._eval_expression
+        else:
+            self._formula_callable = self.formula
+
+        self._output_fields = ds.FieldList()
+
+        for field in self.input.fields:
+            self._output_fields.append(field)
+
+        new_field = ds.Field(self.field_name, analytical_type = self.field_type)
+        self._output_fields.append(new_field)
+
+    def _eval_expression(self, **record):
+        return eval(self._expression, None, record)
+
+    def run(self):
+        for record in self.input.records():
+            value = self._formula_callable(**record)
+            record[self.field_name] = value
+            self.put_record(record)
 
 class BinningNode(base.Node):
     """Derive a bin/category field from a value.

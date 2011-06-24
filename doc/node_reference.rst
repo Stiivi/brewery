@@ -44,6 +44,52 @@ read from the file header if specified by `read_header` flag. Field storage type
    * - quotechar
      - character used for quoting string values, default is double quote
 
+.. _GoogleSpreadsheetSourceNode:
+
+Google Spreadsheet Source
+-------------------------
+
+.. image:: nodes/google_spreadsheet_source_node.png
+   :align: right
+
+**Synopsis:** *Read data from a Google Spreadsheet.*
+
+**Class:** GoogleSpreadsheetSourceNode
+
+Source node that reads Google Spreadsheet.
+
+You should provide either spreadsheet_key or spreadsheet_name, if more than one spreadsheet with
+given name are found, then the first in list returned by Google is used.
+
+For worksheet selection you should provide either worksheet_id or worksheet_name. If more than
+one worksheet with given name are found, then the first in list returned by Google is used. If
+no worksheet_id nor worksheet_name are provided, then first worksheet in the workbook is used.
+
+For details on query string syntax see the section on sq under
+http://code.google.com/apis/spreadsheets/reference.html#list_Parameters
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - spreadsheet_key
+     - The unique key for the spreadsheet
+   * - spreadsheet_name
+     - The title of the spreadsheets
+   * - worksheet_id
+     - ID of a worksheet
+   * - worksheet_name
+     - name of a worksheet
+   * - query_string
+     - optional query string for row selection
+   * - username
+     - Google account user name
+   * - password
+     - Google account password
+
 .. _RecordListSourceNode:
 
 Record List Source
@@ -245,6 +291,60 @@ Audit note passes following fields to the output:
    * - distinct_threshold
      - number of distinct values to be tested. If there are more than the threshold, then values are not included any more and result `distinct_values` is set to None 
 
+.. _DeriveNode:
+
+Derive Node
+-----------
+
+.. image:: nodes/derive_node.png
+   :align: right
+
+**Synopsis:** *Derive a new field using an expression.*
+
+**Class:** DeriveNode
+
+Dreive a new field from other fields using an expression or callable function.
+
+The parameter names of the callable function should reflect names of the fields:
+
+.. code-block:: python
+
+    def get_half(i, **args):
+        return i / 2
+
+    node.formula = get_half
+
+You can use ``**record`` to catch all or rest of the fields as dictionary:
+
+.. code-block:: python
+
+    def get_half(**record):
+        return record["i"] / 2
+        
+    node.formula = get_half
+    
+
+The formula can be also a string with python expression where local variables are record field
+values:
+
+.. code-block:: python
+
+    node.formula = "i / 2"
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - field_name
+     - Derived field name
+   * - formula
+     - Callable or a string with python expression that will evaluate to new field value
+   * - field_type
+     - Analytical type of the new field
+
 .. _DistinctNode:
 
 Distinct Node
@@ -279,6 +379,52 @@ should give no records on output if there are no duplicates.
      - List of key fields that will be considered when comparing records
    * - discard
      - Field where substition result will be stored. If not set, then original field will be replaced with new value.
+
+.. _FunctionSelectNode:
+
+Function Select
+---------------
+
+.. image:: nodes/function_select_node.png
+   :align: right
+
+**Synopsis:** *Select records by a predicate function (python callable).*
+
+**Class:** FunctionSelectNode
+
+Select records that will be selected by a predicate function.
+
+
+Example: configure a node that will select records where `amount` field is greater than 100
+
+.. code-block:: python
+
+    def select_greater_than(value, threshold):
+        return value > threshold
+
+    node.function = select_greater_than
+    node.fields = ["amount"]
+    node.kwargs = {"threshold": 100}
+
+The `discard` flag controls behaviour of the node: if set to ``True``, then selection is
+inversed and fields that function evaluates as ``True`` are discarded. Default is False -
+selected records are passed to the output.
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - function
+     - Predicate function. Should be a callable object.
+   * - fields
+     - List of field names to be passed to the function.
+   * - discard
+     - flag whether the selection is discarded or included
+   * - kwargs
+     - Keyword arguments passed to the predicate function
 
 .. _MergeNode:
 
@@ -424,27 +570,37 @@ Select
 .. image:: nodes/select_node.png
    :align: right
 
-**Synopsis:** *Select records by a predicate function.*
+**Synopsis:** *Select or discard records from the stream according to a predicate.*
 
 **Class:** SelectNode
 
-Select records that will be selected by a predicate function.
+Select or discard records from the stream according to a predicate.
 
-
-Example: configure a node that will select records where `amount` field is greater than 100
+The parameter names of the callable function should reflect names of the fields:
 
 .. code-block:: python
 
-    def select_greater_than(value, threshold):
-        return value > threshold
+    def is_big_enough(i, **args):
+        return i > 1000000
 
-    node.function = select_greater_than
-    node.fields = ["amount"]
-    node.kwargs = {"threshold": 100}
+    node.condition = is_big_enough
 
-The `discard` flag controls behaviour of the node: if set to ``True``, then selection is
-inversed and fields that function evaluates as ``True`` are discarded. Default is False -
-selected records are passed to the output.
+You can use ``**record`` to catch all or rest of the fields as dictionary:
+
+.. code-block:: python
+
+    def is_big_enough(**record):
+        return record["i"] > 1000000
+        
+    node.condition = is_big_enough
+    
+
+The condition can be also a string with python expression where local variables are record field
+values:
+
+.. code-block:: python
+
+    node.condition = "i > 1000000"
 
 
 .. list-table:: Attributes
@@ -453,14 +609,10 @@ selected records are passed to the output.
 
    * - attribute
      - description
-   * - function
-     - Predicate function. Should be a callable object.
-   * - fields
-     - List of field names to be passed to the function.
+   * - condition
+     - Callable or a string with python expression that will evaluate to a boolean value
    * - discard
-     - flag whether the selection is discarded or included
-   * - kwargs
-     - Keyword arguments passed to the predicate function
+     - flag whether the records matching condition are discarded or included
 
 .. _SetSelectNode:
 
@@ -560,7 +712,7 @@ Coalesce values of selected fields, or fields of given type to match the type.
    * - types
      - List of field types to be coalesced (if no fields given)
    * - empty_values
-     - dictionary of type -> value pairs to be set when field is considered empty (null) - not yet used
+     - dictionary of type -> value pairs to be set when field is considered empty (null)
 
 .. _FieldMapNode:
 
