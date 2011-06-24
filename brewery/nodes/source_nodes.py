@@ -56,7 +56,7 @@ class RecordListSourceNode(base.SourceNode):
         "description" : "Provide list of dict objects as data source.",
         "attributes" : [
             {
-                 "name": "list",
+                 "name": "a_list",
                  "description": "List of records represented as dictionaries."
             },
             {

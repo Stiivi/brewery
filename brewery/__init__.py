@@ -5,13 +5,14 @@
 
 import os
 import sys
+from fields import *
 
 try:
     import json
 except ImportError:
     import simplejson as json
 
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 
 brewery_search_paths = ['/etc/brewery', \
 						'~/.brewery/', \
@@ -23,3 +24,11 @@ def set_brewery_search_paths(paths):
 
 def default_logger_name():
     return 'brewery'
+
+__all__ = (
+    "Field",
+    "FieldList",
+    "fieldlist",
+    "expand_record",
+    "collapse_record"
+)

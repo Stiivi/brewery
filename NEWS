@@ -1,0 +1,24 @@
+Changes in Brewery
+++++++++++++++++++
+
+Version 0.7dev
+==============
+
+WARNING: basic API incompatibility introduced
+
+* added soft (optional) dependencies on backend libraries. Exception with useful information will be
+  raised when functionality that depends on missing package is used. Example: "Exception: Optional
+  package 'sqlalchemy' is not installed. Please install the package from http://www.sqlalchemy.org/ to
+  be able to use: SQL streams. Recommended version is > 0.7"
+* field related classes and functions were moved from 'ds' module to brewery top-level: Field,
+  FieldList, expand_record, collapse_record
+
+Depreciated functions
+---------------------
+* field_name() - use str(field) instead
+
+Streams
+-------
+* new node: DeriveNode - derive new field with callables or string formula (python expression)
+* new SelectNode implementation: accepts callables or string with python code
+* former SelectNode renamed to FunctionSelectNode
