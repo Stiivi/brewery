@@ -3,6 +3,7 @@
 
 import base
 import re
+import brewery
 import brewery.ds as ds
 from brewery.streams import FieldError
 import itertools
@@ -55,7 +56,7 @@ class FieldMapNode(base.Node):
         return self._output_fields
 
     def initialize(self):
-        self.map = ds.FieldMap(rename = self.mapped_fields, drop = self.dropped_fields)
+        self.map = brewery.FieldMap(rename = self.mapped_fields, drop = self.dropped_fields)
         self._output_fields = self.map.map(self.input.fields)
         self.filter = self.map.row_filter(self.input.fields)
 
@@ -375,7 +376,7 @@ class ValueThresholdNode(base.Node):
     def initialize(self):
         field_names = [t[0] for t in self.thresholds]
 
-        self._output_fields = ds.FieldList()
+        self._output_fields = brewery.FieldList()
 
         for field in self.input.fields:
             self._output_fields.append(field)
@@ -391,7 +392,7 @@ class ValueThresholdNode(base.Node):
             suffix = "_bin"
 
         for name in field_names:
-            field = ds.Field(prefix + name + suffix)
+            field = brewery.Field(prefix + name + suffix)
             field.storage_type = "string"
             field.analytical_type = "set"
             self._output_fields.append(field)
@@ -517,12 +518,12 @@ class DeriveNode(base.Node):
         else:
             self._formula_callable = self.formula
 
-        self._output_fields = ds.FieldList()
+        self._output_fields = brewery.FieldList()
 
         for field in self.input.fields:
             self._output_fields.append(field)
 
-        new_field = ds.Field(self.field_name, analytical_type = self.field_type)
+        new_field = brewery.Field(self.field_name, analytical_type = self.field_type)
         self._output_fields.append(new_field)
 
     def _eval_expression(self, **record):

@@ -102,7 +102,7 @@ class SQLDataStore(object):
             table.append_column(col)
 
         for field in fields:
-            if not isinstance(field, base.Field):
+            if not isinstance(field, brewery.fields.Field):
                 raise ValueError("field %s is not subclass of brewery.Field" % (field))
 
             concrete_type = field.concrete_storage_type

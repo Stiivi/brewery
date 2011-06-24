@@ -3,14 +3,7 @@
 
 """Brewery"""
 
-import os
-import sys
 from fields import *
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 __version__ = '0.7.0'
 
@@ -30,5 +23,8 @@ __all__ = (
     "FieldList",
     "fieldlist",
     "expand_record",
-    "collapse_record"
+    "collapse_record",
+    "default_logger_name",
+    "set_brewery_search_paths",
+    "__version__"
 )

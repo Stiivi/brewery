@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import brewery
 import brewery.ds as ds
 import unittest
 import logging
@@ -108,7 +109,7 @@ class SlowSourceNode(Node):
 
     @property
     def output_fields(self):
-        return ds.fieldlist(["i"])
+        return brewery.fieldlist(["i"])
         
     def run(self):
         for cycle in range(0,10):
@@ -124,7 +125,7 @@ class StreamInitializationTestCase(unittest.TestCase):
         #            |
         #            +---> sample ----> map ----> target
 
-        self.fields = ds.fieldlist(["a", "b", "c", "str"])
+        self.fields = brewery.fieldlist(["a", "b", "c", "str"])
         self.src_list = [[1,2,3,"a"], [4,5,6,"b"], [7,8,9,"a"]]
         self.target_list = []
         self.aggtarget_list = []

@@ -1,3 +1,5 @@
+import copy
+
 def fieldlist(fields):
     """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
 
@@ -16,32 +18,15 @@ def fieldlist(fields):
     """
 
     return FieldList(fields)
-
-def field_names(fields):
-    """Return field names from list of fields.
     
-    :Parameters:
-        * `fields` - `FieldList` object, list of `Field` objects or list of strings
-        
-    Returns a list of strings containing names of fields.
-    
-    """
-    names = []
-    if type(fields) == FieldList:
-        fields = fields.fields
-
-    for field in fields:
-        if type(field) == str or type(field) == unicode:
-            name = field
-        else:
-            name = field.name
-        names.append(name)
-
-    return names
-    
+# FIXME: Depreciated
 def field_name(field):
     """Return a field name. If the `field` is a string object, return just the string. If 
-    the `field` is `Field` instance then return `field.name` """
+    the `field` is `Field` instance then return `field.name` 
+    
+    Warning: Depreciated.
+    
+    """
     if type(field) == str or type(field) == unicode:
         return field
     else:
@@ -308,10 +293,7 @@ class FieldList(object):
         """Return a tuple with indexes of fields from ``fields`` in a data row. Fields
         should be a list of ``Field`` objects or strings"""
 
-        names = field_names(fields)
-        indexes = []
-        for field in names:
-            indexes.append(self.index(field))
+        indexes = [self.index(str(field)) for field in fields]
 
         return tuple(indexes)
 
@@ -319,9 +301,9 @@ class FieldList(object):
         """Return index of a field"""
         
         try:
-            index = self._field_names.index(field_name(field))
+            index = self._field_names.index(str(field))
         except ValueError:
-            raise KeyError("Field list has no field with name '%s'" % field_name(field))
+            raise KeyError("Field list has no field with name '%s'" % str(field))
 
         return index
 

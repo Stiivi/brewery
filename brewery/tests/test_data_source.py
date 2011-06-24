@@ -4,6 +4,7 @@
 import unittest
 import os
 import brewery.ds
+import brewery
 
 TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -20,8 +21,8 @@ class DataSourceUtilsTestCase(unittest.TestCase):
                                 }
                     }
                 
-        self.assertEqual(ex_record, brewery.ds.expand_record(record))
-        self.assertEqual(record, brewery.ds.collapse_record(ex_record))
+        self.assertEqual(ex_record, brewery.expand_record(record))
+        self.assertEqual(record, brewery.collapse_record(ex_record))
 
 # class DataStoreTestCase(unittest.TestCase):
 #     def setUp(self):

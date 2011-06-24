@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base
+import brewery
 import brewery.ds as ds
 import brewery.dq as dq
 import logging
@@ -125,7 +126,7 @@ class MergeNode(base.Node):
 
     To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
     should be a dictionary where keys are input tags and values are either
-    :class:`brewery.ds.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+    :class:`brewery.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
     
     Following example renames ``source_region_name`` field in input 0 and drops field `id` in
     input 1:
@@ -133,8 +134,8 @@ class MergeNode(base.Node):
     .. code-block:: python
 
         node.maps = {
-                        0: ds.FieldMap(rename = {"source_region_name":"region_name"}),
-                        1: ds.FieldMap(drop = ["id"])
+                        0: brewery.FieldMap(rename = {"source_region_name":"region_name"}),
+                        1: brewery.FieldMap(drop = ["id"])
                     }
 
     It is the same as:
@@ -258,8 +259,8 @@ class MergeNode(base.Node):
         if self.maps:
             for (tag, fmap) in self.maps.items():
                 if type(fmap) == dict:
-                    fmap = ds.FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"))
-                elif type(fmap) != ds.FieldMap:
+                    fmap = brewery.FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"))
+                elif type(fmap) != brewery.FieldMap:
                     raise Exception("Unknown field map type: %s" % type(fmap) )
                 f = fmap.row_filter(self.inputs[tag].fields)
                 self._maps[tag] = fmap
@@ -274,7 +275,7 @@ class MergeNode(base.Node):
             else:
                 fields += pipe.fields
 
-        self._output_fields = ds.FieldList(fields)
+        self._output_fields = brewery.FieldList(fields)
 
 
         
@@ -490,18 +491,18 @@ class AggregateNode(base.Node):
     @property
     def output_fields(self):
         # FIXME: use storage types based on aggregated field type
-        fields = ds.FieldList()
+        fields = brewery.FieldList()
 
         if self.key_fields:
             for field in  self.input_fields.fields(self.key_fields):
                 fields.append(field)
 
         for field in self.aggregated_fields:
-            fields.append(ds.Field(field + "_sum", storage_type = "float", analytical_type = "range"))
-            fields.append(ds.Field(field + "_min", storage_type = "float", analytical_type = "range"))
-            fields.append(ds.Field(field + "_max", storage_type = "float", analytical_type = "range"))
-            fields.append(ds.Field(field + "_average", storage_type = "float", analytical_type = "range"))
-        fields.append(ds.Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
+            fields.append(brewery.Field(field + "_sum", storage_type = "float", analytical_type = "range"))
+            fields.append(brewery.Field(field + "_min", storage_type = "float", analytical_type = "range"))
+            fields.append(brewery.Field(field + "_max", storage_type = "float", analytical_type = "range"))
+            fields.append(brewery.Field(field + "_average", storage_type = "float", analytical_type = "range"))
+        fields.append(brewery.Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
 
         return fields
         
@@ -828,7 +829,7 @@ class AuditNode(base.Node):
                                ("distinct_count", "integer", "range")
                                ]
                                
-        fields = ds.FieldList(audit_record_fields)
+        fields = brewery.FieldList(audit_record_fields)
         return fields
 
     def initialize(self):

@@ -5,6 +5,7 @@ import csv
 import codecs
 import cStringIO
 import base
+import brewery.fields
 
 class UTF8Recoder(object):
     """
@@ -173,7 +174,7 @@ class CSVDataSource(base.DataSource):
             
             fields = [ (name, "string", "default") for name in field_names]
             
-            self._fields = base.fieldlist(fields)
+            self._fields = brewery.fields.fieldlist(fields)
         
     def finalize(self):
         if self.file and self.close_file:
