@@ -81,52 +81,6 @@ class Field(object):
         * `analytical_type` - data type used in data mining algorithms
         * `missing_values` (optional) - Array of values that represent missing values in the
             dataset for given field
-
-    **Storage types:**
-    
-        * `string` - names, labels, short descriptions; mostly implemeted as ``VARCHAR`` type in 
-            database, or can be found as CSV file fields
-        * `text` - longer texts, long descriptions, articles
-        * `integer` - discrete values
-        * `float`
-        * `boolean` - binary value, mostly implemented as small integer
-        * `date`
-
-    **Analytical types:**
-
-        +-------------------+-------------------------------------------------------------+
-        | Type              | Description                                                 |
-        +===================+=============================================================+
-        | `set`             | Values represent categories, like colors or contract .      |
-        |                   | types. Fields of this type might be numbers which represent |
-        |                   | for example group numbers, but have no mathematical         |
-        |                   | interpretation. For example addition of group numbers 1+2   |
-        |                   | has no meaning.                                             |
-        +-------------------+-------------------------------------------------------------+
-        | `ordered_set`     | Similar to `set` field type, but values can be ordered in a |
-        |                   | meaningful order.                                           |
-        +-------------------+-------------------------------------------------------------+
-        | `discrete`        | Set of integers - values can be ordered and one can perform |
-        |                   | arithmetic operations on them, such as:                     |
-        |                   | 1 contract + 2 contracts = 3 contracts                      |
-        +-------------------+-------------------------------------------------------------+
-        | `flag`            | Special case of `set` type where values can be one of two   |
-        |                   | types, such as 1 or 0, 'yes' or 'no', 'true' or 'false'.    |
-        +-------------------+-------------------------------------------------------------+
-        | `range`           | Numerical value, such as financial amount, temperature      |
-        +-------------------+-------------------------------------------------------------+
-        | `default`         | Analytical type is not explicitly set and default type for  |
-        |                   | fields storage type is used. Refer to the table of default  |
-        |                   | types.                                                      |
-        +-------------------+-------------------------------------------------------------+
-        | `typeless`        | Field has no analytical relevance.                          |
-        +-------------------+-------------------------------------------------------------+
-
-        Default analytical types:
-            * `integer` is `discrete`
-            * `float` is `range`
-            * `unknown`, `string`, `text`, `date` are typeless
-        
     """
 
     storage_types = ["unknown", "string", "text", "integer", "float", "boolean", "date"]
@@ -291,7 +245,11 @@ class FieldList(object):
 
     def indexes(self, fields):
         """Return a tuple with indexes of fields from ``fields`` in a data row. Fields
-        should be a list of ``Field`` objects or strings"""
+        should be a list of ``Field`` objects or strings.
+        
+        This method is useful when it is more desirable to process data as rows (arrays), not as
+        dictionaries, for example for performance purposes.
+        """
 
         indexes = [self.index(str(field)) for field in fields]
 
@@ -308,7 +266,10 @@ class FieldList(object):
         return index
 
     def fields(self, names = None):
-        """Return a tuple with indexes of fields from ``fieldlist`` in a data row."""
+        """Return a tuple with fields. `names` specifies which fields are returned. When names is
+        ``None`` all fields are returned.
+        """
+
         if not names:
             return self._fields
 
@@ -323,6 +284,7 @@ class FieldList(object):
 
     def field(self, name):
         """Return a field with name `name`"""
+
         if name in self._field_dict:
             return self._field_dict[name]
         raise KeyError("Field list has no field with name '%s'" % name)
@@ -410,7 +372,8 @@ class FieldMap(object):
 
 
     def row_filter(self, fields):
-        """Returns an object that will convert rows with structure specified in `fields`."""
+        """Returns an object that will convert rows with structure specified in `fields`. You can
+        use the object to filter fields from a row (list, array) according to this map."""
         indexes = []
         
         for i, field in enumerate(fields):
@@ -420,7 +383,11 @@ class FieldMap(object):
         return RowFieldFilter(indexes)
         
 class RowFieldFilter(object):
+    """Class for filtering fields in array"""
+
     def __init__(self, indexes = None):
+        """Create an instance of RowFieldFilter. `indexes` is a list of indexes that are passed
+        to output."""
         super(RowFieldFilter, self).__init__()
         if indexes is not None:
             self.indexes = indexes
@@ -428,6 +395,7 @@ class RowFieldFilter(object):
             self.indexes = []
         
     def filter(self, row):
+        """Filter a `row` according to ``indexes``."""
         nrow = []
         for i in self.indexes:
             nrow.append(row[i])

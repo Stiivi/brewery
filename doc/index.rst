@@ -4,18 +4,18 @@ Brewery - Data streaming, auditing and mining framework
 Contents:
 
 .. toctree::
-   :maxdepth: 2
-   
-   introduction
-   install
-   streams
-   data_quality
-   pipes
-   node_reference
-   tools
-   examples/index
-   api/index
-   notes
+	:maxdepth: 2
+
+	introduction
+	install
+	metadata
+	streams
+	data_quality
+	node_reference
+	tools
+	examples/index
+	api/index
+	notes
 
 Contact and Getting Help
 ------------------------

@@ -3,7 +3,7 @@
 
 """Brewery"""
 
-from fields import *
+from metadata import *
 
 __version__ = '0.7.0'
 
