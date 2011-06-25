@@ -6,9 +6,9 @@ structured data that flow between processing nodes.
 
 The framework consists of several modules:
 
-* *metadata* – field types and field type operations, describe structure of data (available directly
+* :mod:`metadata` – field types and field type operations, describe structure of data (available directly
   from the `brewery` package namespace)
-* *ds* – structured data streams data sources and data targets
-* *streams* – data processing streams
-* *nodes* – analytical and processing stream nodes
-* *probes* – analytical and quality data probes
+* :mod:`ds` – structured data streams data sources and data targets
+* :mod:`streams` – data processing streams
+* nodes – analytical and processing stream nodes (see :doc:`/node_reference`)
+* :mod:`probes` – analytical and quality data probes

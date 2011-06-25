@@ -13,10 +13,21 @@ Brewery is a python framework for:
 
 INSTALLATION
 
-To install brewery framework just execute:
+To install brewery framework type:
 
-    python setup.py install
+    pip install brewery
 
+Or:
+
+    easy_install brewery
+
+To install brewery from sources, you can get it from:
+
+Bitbucket: https://bitbucket.org/Stiivi/brewery
+Github: https://github.com/Stiivi/brewery
+
+More details about installation and requirements can be found at: 
+    http://packages.python.org/brewery/install.html
 
 DOCUMENTATION
 

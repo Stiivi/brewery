@@ -10,12 +10,16 @@ WARNING: basic API incompatibility introduced
   raised when functionality that depends on missing package is used. Example: "Exception: Optional
   package 'sqlalchemy' is not installed. Please install the package from http://www.sqlalchemy.org/ to
   be able to use: SQL streams. Recommended version is > 0.7"
-* field related classes and functions were moved from 'ds' module to brewery top-level: Field,
-  FieldList, expand_record, collapse_record
+* field related classes and functions were moved from 'ds' module to 'metadata' and included in 
+  brewery top-level: Field, FieldList, expand_record, collapse_record
+
+* Lots of documentation additions and changes
+* Added list of optional package requirements into documentation
 
 Depreciated functions
 ---------------------
-* field_name() - use str(field) instead
+* brewery.ds.field_name() - use str(field) instead
+* brewery.ds.fieldlist() - use brewery.metadata.FieldList() instead
 
 Streams
 -------

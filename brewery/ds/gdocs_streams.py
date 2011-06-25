@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base
+import brewery.metadata as metadata
 try:
     import gdata.spreadsheet.text_db
 except:
@@ -76,7 +77,7 @@ class GoogleSpreadsheetDataSource(base.DataSource):
         self.worksheet.LookupFields()
 
         # FIXME: try to determine field types from next row
-        self._fields = base.fieldlist(self.worksheet.fields)
+        self._fields = metadata.FieldList(self.worksheet.fields)
 
     def rows(self):
         if not self.worksheet:
