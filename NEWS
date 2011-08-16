@@ -1,8 +1,15 @@
 Changes in Brewery
 ++++++++++++++++++
 
-Version 0.7dev
+Version 0.8dev
 ==============
+
+* Mongo Backend - better handling of record iteration
+* Streams - added analytical type to derive field node
+* Preliminary implementation of data probes (just concept, API not decided yet for 100%)
+
+Version 0.7
+===========
 
 WARNING: basic API incompatibility introduced
 

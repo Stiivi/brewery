@@ -11,7 +11,7 @@ except ImportError:
     
 setup(
     name = "brewery",
-    version = '0.7.0',
+    version = '0.8.0',
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine

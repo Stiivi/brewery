@@ -124,10 +124,18 @@ class MongoDBRowIterator(object):
         self.cursor = cursor
         self.field_names = field_names
 
-    def __getitem__(self, index):
-        record = self.cursor.__getitem__(index)
+    def __iter__(self):
+        return self
+
+    def next(self):
+        record = self.cursor.next()
+
+        if not record:
+            raise StopIteration
 
         array = []
+
+        # FIXME: make use of self.expand
 
         for field in self.field_names:
             value = record
@@ -140,6 +148,21 @@ class MongoDBRowIterator(object):
 
         return tuple(array)
 
+def collapse_record(record, parent=None):
+    ret = {}
+    for key, value in record.items():
+        if parent:
+            full_key = parent + "." + key
+        else:
+            full_key = key
+
+        if type(value) == dict:
+            expanded = collapse_record(value, full_key)
+            ret.update(expanded)
+        else:
+            ret[full_key] = value
+    return ret
+
 class MongoDBRecordIterator(object):
     """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as 
     dictionaries"""
@@ -147,27 +170,19 @@ class MongoDBRecordIterator(object):
         self.cursor = cursor
         self.expand = expand
 
-    def __getitem__(self, index):
-        def expand_record(record, parent=None):
-            ret = {}
-            for key, value in record.items():
-                if parent:
-                    full_key = parent + "." + key
-                else:
-                    full_key = key
+    def __iter__(self):
+        return self
 
-                if type(value) == dict:
-                    expanded = expand_record(value, full_key)
-                    ret.update(expanded)
-                else:
-                    ret[full_key] = value
-            return ret
+    def next(self):
+        record = self.cursor.next()
+        
+        if not record:
+            raise StopIteration
 
-        record = self.cursor.__getitem__(index)
         if not self.expand:
             return record
         else:
-            return expand_record(record)
+            return collapse_record(record)
 
 class MongoDBDataTarget(base.DataTarget):
     """docstring for ClassName
