@@ -146,31 +146,29 @@ class SQLDataset(object):
 
     @property
     def fields(self):
-        if self._fields:
-            return self._fields
+        if not self._fields:
+            fields = []
+            for column in self.table.columns:
+                field = brewery.metadata.Field(name=column.name)
+                field.concrete_storage_type = column.type
 
-        fields = []
-        for column in self.table.columns:
-            field = base.Field(name=column.name)
-            field.concrete_storage_type = column.type
+                for conv in _sql_to_brewery_types:
+                    if issubclass(column.type.__class__, conv[0]):
+                        field.storage_type = conv[1]
+                        field.analytical_type = conv[2]
+                        break
 
-            for conv in _sql_to_brewery_types:
-                if issubclass(column.type.__class__, conv[0]):
-                    field.storage_type = conv[1]
-                    field.analytical_type = conv[2]
-                    break
+                if not field.storage_type:
+                    field.storaget_tpye = "unknown"
 
-            if not field.storage_type:
-                field.storaget_tpye = "unknown"
+                if not field.analytical_type:
+                    field.analytical_type = "unknown"
 
-            if not field.analytical_type:
-                field.analytical_type = "unknown"
+                fields.append(field)
 
-            fields.append(field)
+            self._fields = brewery.metadata.FieldList(fields)
 
-        self._fields = fields
-
-        return fields
+        return self._fields
 
 class SQLDataSource(base.DataSource):
     """docstring for ClassName

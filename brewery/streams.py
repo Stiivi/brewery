@@ -117,7 +117,7 @@ class StreamRuntimeError(Exception):
         try:
             self.print_exception(s)
             v = s.getvalue()
-        except Exception as e:
+        except Exception, e:
             v = "Unable to print strem exception. Reason: %s (%s)" % (e, type(e))
         finally:
             s.close()

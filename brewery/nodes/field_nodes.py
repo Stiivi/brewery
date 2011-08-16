@@ -24,13 +24,22 @@ class FieldMapNode(base.Node):
             {
                 "name": "drop_fields",
                 "label": "drop fields",
-                "description": "List of fields to be dropped from the stream."
+                "description": "List of fields to be dropped from the stream - incompatible with keep_fields."
+            },
+            {
+                "name": "keep_fields",
+                "label": "keep fields",
+                "description": "List of fields to keep from the stream - incompatible with drop_fields."
             }
         ]
     }
 
-    def __init__(self, map_fields = None, drop_fields = None):
+    def __init__(self, map_fields = None, drop_fields = None, keep_fields=None):
         super(FieldMapNode, self).__init__()
+
+        if drop_fields and keep_fields:
+            raise FieldError('Invalid configuration of FieldMapNode: you cant specify both keep_fields and drop_fields.')
+
         if map_fields:
             self.mapped_fields = map_fields
         else:
@@ -40,6 +49,11 @@ class FieldMapNode(base.Node):
             self.dropped_fields = set(drop_fields)
         else:
             self.dropped_fields = set([])
+
+        if keep_fields:
+            self.kept_fields = set(keep_fields)
+        else:
+            self.kept_fields = set([])
             
         self._output_fields = []
         
@@ -56,7 +70,7 @@ class FieldMapNode(base.Node):
         return self._output_fields
 
     def initialize(self):
-        self.map = brewery.FieldMap(rename = self.mapped_fields, drop = self.dropped_fields)
+        self.map = brewery.FieldMap(rename=self.mapped_fields, drop=self.dropped_fields, keep=self.kept_fields)
         self._output_fields = self.map.map(self.input.fields)
         self.filter = self.map.row_filter(self.input.fields)
 

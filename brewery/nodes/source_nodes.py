@@ -381,3 +381,61 @@ class GoogleSpreadsheetSourceNode(base.SourceNode):
 
     def finalize(self):
         self.stream.finalize()
+
+
+class SQLSourceNode(base.SourceNode):
+    """Source node that reads from a sql table.
+    """
+    __node_info__ = {
+        "label" : "SQL Source",
+        "icon": "sql_source_node",
+        "description" : "Read data from a sql table.",
+        "attributes" : [
+            {
+                 "name": "uri",
+                 "description": "SQLAlchemy URL"
+            },
+            {
+                 "name": "table",
+                 "description": "table name",
+            },
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(SQLSourceNode, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.stream = None
+        self._fields = None
+        
+    @property
+    def output_fields(self):
+        if not self.stream:
+            raise ValueError("Stream is not initialized")
+
+        if not self.stream.fields:
+            raise ValueError("Fields are not initialized")
+
+        return self.stream.fields
+
+    def __set_fields(self, fields):
+        self._fields = fields
+        if self.stream:
+            self.stream.fields = fields
+
+    def __get_fields(self):
+        return self._fields
+
+    fields = property(__get_fields, __set_fields)
+
+    def initialize(self):
+        self.stream = ds.SQLDataSource(*self.args, **self.kwargs)
+        self.stream.initialize()
+        self._fields = self.stream.fields
+
+    def run(self):
+        for row in self.stream.rows():
+            self.put(row)
+            
+    def finalize(self):
+        self.stream.finalize()

@@ -340,16 +340,19 @@ class FieldList(object):
             
 class FieldMap(object):
     """Filters fields in a stream"""
-    def __init__(self, rename = None, drop = None):
+    def __init__(self, rename = None, drop = None, keep=None):
+
+        if drop and keep:
+            raise Exception('Configuration error in FieldMap: you cant specify both keep and drop options.')
         super(FieldMap, self).__init__()
+
         if rename:
             self.rename = rename
         else:
             self.rename = {}
-        if drop:
-            self.drop = drop
-        else:
-            self.drop = []
+
+        self.drop = drop or []
+        self.keep = keep or []
         
     def map(self, fields):
         """Map `fields` according to the FieldMap: rename or drop fields as specified. Returns
@@ -364,8 +367,9 @@ class FieldMap(object):
             else:
                 new_field = field
 
-            if field.name not in self.drop:
-                # Pass field if it is not in dropped field list
+            if (self.drop and field.name not in self.drop) or \
+                (self.keep and field.name in self.keep) or \
+                not (self.keep or self.drop):
                 output_fields.append(new_field)
             
         return output_fields
@@ -377,7 +381,9 @@ class FieldMap(object):
         indexes = []
         
         for i, field in enumerate(fields):
-            if field.name not in self.drop:
+            if (self.drop and field.name not in self.drop) or \
+                (self.keep and field.name in self.keep) or \
+                not (self.keep or self.drop):
                 indexes.append(i)
                 
         return RowFieldFilter(indexes)

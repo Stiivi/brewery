@@ -259,7 +259,7 @@ class MergeNode(base.Node):
         if self.maps:
             for (tag, fmap) in self.maps.items():
                 if type(fmap) == dict:
-                    fmap = brewery.FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"))
+                    fmap = brewery.FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"), keep=fmap.get("keep"))
                 elif type(fmap) != brewery.FieldMap:
                     raise Exception("Unknown field map type: %s" % type(fmap) )
                 f = fmap.row_filter(self.inputs[tag].fields)
@@ -269,7 +269,7 @@ class MergeNode(base.Node):
         # Construct output fields
         fields = []
         for (tag, pipe) in enumerate(self.inputs):
-            fmap = self._maps[tag]
+            fmap = self._maps.get(tag, None)
             if fmap:
                 fields += fmap.map(pipe.fields)
             else:
