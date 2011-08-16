@@ -490,21 +490,28 @@ class DeriveNode(base.Node):
                                 "new field value"
             },
             {
-                "name": "field_type",
+                "name": "analytical_type",
                  "description": "Analytical type of the new field",
+                 "default": "unknown"
+            },
+            {
+                "name": "storage_type",
+                 "description": "Storage type of the new field",
                  "default": "unknown"
             }
         ]
     }
 
 
-    def __init__(self, formula = None, field_name = "new_field", field_type = "unknown"):
+    def __init__(self, formula = None, field_name = "new_field", analytical_type = "unknown",
+                        storage_type = "unknown"):
         """Creates and initializes selection node
         """
         super(DeriveNode, self).__init__()
         self.formula = formula
         self.field_name = field_name
-        self.field_type = field_type
+        self.analytical_type = analytical_type
+        self.storage_type = storage_type
         self._output_fields = None
 
     @property
@@ -523,7 +530,8 @@ class DeriveNode(base.Node):
         for field in self.input.fields:
             self._output_fields.append(field)
 
-        new_field = brewery.Field(self.field_name, analytical_type = self.field_type)
+        new_field = brewery.Field(self.field_name, analytical_type = self.analytical_type, 
+                                  storage_type = self.storage_type)
         self._output_fields.append(new_field)
 
     def _eval_expression(self, **record):
@@ -531,8 +539,11 @@ class DeriveNode(base.Node):
 
     def run(self):
         for record in self.input.records():
-            value = self._formula_callable(**record)
-            record[self.field_name] = value
+            if self._formula_callable:
+                record[self.field_name] = self._formula_callable(**record)
+            else:
+                record[self.field_name] = None
+
             self.put_record(record)
 
 class BinningNode(base.Node):
