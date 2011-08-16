@@ -21,10 +21,7 @@ Or:
 
     easy_install brewery
 
-To install brewery from sources, you can get it from:
-
-Bitbucket: https://bitbucket.org/Stiivi/brewery
-Github: https://github.com/Stiivi/brewery
+To install brewery from sources, you can get it from Github: https://github.com/Stiivi/brewery
 
 More details about installation and requirements can be found at: 
     http://packages.python.org/brewery/install.html
@@ -36,15 +33,11 @@ Documentation can be found at: http://packages.python.org/brewery
 
 SOURCES
 
-Main project source repository is being hosted at Bitbucket: https://bitbucket.org/Stiivi/brewery
-
-Clone mercurial repository from bitbucket::
-
-    hg clone https://bitbucket.org/Stiivi/brewery
-
-Or if you prefer git, then you can clone it from Github::
+Main project source repository is being hosted at Github: https://github.com/Stiivi/brewery
 
     git clone git://github.com/Stiivi/brewery.git
+
+Clone for Mercurial users at Bitbucket: https://bitbucket.org/Stiivi/brewery
 
 
 SUPPORT
@@ -52,6 +45,7 @@ SUPPORT
 If you have questions, problems or suggestions, you can send a message to the Google group or 
 write to the author.
 
+* Report issues here: https://github.com/Stiivi/brewery/issues
 * Google group: http://groups.google.com/group/databrewery
 
 

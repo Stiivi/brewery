@@ -43,15 +43,14 @@ Install using distutils::
 
     easy_install brewery
 
-Main project source repository is being hosted at Bitbucket: https://bitbucket.org/Stiivi/brewery
+Main project source repository is being hosted at github: https://github.com/Stiivi/brewery::
 
+    git clone git://github.com/Stiivi/brewery.git
+
+Or if you prefer mercurial, then you can clone it from Bitbucket: https://bitbucket.org/Stiivi/brewery.
 Clone mercurial repository from bitbucket::
 
     hg clone https://bitbucket.org/Stiivi/brewery
-
-Or if you prefer git, then you can clone it from Github: https://github.com/Stiivi/brewery::
-
-    git clone git://github.com/Stiivi/brewery.git
 
 Install from sources after downloading::
 
