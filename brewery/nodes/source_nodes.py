@@ -219,6 +219,90 @@ class CSVSourceNode(base.SourceNode):
     def finalize(self):
         self.stream.finalize()
 
+class XLSSourceNode(base.SourceNode):
+    """Source node that reads Excel XLS files.
+
+    It is recommended to configure node fields before running. If you do not do so, fields are
+    read from the file header if specified by `read_header` flag. Field storage types are set to
+    `string` and analytical type is set to `typeless`.
+
+    """
+    __node_info__ = {
+        "label" : "XLS Source",
+        "icon": "xls_file_source_node",
+        "description" : "Read data from an Excel (XLS) spreadsheet file.",
+        "attributes" : [
+            {
+                 "name": "resource",
+                 "description": "File name or URL containing comma separated values"
+            },
+            {
+                 "name": "fields",
+                 "description": "fields contained in the file",
+            },
+            {
+                 "name": "sheet",
+                 "description": "Sheet index number (as int) or sheet name (as string)"
+            },
+            {
+                 "name": "read_header",
+                 "description": "flag determining whether first line contains header or not",
+                 "default": "True"
+            },
+            {
+                 "name": "skip_rows",
+                 "description": "number of rows to be skipped"
+            },
+            {
+                 "name": "encoding",
+                 "description": "resource data encoding, by default no conversion is performed"
+            }
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(XLSSourceNode, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.stream = None
+        self._fields = None
+
+    @property
+    def output_fields(self):
+        if not self.stream:
+            raise ValueError("Stream is not initialized")
+
+        if not self.stream.fields:
+            raise ValueError("Fields are not initialized")
+
+        return self.stream.fields
+
+    def __set_fields(self, fields):
+        self._fields = fields
+        if self.stream:
+            self.stream.fields = fields
+
+    def __get_fields(self):
+        return self._fields
+
+    fields = property(__get_fields, __set_fields)
+
+    def initialize(self):
+        self.stream = ds.XLSDataSource(*self.args, **self.kwargs)
+
+        if self._fields:
+            self.stream.fields = self._fields
+
+        self.stream.initialize()
+        self._fields = self.stream.fields
+
+    def run(self):
+        for row in self.stream.rows():
+            self.put(row)
+
+    def finalize(self):
+        self.stream.finalize()
+
+
 class YamlDirectorySourceNode(base.SourceNode):
     """Source node that reads data from a directory containing YAML files.
     
