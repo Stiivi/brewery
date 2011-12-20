@@ -351,19 +351,20 @@ class Stream(object):
         """Returns a node in the stream or node with name. This method is used for coalescing in
         other methods, where you can pass either node name or node object.
         
+        Raises KeyError when node does not exist.
+
         :Parameters:
             * `node` - node object or node name
         """
 
         if type(node) == str or type(node) == unicode:
-            if not node in self.node_dict:
-                raise KeyError("Node with name '%s' does not exist" % node)
             return self.node_dict[node]
         else:
             return node
 
     def add(self, node, name=None):
-        """Add a `node` into the stream."""
+        """Add a `node` into the stream. Does not allow to add named node if node with given name
+        already exists. """
         if name:
             if name in self.node_dict:
                 raise KeyError("Node with name %s already exists" % name)
@@ -420,7 +421,6 @@ class Stream(object):
         target_node = self.node(target)
 
         self.connections.discard((source_node, target_node))
-
 
     def sorted_nodes(self):
         """
@@ -492,6 +492,7 @@ class Stream(object):
             raise Exception("Steram has at least one cycle")
 
         return sorted_nodes
+        
     def fork(self, node=None):
         """Creates a construction fork of the stream. Used for constructing streams in functional
         fashion. Example::
@@ -552,9 +553,10 @@ class Stream(object):
                 if node_type in class_dict:
                     node_class = class_dict[node_type]
                     node_instance = node_class()
+
                     node_instance.configure(obj)
                 else:
-                    raise Exception("No node class of type '%s'" % obj)
+                    raise Exception("No node class of type '%s'" % node_type)
 
             self.add(node_instance, name)
 
@@ -562,6 +564,38 @@ class Stream(object):
             for connection in connections:
                 self.connect(connection[0], connection[1])
 
+    def configure(self, config):
+        """Configure node properties based on configuration. Only named nodes can be configured at the
+        moment.
+
+        `config` is a list of dictionaries with keys: ``node`` - node name, ``parameter`` - node parameter
+        name, ``value`` - parameter value
+        
+        """
+        
+        configurations = {}
+
+        # Collect configurations for each node
+        
+        for attribute in config:
+            node_name = attribute["node"]
+            attribute_name = attribute["attribute"]
+            value = attribute.get("value")
+
+            if not node_name in configurations:
+                config = {}
+                configurations[node_name] = config
+            else:
+                config = configurations[node_name]
+
+            config[attribute_name] = value
+
+        # Configure nodes
+
+        for (node_name, config) in configurations.items():
+            node = self.node(node_name)
+            node.configure(config)
+        
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
         nodes = []

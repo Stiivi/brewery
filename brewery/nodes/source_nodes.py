@@ -19,6 +19,7 @@ class RowListSourceNode(base.SourceNode):
     __node_info__ = {
         "label" : "Row List Source",
         "description" : "Provide list of lists or tuples as data source.",
+        "protected": True,
         "attributes" : [
             {
                  "name": "list",
@@ -54,6 +55,7 @@ class RecordListSourceNode(base.SourceNode):
     __node_info__ = {
         "label" : "Record List Source",
         "description" : "Provide list of dict objects as data source.",
+        "protected": True,
         "attributes" : [
             {
                  "name": "a_list",
@@ -98,6 +100,7 @@ class StreamSourceNode(base.SourceNode):
         "label" : "Data Stream Source",
         "icon": "row_list_source_node",
         "description" : "Generic data stream data source node.",
+        "protected": True,
         "attributes" : [
             {
                  "name": "stream",
@@ -147,20 +150,23 @@ class CSVSourceNode(base.SourceNode):
         "attributes" : [
             {
                  "name": "resource",
-                 "description": "File name or URL containing comma separated values"
+                 "description": "File name or URL containing comma separated values",
             },
             {
                  "name": "fields",
                  "description": "fields contained in the file",
+                 "type": "fields"
             },
             {
                  "name": "read_header",
                  "description": "flag determining whether first line contains header or not",
+                 "type": "flag",
                  "default": "True"
             },
             {
                  "name": "skip_rows",
-                 "description": "number of rows to be skipped"
+                 "description": "number of rows to be skipped",
+                 "type": "flag"
             },
             {
                  "name": "encoding",
@@ -320,6 +326,7 @@ class YamlDirectorySourceNode(base.SourceNode):
         "label" : "YAML Directory Source",
         "icon": "yaml_directory_source_node",
         "description" : "Read data from a directory containing YAML files",
+        "protected": True,
         "attributes" : [
             {
                  "name": "path",

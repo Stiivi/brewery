@@ -21,7 +21,8 @@ test_cases = [FieldListCase,
               NodesTestCase,
               StreamBuildingTestCase,
               StreamInitializationTestCase,
-              DataQualityTestCase
+              DataQualityTestCase,
+              StreamConfigurationTestCase
                 ]
 
 def load_tests(loader, tests, pattern):

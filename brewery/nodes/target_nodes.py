@@ -26,6 +26,7 @@ class StreamTargetNode(base.TargetNode):
             }
         ]
     }
+    
     def __init__(self, stream):
         super(StreamTargetNode, self).__init__()
         self.stream = stream

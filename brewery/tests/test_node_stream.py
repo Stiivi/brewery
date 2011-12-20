@@ -219,3 +219,15 @@ class StreamInitializationTestCase(unittest.TestCase):
 
         self.assertRaises(StreamRuntimeError, stream.run)
     
+class StreamConfigurationTestCase(unittest.TestCase):
+    def test_configure(self):
+        config = {
+            "resource": "http://foo.com/bar.csv",
+            "fields": ["field1", "field2", "field3"]
+        }
+
+        node = CSVSourceNode(self)
+        node.configure(config)
+        self.assertEqual(config["resource"], node.resource)
+        self.assertEqual(config["fields"], node.fields)
+        

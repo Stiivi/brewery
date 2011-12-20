@@ -52,3 +52,7 @@ write to the author.
 AUTHOR
 
 Stefan Urbanek <stefan.urbanek@gmail.com>
+
+CONTRIBUTORS
+
+* laurentvasseur (@ bitbucket) - SQLSourceNode, field map "keep" option

@@ -30,7 +30,15 @@ class Node(object):
 
     def initialize(self):
         """Initializes the node. Initialization is separated from creation. Put any Node subclass
-        initialization in this method. Default implementation does nothing."""
+        initialization in this method. Default implementation does nothing.
+        
+        .. note:
+            Why the ``initialize()`` method? Node initiaization is different action from node object
+            instance initialization in the ``__init__()`` method. Before executing node contents, the
+            node has to be initialized - files or network connections opened, temporary tables created,
+            data that are going to be used for configuration fetched, ... Initialization might require
+            node to be fully configured first: all node attributes set to desired values. 
+        """
         pass
 
     def finalize(self):
@@ -183,26 +191,37 @@ class Node(object):
                 ident = ident[:-5]
                 
         return ident
-            
-        
-        
-    def configure(self, config, safe = False):
+
+    def configure(self, config, protected = False):
         """Configure node.
         
         :Parameters:
             * `config` - a dictionary containing node attributes as keys and values as attribute
               values. Key ``type`` is ignored as it is used for node creation.
-            * `safe` - if set to ``True`` only non-protected attributes are set. Attempt
-              to set protected attribute will result in an exception. Use `safe` when you are
-              configuring nodes from a user interface or a custom tool. Default is ``False``: all
+            * `protected` - if set to ``True`` only non-protected attributes are set. Attempt
+              to set protected attribute will result in an exception. Use `protected` when you are
+              configuring nodes through a user interface or a custom tool. Default is ``False``: all
               attributes can be set.
               
-        Note: Handling of `safe` flag is not yet implemented, that means that any attribute can be
-        set.
+        If key in the `config` dictionary does not refer to a node attribute specified in node
+        description, then it is ignored. 
         """
-        # FIXME: do some checking for protected attributes
-        for key, value in config.items():
-            setattr(self, key, value)
+
+        attributes = dict((a["name"], a) for a in self.__node_info__["attributes"])
+        
+        for attribute, value in config.items():
+            info = attributes.get(attribute)
+
+            if not info:
+                continue
+                # raise KeyError("Unknown attribute '%s' in node %s" % (attribute, str(type(self))))
+
+            if protected and info.get("protected"):
+                # FIXME: use some custom exception
+                raise Exception("Trying to set protected attribute '%s' of node '%s'" % 
+                                        (attribute, str(type(self))))
+            else:
+                setattr(self, attribute, value)
 
 class SourceNode(Node):
     """Abstract class for all source nodes

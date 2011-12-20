@@ -1,3 +1,6 @@
+#! /usr/bin/env python
+#
+
 """Brewery tool
 
     For more information run: brewery --help
@@ -12,7 +15,37 @@ import json
 import argparse
 import sys
 import brewery
+import ConfigParser
+import os.path
 
+CONFIG_PATHS = ['/etc/brewery.conf', \
+				'~/.brewery.conf', \
+				'./brewery.conf']
+
+def load_config(args):
+    paths = CONFIG_PATHS + (args.config if args.config else [])
+    config = ConfigParser.SafeConfigParser()
+
+    for path in paths:
+        if os.path.exists(path):
+            config.read(path)
+            
+    if config.has_section("extensions"):
+        extensions = config.options("extensions")
+        for extension in extensions:
+            mod_name = config.get("extensions", extension)
+            import_extension(extension, mod_name)
+                
+def import_extension(extension_name, module_name = None):
+    """Imports a brewery tool extension from module `module_name`.
+    
+    Note: extension name is not used yet module_name is specified. Might be used in the future to allow
+    different modules replace extensions with same name.
+    """
+    
+    module = __import__(module_name or extension_name)
+
+    
 def validate_model(args):
     """docstring for validate_model"""
     print "loading model %s" % args.path
@@ -56,6 +89,7 @@ def model_to_json(args):
 parser = argparse.ArgumentParser(description='Brewery runner')
 # parser.add_argument('command')
 # parser.add_argument('command_args', nargs = '*', default = [])
+parser.add_argument('--config', action='append', help='brewery configuration file')
 subparsers = parser.add_subparsers(title='commands', help='additional help')
 
 ################################################################################
@@ -74,4 +108,5 @@ parser_validate.set_defaults(func=model_to_json)
 
 args = parser.parse_args(sys.argv[1:])
 
-args.func(args)
+load_config(args)
+# args.func(args)
