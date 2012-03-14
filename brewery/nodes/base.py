@@ -3,6 +3,15 @@
 
 import brewery.utils as utils
 
+def create_node(typename, *args, **kwargs):
+    """Creates a node of type specified by name `typename`. Options are
+    passed to the node initializer"""
+    
+    node_dictionary = Node.class_dictionary()
+    node_class = node_dictionary[typename]
+    node = node_class(*args, **kwargs)
+    return node
+
 class NodeFinished(Exception):
     """Exception raised when node has no active outputs - each output node signalised that it
     requires no more data."""

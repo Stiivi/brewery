@@ -220,6 +220,10 @@ class StreamInitializationTestCase(unittest.TestCase):
         self.assertRaises(StreamRuntimeError, stream.run)
     
 class StreamConfigurationTestCase(unittest.TestCase):
+    def test_create_node(self):
+        self.assertEqual(RowListSourceNode, type(create_node("row_list_source")))
+        self.assertEqual(AggregateNode, type(create_node("aggregate")))
+        
     def test_configure(self):
         config = {
             "resource": "http://foo.com/bar.csv",

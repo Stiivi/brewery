@@ -335,10 +335,10 @@ class Stream(object):
         self.connections = set()
 
         if nodes:
-            if type(nodes) == dict:
+            try:
                 for name, node in nodes.items():
                     self.add(node, name)
-            else:
+            except:
                 raise StreamError("Nodes should be a dictionary, is %s" % type(nodes))
 
         if connections:

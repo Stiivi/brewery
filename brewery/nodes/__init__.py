@@ -13,6 +13,8 @@ __all__ = (
     "TargetNode",
     "NodeFinished",
     
+    "create_node",
+    
     # Field nodes
     "FieldMapNode",
     "TextSubstituteNode",
