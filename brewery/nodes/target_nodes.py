@@ -143,14 +143,15 @@ class CSVTargetNode(base.TargetNode):
         ]
     }
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, resource = None, *args, **kwargs):
         super(CSVTargetNode, self).__init__()
+        self.resource = resource
         self.kwargs = kwargs
         self.args = args
         self.stream = None
 
     def initialize(self):
-        self.stream = ds.CSVDataTarget(*self.args, **self.kwargs)
+        self.stream = ds.CSVDataTarget(self.resource, *self.args, **self.kwargs)
 
         self.stream.fields = self.input_fields
         self.stream.initialize()

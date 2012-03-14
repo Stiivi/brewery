@@ -182,8 +182,9 @@ class CSVSourceNode(base.SourceNode):
             }
         ]
     }
-    def __init__(self, *args, **kwargs):
+    def __init__(self, resource = None, *args, **kwargs):
         super(CSVSourceNode, self).__init__()
+        self.resource = resource
         self.args = args
         self.kwargs = kwargs
         self.stream = None
@@ -210,7 +211,7 @@ class CSVSourceNode(base.SourceNode):
     fields = property(__get_fields, __set_fields)
 
     def initialize(self):
-        self.stream = ds.CSVDataSource(*self.args, **self.kwargs)
+        self.stream = ds.CSVDataSource(self.resource, *self.args, **self.kwargs)
         
         if self._fields:
             self.stream.fields = self._fields
