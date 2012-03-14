@@ -16,6 +16,7 @@ import ConfigParser
 import os.path
 import urlparse
 import argparse
+import urllib2
 
 import brewery.streams
 
