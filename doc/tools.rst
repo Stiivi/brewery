@@ -12,7 +12,35 @@ Usage::
     
 Commands are:
 
-<not yet>
+Commands are:
+
++-----------------------+----------------------------------------------------------------------+
+| Command               | Description                                                          |
++=======================+======================================================================+
+|``run``                | Run a stream                                                         |
++-----------------------+----------------------------------------------------------------------+
+|``graph``              | Generate graphviz structure from stream                              |
++-----------------------+----------------------------------------------------------------------+
+
+``run``
+
+Example::
+
+    brewery run stream.json
+
+``graph``
+
+Generate a graphviz_ graph structure.
+
+.. _graphviz: http://www.graphviz.org/
+
+Example::
+
+    brewery run stream.json > graph.dot
+    dot -o graph.png -T png out.dot
+    
+
+
 
 mongoaudit
 ==========

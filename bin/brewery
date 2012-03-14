@@ -52,10 +52,7 @@ def import_extension(extension_name, module_name = None):
     module = __import__(module_name or extension_name)
 
 def run_stream(args):
-    desc = load_json(args.stream)
-    
-    stream = brewery.streams.Stream()
-    stream.update(nodes = desc.get("nodes"), connections = desc.get("connections"))
+    stream = load_stream(args.stream)
 
     # FIXME: add configuration here
     
@@ -65,6 +62,14 @@ def run_stream(args):
         e.print_exception()
 
     # FIXME: add exit(1)
+
+def load_stream(resource):
+    desc = load_json(args.stream)
+    
+    stream = brewery.streams.Stream()
+    stream.update(nodes = desc.get("nodes"), connections = desc.get("connections"))
+
+    return stream
     
 def load_json(resource):
     """Load json from an URL or local file."""
@@ -77,11 +82,29 @@ def load_json(resource):
     try:
         desc = json.load(handle)
     except Exception as e:
-        raise "Unable to load JSON from '%s'. Reason: %s" % (resource, str(e))
+        raise Exception("Unable to load JSON from '%s'. Reason: %s" % (resource, str(e)))
     finally:
         handle.close()
 
     return desc
+
+def create_graph(args):
+    stream = load_stream(args)
+    
+    graph = "digraph {\n"
+    for connection in stream.connections:
+        src = connection[0]
+        target = connection[1]
+        format = {}
+        
+        format_str = ",".join([ "%s=%s" % (k, v) for k, v in format.items()])
+        
+        graph += "%s -> %s;\n" % (type(src).identifier(), 
+                                   type(target).identifier())
+
+    graph += "}\n"
+    
+    print graph
 
 ################################################################################
 # Main code
@@ -95,9 +118,16 @@ subparsers = parser.add_subparsers(title='commands', help='additional help')
 ################################################################################
 # Command: valdate_model
 
-parser_validate = subparsers.add_parser('run')
-parser_validate.add_argument('stream', help='path to the stream JSON file')
-parser_validate.set_defaults(func=run_stream)
+subparser = subparsers.add_parser('run', help = "run a stream")
+subparser.add_argument('stream', help='path to the stream JSON file')
+subparser.set_defaults(func=run_stream)
+
+################################################################################
+# Command: graph
+
+subparser = subparsers.add_parser('graph', help = "generate a graphviz representation of the stream")
+subparser.add_argument('stream', help='path to the stream JSON file')
+subparser.set_defaults(func=create_graph)
 
 args = parser.parse_args(sys.argv[1:])
 
