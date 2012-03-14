@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import logging
@@ -12,8 +11,15 @@ __all__ = [
     "StreamRuntimeError",
     "FieldError",
     "StreamError",
-    "Pipe"
+    "Pipe",
+    "stream_from_dict"
 ]
+
+def stream_from_dict(desc):
+    """Create a stream from dictionary `desc`."""
+    stream = Stream()
+    stream.update(desc)
+    return stream
 
 class FieldError(Exception):
     """Exception raised on field incompatibility or missing fields."""
@@ -529,25 +535,30 @@ class Stream(object):
         return _StreamFork(self, self.node(node))
 
 
-    def update(self, dictionary):
+    def update(self, nodes = None, connections = None):
         """Adds nodes and connections specified in the dictionary. Dictionary might contain
         node names instead of real classes. You can use this method for creating stream
         from a dictionary that was created from a JSON file, for example.
         """
 
-        nodes = dictionary.get("nodes")
-        connections = dictionary.get("connections")
-
         class_dict = Node.class_dictionary()
+
+        # FIXME: use either node type identifier or fully initialized node, not
+        #        node class (Warning: might break some existing code,
+        #        depreciate it first
+        
+        nodes = nodes or {}
+        connections = connections or []
 
         for (name, obj) in nodes.items():
             if isinstance(obj, Node):
                 node_instance = obj
             elif isinstance(obj, type) and issubclass(obj, Node):
+                logging.warn("Using classes in Stream.update is depreciated")
                 node_instance = obj()
             else:
                 if not "type" in obj:
-                    raise Exception("Node dictionary has no type key")
+                    raise Exception("Node dictionary has no 'type' key")
                 node_type = obj["type"]
 
                 if node_type in class_dict:
@@ -564,14 +575,27 @@ class Stream(object):
             for connection in connections:
                 self.connect(connection[0], connection[1])
 
-    def configure(self, config):
+    def configure(self, config = {}):
         """Configure node properties based on configuration. Only named nodes can be configured at the
         moment.
 
         `config` is a list of dictionaries with keys: ``node`` - node name, ``parameter`` - node parameter
         name, ``value`` - parameter value
         
+        .. warning:
+        
+            This method might change to a list of dictionaries where one 
+            dictionary will represent one node, keys will be attributes.
+        
         """
+        
+        # FIXME: this is wrong, it should be a single dict per node (or not?)
+        # List of attributes:
+        #     * can reflect a form for configuring whole stream
+        #     * can have attribute order regardless of their node ownership
+        # List of nodes:
+        #     * bundled attributes in single dictioary
+        # FIXME: this is inconsistent with node configuration! node.config()
         
         configurations = {}
 
