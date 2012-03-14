@@ -1,12 +1,35 @@
 Changes in Brewery
 ++++++++++++++++++
 
-Version 0.8dev
-==============
+Version 0.8 (under development)
+===============================
+
+News
+----
 
 * Mongo Backend - better handling of record iteration
 * Streams - added analytical type to derive field node
 * Preliminary implementation of data probes (just concept, API not decided yet for 100%)
+
+* Created new brewery runner commands: 'run' and 'graph':
+    * 'brewery run stream.json' will execute the stream
+    * 'brewery graph stream.json' will generate graphviz data
+    
+* Changed license to MIT
+* Nodes can be configured with node.configure(dictionary, protected). If 
+  'protected' is True, then protected attributes (specified in node info) can 
+  not be set with this method.
+
+Changes
+-------
+
+* CSV resource is now explicitly named argument in CSV*Node
+
+Fixes
+-----
+
+* added SQLSourceNode, added option to keep ifelds instead of dropping them in 
+  FieldMap and FieldMapNode (patch by laurentvasseur @ bitbucket)
 
 Version 0.7
 ===========
