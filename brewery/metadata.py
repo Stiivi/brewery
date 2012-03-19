@@ -1,5 +1,15 @@
 import copy
 
+__all__ = [
+    "Field",
+    "FieldList",
+    "fieldlist", # FIXME remove this
+    "expand_record",
+    "collapse_record",
+    "FieldMap"
+]
+
+# FIXME: Depreciated - why it is here, if we have FieldList class?!
 def fieldlist(fields):
     """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
 
@@ -16,7 +26,7 @@ def fieldlist(fields):
     * `storage_type` is set to ``unknown``
     * `analytical_type` is set to ``typeless``
     """
-
+    
     return FieldList(fields)
     
 # FIXME: Depreciated
@@ -96,11 +106,13 @@ class Field(object):
                     "date": "typeless"
                 }
 
-    def __init__(self, name, label = None, storage_type = "unknown", analytical_type = "typeless", 
-                    concrete_storage_type = None, missing_values = None):
+    def __init__(self, name, label=None, storage_type="unknown",
+                 analytical_type="typeless", concrete_storage_type=None,
+                 missing_values=None, storage_size=None):
         self.name = name
         self.label = label
         self.storage_type = storage_type
+        self.storage_size = None
         self.analytical_type = analytical_type
         self.concrete_storage_type = concrete_storage_type
         self.missing_values = missing_values
@@ -117,6 +129,7 @@ class Field(object):
         d["storage_type"] = self.storage_type
         d["analytical_type"] = self.analytical_type
         d["concrete_storage_type"] = self.concrete_storage_type
+        d["concrete_storage_size"] = self.concrete_storage_size
         d["missing_values"] = self.missing_values
         return "<%s(%s)>" % (self.__class__, d)
 

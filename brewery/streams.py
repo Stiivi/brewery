@@ -12,7 +12,8 @@ __all__ = [
     "FieldError",
     "StreamError",
     "Pipe",
-    "stream_from_dict"
+    "stream_from_dict",
+    "create_builder"
 ]
 
 def stream_from_dict(desc):
@@ -891,6 +892,8 @@ class _StreamFork(object):
 
     def __getattr__(self, name):
         """Returns node class"""
+        # FIXME: use create_node here
+        
         class_dict = Node.class_dictionary()
 
         if not name in class_dict:
@@ -911,3 +914,10 @@ class _StreamForkConstructor(object):
         node = self.node_class(*args, **kwargs)
         self.fork += node
         return self.fork
+
+def create_builder():
+    """Creates a stream builder for incremental stream building."""
+    stream = Stream()
+    return stream.fork()
+    
+    

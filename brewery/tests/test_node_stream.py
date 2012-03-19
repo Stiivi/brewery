@@ -68,26 +68,24 @@ class StreamBuildingTestCase(unittest.TestCase):
         self.assertRaises(Exception, self.stream.sorted_nodes)
         
     def test_update(self):
-        stream_desc = {
-            "nodes": {
+        nodes = {
                 "source": {"type": "row_list_source"},
                 "target": {"type": "record_list_target"},
                 "aggtarget": {"type": "record_list_target"},
                 "sample": {"type": "sample"},
                 "map":  {"type": "field_map"},
                 "aggregate": {"type": "aggregate", "keys": ["str"] }
-            },
-            "connections": [
+            }
+        connections = [
                 ("source", "sample"),
                 ("sample", "map"),
                 ("map", "target"),
                 ("source", "aggregate"),
                 ("aggregate", "aggtarget")
             ]
-        }
         
         stream = Stream()
-        stream.update(stream_desc)
+        stream.update(nodes, connections)
         self.assertTrue(isinstance(stream.node("source"), Node))
         self.assertTrue(isinstance(stream.node("aggregate"), AggregateNode))
 

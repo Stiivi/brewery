@@ -106,13 +106,7 @@ class SQLDataStore(object):
             if not isinstance(field, brewery.metadata.Field):
                 raise ValueError("field %s is not subclass of brewery.metadata.Field" % (field))
 
-            concrete_type = field.concrete_storage_type
-
-            if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
-                concrete_type = _brewery_to_sql_type.get(field.storage_type)
-                if not concrete_type:
-                    raise ValueError("unable to find concrete storage type for field '%s' "
-                                     "of type '%s'" % (field.name, field.storage_type))
+            concrete_type = concrete_storage_type(field)
 
             col = sqlalchemy.schema.Column(field.name, concrete_type)
             table.append_column(col)
@@ -121,6 +115,15 @@ class SQLDataStore(object):
 
         dataset = SQLDataset(table)
         return dataset
+
+    def concrete_storage_type(field):
+        concrete_type = field.concrete_storage_type
+        
+        if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
+            concrete_type = _brewery_to_sql_type.get(field.storage_type)
+            if not concrete_type:
+                raise ValueError("unable to find concrete storage type for field '%s' "
+                                 "of type '%s'" % (field.name, field.storage_type))
 
     def _table(self, name, autoload=True):
         split = split_table_schema(name)
