@@ -1,7 +1,7 @@
 Brewery
 =======
 
-Data streaming, auditing and mining framework for Python.
+Understandable data streaming, auditing and mining framework for Python.
 
 Project page: http://databrewery.org
 
@@ -14,6 +14,8 @@ Brewery is a python framework for:
   files, HTML, ...
 * data quality monitoring
 * data mining (in the future)
+
+Focus is on understandability and transparency of the process.
 
 Installation
 ------------
