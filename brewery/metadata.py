@@ -84,18 +84,22 @@ class Field(object):
     :Attributes:
         * `name` - field name
         * `label` - optional human readable field label
-        * `storage_type` - Normalized data storage type. The data storage type is abstracted
-        * `concrete_storage_type` (optional, recommended) - Data store/database dependent storage
-            type - this is the real name of data type as used in a database where the field
-            comes from or where the field is going to be created (this might be null if unknown)
+        * `storage_type` - Normalized data storage type. The data storage type 
+          is abstracted
+        * `concrete_storage_type` (optional, recommended) - Data store/database 
+          dependent storage type - this is the real name of data type as used 
+          in a database where the field comes from or where the field is going 
+          to be created (this might be null if unknown)
         * `analytical_type` - data type used in data mining algorithms
-        * `missing_values` (optional) - Array of values that represent missing values in the
-            dataset for given field
+        * `missing_values` (optional) - Array of values that represent missing 
+          values in the dataset for given field
     """
 
-    storage_types = ["unknown", "string", "text", "integer", "float", "boolean", "date"]
-    analytical_types = ["default", "typeless", "flag", "discrete", "range", 
-                        "set", "ordered_set"]
+    storage_types = ("unknown", "string", "text", "integer", "float", 
+                     "boolean", "date")
+
+    analytical_types = ("default", "typeless", "flag", "discrete", "range", 
+                        "set", "ordered_set")
 
     default_analytical_type = {
                     "unknown": "typeless",
@@ -108,7 +112,7 @@ class Field(object):
 
     def __init__(self, name, label=None, storage_type="unknown",
                  analytical_type="typeless", concrete_storage_type=None,
-                 missing_values=None, storage_size=None):
+                 missing_values=None):
         self.name = name
         self.label = label
         self.storage_type = storage_type
@@ -129,7 +133,6 @@ class Field(object):
         d["storage_type"] = self.storage_type
         d["analytical_type"] = self.analytical_type
         d["concrete_storage_type"] = self.concrete_storage_type
-        d["concrete_storage_size"] = self.concrete_storage_size
         d["missing_values"] = self.missing_values
         return "<%s(%s)>" % (self.__class__, d)
 
@@ -419,4 +422,9 @@ class RowFieldFilter(object):
         for i in self.indexes:
             nrow.append(row[i])
         return nrow
-        
+
+def default_concrete_type_mapper(field, context):
+    """Default concrete type mapper. It just returns the concrete storage type.
+    You can use this as 'no-op' function for streams and nodes that support
+    customized concrete storage type conversions. See SQL streams for example"""
+    return field.concrete_storage_type

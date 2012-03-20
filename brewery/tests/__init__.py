@@ -12,6 +12,7 @@ from test_nodes import *
 from test_field_list import *
 from test_node_stream import *
 from test_data_quality import *
+from test_sql_streams import *
 
 test_cases = [FieldListCase,
               DataSourceUtilsTestCase,
@@ -22,7 +23,8 @@ test_cases = [FieldListCase,
               StreamBuildingTestCase,
               StreamInitializationTestCase,
               DataQualityTestCase,
-              StreamConfigurationTestCase
+              StreamConfigurationTestCase,
+              SQLStreamsTestCase
                 ]
 
 def load_tests(loader, tests, pattern):

@@ -6,14 +6,7 @@ import brewery.metadata
 
 try:
     import sqlalchemy
-except:
-    from brewery.utils import MissingPackage
-    sqlalchemy = MissingPackage("sqlalchemy", "SQL streams", "http://www.sqlalchemy.org/",
-                                comment = "Recommended version is > 0.7")
-    _sql_to_brewery_types = ()
-    _brewery_to_sql_type = {}
 
-if sqlalchemy:
     # (sql type, storage type, analytical type)
     _sql_to_brewery_types = (
         (sqlalchemy.types.UnicodeText, "text", "typeless"),
@@ -39,6 +32,12 @@ if sqlalchemy:
         "float": sqlalchemy.types.Numeric,
         "boolean": sqlalchemy.types.SmallInteger
     }
+except:
+    from brewery.utils import MissingPackage
+    sqlalchemy = MissingPackage("sqlalchemy", "SQL streams", "http://www.sqlalchemy.org/",
+                                comment = "Recommended version is > 0.7")
+    _sql_to_brewery_types = ()
+    _brewery_to_sql_type = {}
 
 def split_table_schema(table_name):
     """Get schema and table name from table reference.
@@ -52,132 +51,89 @@ def split_table_schema(table_name):
     else:
         return (None, split[0])
 
-class SQLDataStore(object):
-    def __init__(self, url=None, connection=None, schema=None, **options):
+        
+class SQLContext(object):
+    """Holds context of SQL store operations."""
+    
+    def __init__(self, url = None, connection = None, schema = None):
+        """Creates a SQL context"""
+
+        if not url and not connection:
+            raise AttributeError("Either url or connection should be provided" \
+                                 " for SQL data source")
+
+        super(SQLContext, self).__init__()
+
         if connection:
             self.connection = connection
-            self.engine = self.connection.engine
-            self.close_connection = False
+            self.should_close = False
         else:
-            self.engine = sqlalchemy.create_engine(url, **options)
-            self.connection = self.engine.connect()
-            self.close_connection = True
-
+            engine = sqlalchemy.create_engine(url)
+            self.connection = engine.connect()
+            self.should_close = True
+            
         self.metadata = sqlalchemy.MetaData()
-        self.metadata.bind = self.engine
+        self.metadata.bind = self.connection.engine
         self.schema = schema
-
+    
     def close(self):
-        if self.close_connection:
+        if self.should_close and self.connection:
             self.connection.close()
-
-    def dataset(self, name):
-        return SQLDataset(self._table(name))
-
-    def has_dataset(self, name):
-        table = self._table(name, autoload=False)
-        return table.exists()
-
-    def create_dataset(self, name, fields, replace=False,
-                       add_id_key=False, id_key_name=None):
-        """Create a table."""
-
-        if self.has_dataset(name):
-            if not replace:
-                raise ValueError("Dataset '%s' already exists" % name)
-            else:
-                table = self._table(name, autoload=False)
-                table.drop(checkfirst=False)
-
-        table = self._table(name, autoload=False)
-
-        if add_id_key:
-            if not id_key_name:
-                id_key_name = 'id'
-
-            sequence_name = "seq_" + name + "_" + id_key_name
-            sequence = sqlalchemy.schema.Sequence(sequence_name, optional=True)
-
-            col = sqlalchemy.schema.Column(id_key_name, sqlalchemy.types.Integer,
-                                            sequence, primary_key=True)
-            table.append_column(col)
-
-        for field in fields:
-            if not isinstance(field, brewery.metadata.Field):
-                raise ValueError("field %s is not subclass of brewery.metadata.Field" % (field))
-
-            concrete_type = concrete_storage_type(field)
-
-            col = sqlalchemy.schema.Column(field.name, concrete_type)
-            table.append_column(col)
-
-        table.create()
-
-        dataset = SQLDataset(table)
-        return dataset
-
-    def concrete_storage_type(field):
-        concrete_type = field.concrete_storage_type
+            
+    def table(self, name, autoload=True):
+        """Get table by name"""
         
-        if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
-            concrete_type = _brewery_to_sql_type.get(field.storage_type)
-            if not concrete_type:
-                raise ValueError("unable to find concrete storage type for field '%s' "
-                                 "of type '%s'" % (field.name, field.storage_type))
+        return sqlalchemy.Table(name, self.metadata, 
+                                autoload=autoload, schema=self.schema)
 
-    def _table(self, name, autoload=True):
-        split = split_table_schema(name)
-        schema = split[0]
-        table_name = split[1]
+def fields_from_table(table):
+    """Get fields from a table. Field types are normalized to the Brewery
+    data types. Analytical type is set according to a default conversion
+    dictionary."""
+    
+    fields = []
 
-        if not schema:
-            schema = self.schema
+    for column in table.columns:
+        field = brewery.metadata.Field(name=column.name)
+        field.concrete_storage_type = column.type
 
-        table = sqlalchemy.Table(table_name, self.metadata, autoload=autoload, schema=schema)
-        return table
+        for conv in _sql_to_brewery_types:
+            if issubclass(column.type.__class__, conv[0]):
+                field.storage_type = conv[1]
+                field.analytical_type = conv[2]
+                break
 
-class SQLDataset(object):
-    def __init__(self, table):
-        super(SQLDataset, self).__init__()
-        self.table = table
-        self._fields = None
+        if not field.storage_type:
+            field.storaget_tpye = "unknown"
 
-    @property
-    def field_names(self):
-        names = [column.name for column in self.table.columns]
-        return names
+        if not field.analytical_type:
+            field.analytical_type = "unknown"
 
-    @property
-    def fields(self):
-        if not self._fields:
-            fields = []
-            for column in self.table.columns:
-                field = brewery.metadata.Field(name=column.name)
-                field.concrete_storage_type = column.type
+        fields.append(field)
 
-                for conv in _sql_to_brewery_types:
-                    if issubclass(column.type.__class__, conv[0]):
-                        field.storage_type = conv[1]
-                        field.analytical_type = conv[2]
-                        break
+    return brewery.metadata.FieldList(fields)
 
-                if not field.storage_type:
-                    field.storaget_tpye = "unknown"
+def concrete_storage_type(field):
+    """Derives a concrete storage type for the field based on field conversion
+       dictionary"""
 
-                if not field.analytical_type:
-                    field.analytical_type = "unknown"
+    concrete_type = field.concrete_storage_type
+        
+    if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
+        concrete_type = _brewery_to_sql_type.get(field.storage_type)
 
-                fields.append(field)
+        if not concrete_type:
+            raise ValueError("unable to find concrete storage type for field '%s' "
+                             "of type '%s'" % (field.name, field.storage_type))
 
-            self._fields = brewery.metadata.FieldList(fields)
-
-        return self._fields
+    return concrete_type
 
 class SQLDataSource(base.DataSource):
     """docstring for ClassName
     """
     def __init__(self, connection=None, url=None,
-                    table=None, statement=None, schema=None, **options):
+                    table=None, statement=None, schema=None, autoinit = True,
+                    **options):
         """Creates a relational database data source stream.
         
         :Attributes:
@@ -185,57 +141,64 @@ class SQLDataSource(base.DataSource):
             * connection: SQLAlchemy database connection - either this or url should be specified
             * table: table name
             * statement: SQL statement to be used as a data source (not supported yet)
+            * autoinit: initialize on creation, no explicit initialize() is 
+              needed
             * options: SQL alchemy connect() options
-        
-        Note: avoid auto-detection when you are reading from remote URL stream.
-        
         """
 
-        if not url and not connection:
-            raise AttributeError("Either url or connection should be provided for SQL data source")
+        super(SQLDataSource, self).__init__()
 
         if not table and not statement:
-            raise AttributeError("Either table or statement should be provided for SQL data source")
+            raise AttributeError("Either table or statement should be " \
+                                 "provided for SQL data source")
 
         if statement:
-            raise NotImplementedError("SQL source stream based on statement is not yet implemented")
+            raise NotImplementedError("SQL source stream based on statement " \
+                                      "is not yet implemented")
 
         if not options:
             options = {}
 
         self.url = url
         self.connection = connection
+
         self.table_name = table
         self.statement = statement
         self.schema = schema
         self.options = options
 
+        self.context = None
+        self.table = None
         self._fields = None
+        
+        if autoinit:
+            self.initialize()
 
     def initialize(self):
         """Initialize source stream:
         """
-        self.datastore = SQLDataStore(self.url, self.connection, self.schema, **self.options)
-        self.dataset = self.datastore.dataset(self.table_name)
+        if not self.context:
+            self.context = SQLContext(self.url, self.connection, self.schema)
+        if not self.table:
+            self.table = self.context.table(self.table_name)
 
     def finalize(self):
-        self.datastore.close()
+        self.context.close()
 
     @property
     def fields(self):
         if self._fields:
             return self._fields
-        self._fields = self.dataset.fields
-        return self._fields
+        return self.read_fields()
 
     def read_fields(self):
-        self._fields = self.dataset.fields
+        self._fields = fields_from_table(self.table)
         return self._fields
 
     def rows(self):
         if not self.dataset:
             raise RuntimeError("Stream is not initialized")
-        return self.dataset.table.select().execute()
+        return self.context.table.select().execute()
 
     def records(self):
         if not self.dataset:
@@ -273,9 +236,6 @@ class SQLDataTarget(base.DataTarget):
         Note: avoid auto-detection when you are reading from remote URL stream.
         
         """
-        if not url and not connection:
-            raise AttributeError("Either url or connection should be provided for SQL data source")
-
         if not options:
             options = {}
 
@@ -289,6 +249,7 @@ class SQLDataTarget(base.DataTarget):
         self.truncate = truncate
         self.add_id_key = add_id_key
 
+        self.table = None
         self._fields = None
 
         if id_key_name:
@@ -305,30 +266,72 @@ class SQLDataTarget(base.DataTarget):
         """Initialize source stream:
         """
 
-        self.datastore = SQLDataStore(self.url, self.connection, self.schema, **self.options)
+        self.context = SQLContext(url=self.url, 
+                                  connection=self.connection,
+                                  schema=self.schema)
 
         if self.create:
-            self.dataset = self.datastore.create_dataset(self.table_name,
-                                                         self.fields,
-                                                         self.replace,
-                                                         self.add_id_key, self.id_key_name)
+            self.table = self._create_table()
         else:
-            self.dataset = self.datastore.dataset(self.table_name)
+            self.table = self.context.table(self.table_name)
 
         if self.truncate:
-            self.dataset.table.delete().execute()
+            self.table.delete().execute()
 
         if not self._fields:
-            self._fields = self.dataset.fields
+            self._fields = fields_from_table(self.table)
 
-        self.insert_command = self.dataset.table.insert()
+        self.insert_command = self.table.insert()
         self._buffer = []
+
+    def _create_table(self):
+        """Create a table."""
+
+        if not self.fields:
+            raise Exception("Can not create a table: No fields provided")
+
+        table = self.context.table(self.table_name, autoload=False)
+
+        if table.exists():
+            if self.replace:
+                table = self.context.table(self.table_name, autoload=False)
+                table.drop(checkfirst=False)
+            else:
+                raise ValueError("Table '%s' already exists" % name)
+
+        table = sqlalchemy.Table(self.table_name, self.context.metadata)
+
+        if self.add_id_key:
+            id_key_name = self.id_key_name or 'id'
+
+            sequence_name = "seq_" + name + "_" + id_key_name
+            sequence = sqlalchemy.schema.Sequence(sequence_name, optional=True)
+
+            col = sqlalchemy.schema.Column(id_key_name,
+                                           sqlalchemy.types.Integer,
+                                           sequence, primary_key=True)
+            table.append_column(col)
+
+        for field in self.fields:
+            # FIXME: hey, what about duck-typing?
+            if not isinstance(field, brewery.metadata.Field):
+                raise ValueError("field %s is not subclass of brewery.metadata.Field" % (field))
+
+            concrete_type = concrete_storage_type(field)
+
+            col = sqlalchemy.schema.Column(field.name, concrete_type)
+            table.append_column(col)
+
+        table.create()
+
+        return table
+
 
     def finalize(self):
         """Closes the stream, flushes buffered data"""
 
         self._flush()
-        self.datastore.close()
+        self.context.close()
 
     def __get_fields(self):
         return self._fields
@@ -337,15 +340,6 @@ class SQLDataTarget(base.DataTarget):
         self._fields = fields
 
     fields = property(__get_fields, __set_fields)
-
-    def __append(self, obj):
-        if type(obj) == dict:
-            record = obj
-        else:
-            record = dict(zip(self.field_names, obj))
-            # if self.add_id_key:
-            #     record[self.id_key_name] = None
-        self.insert_command.execute(record)
 
     def append(self, obj):
         if type(obj) == dict:
@@ -359,5 +353,5 @@ class SQLDataTarget(base.DataTarget):
 
     def _flush(self):
         if len(self._buffer) > 0:
-            self.datastore.connection.execute(self.insert_command, self._buffer)
+            self.context.connection.execute(self.insert_command, self._buffer)
             self._buffer = []
