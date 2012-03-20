@@ -28,20 +28,7 @@ def fieldlist(fields):
     """
     
     return FieldList(fields)
-    
-# FIXME: Depreciated
-def field_name(field):
-    """Return a field name. If the `field` is a string object, return just the string. If 
-    the `field` is `Field` instance then return `field.name` 
-    
-    Warning: Depreciated.
-    
-    """
-    if type(field) == str or type(field) == unicode:
-        return field
-    else:
-        return field.name
-    
+
 def expand_record(record, separator = '.'):
     """Expand record represented as dict object by treating keys as key paths separated by
     `separator`, which is by default ``.``. For example: ``{ "product.code": 10 }`` will become
