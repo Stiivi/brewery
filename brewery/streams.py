@@ -155,9 +155,8 @@ class SimpleDataPipe(object):
 
     def put_record(self, record):
         """Convenience method that will transform record into a row based on pipe fields."""
-        row = []
-        for field in self.fields.names():
-            row.append(record.get(field))
+        row = [record.get(field) for field in self.fields.names()]
+
         self.put(row)
 
     def put(self, obj):
@@ -623,20 +622,14 @@ class Stream(object):
         
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
-        nodes = []
         node = self.node(node)
-        for connection in self.connections:
-            if connection[0] == node:
-                nodes.append(connection[1])
+        nodes =[conn[1] for conn in self.connections if conn[0] == node]
         return nodes
 
     def node_sources(self, node):
         """Return nodes that provide data for `node`."""
-        nodes = []
         node = self.node(node)
-        for connection in self.connections:
-            if connection[1] == node:
-                nodes.append(connection[0])
+        nodes =[conn[0] for conn in self.connections if conn[1] == node]
         return nodes
 
     def _initialize(self):
@@ -753,11 +746,7 @@ class Stream(object):
         exception = StreamRuntimeError(node=node, exception=thread.exception)
 
         exception.traceback = thread.traceback
-
-        array = []
-        for pipe in node.inputs:
-            array.append(pipe.fields)
-        exception.inputs = array
+        exception.inputs = [pipe.fields for pipe in node.inputs]
 
         if not isinstance(node, TargetNode):
             try:
@@ -816,9 +805,9 @@ class _StreamNodeThread(threading.Thread):
         logging.debug("%s: start" % self)
         try:
             self.node.run()
-        except NodeFinished, e:
+        except NodeFinished as e:
             logging.info("node %s finished" % (self.node))
-        except Exception, e:
+        except Exception as e:
             # FIXME: log exception traceback as debug, not as error
             logging.error("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
             self.exception = e
@@ -873,7 +862,7 @@ class _StreamFork(object):
         such as `joins`.
         
         """
-
+        raise NotImplementedError
         # if type(obj) == StreamFork:
         #     node = obj.node
         # else:
@@ -884,11 +873,10 @@ class _StreamFork(object):
         # merge = MergeNode(**kwargs)
         # self.stream.append(merge)
         # self.stream.connect()
-        pass
 
     def append(self, obj):
         """Appends data from nodes using AppendNode"""
-        pass
+        raise NotImplementedError 
 
     def __getattr__(self, name):
         """Returns node class"""
