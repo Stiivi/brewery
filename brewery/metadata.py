@@ -103,10 +103,21 @@ class Field(object):
         self.name = name
         self.label = label
         self.storage_type = storage_type
-        self.storage_size = None
         self.analytical_type = analytical_type
         self.concrete_storage_type = concrete_storage_type
         self.missing_values = missing_values
+
+    def to_dict(self):
+        """Return dictionary representation of the field."""
+        d = {
+                "name": self.name,
+                "label": self.label,
+                "storage_type": self.storage_type,
+                "analytical_type": self.analytical_type,
+                "concrete_storage_type": self.concrete_storage_type,
+                "missing_values": self.missing_values
+            }
+        return d
 
     def __str__(self):
         """Return field name as field string representation."""
@@ -114,14 +125,7 @@ class Field(object):
         return self.name
 
     def __repr__(self):
-        d = {}
-        d["name"] = self.name
-        d["label"] = self.label
-        d["storage_type"] = self.storage_type
-        d["analytical_type"] = self.analytical_type
-        d["concrete_storage_type"] = self.concrete_storage_type
-        d["missing_values"] = self.missing_values
-        return "<%s(%s)>" % (self.__class__, d)
+        return "<%s(%s)>" % (self.__class__, self.to_dict())
 
     def __eq__(self, other):
         if self is other:
