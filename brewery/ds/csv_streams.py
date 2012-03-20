@@ -87,8 +87,9 @@ class CSVDataSource(base.DataSource):
     
     Some code taken from OKFN Swiss library.
     """
-    def __init__(self, resource, read_header = True, dialect = None, encoding=None, detect_encoding = False, 
-                detect_header = False, sample_size = 200, skip_rows = None, **reader_args):
+    def __init__(self, resource, read_header=True, dialect=None, encoding=None,
+                 detect_encoding=False, detect_header=False, sample_size=200, 
+                 skip_rows=None, fields=None, **reader_args):
         """Creates a CSV data source stream.
         
         :Attributes:
@@ -120,7 +121,7 @@ class CSVDataSource(base.DataSource):
         
         self.close_file = False
         self.skip_rows = skip_rows
-        self._fields = None
+        self._fields = fields
         
     def initialize(self):
         """Initialize CSV source stream:

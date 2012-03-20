@@ -23,7 +23,7 @@ try:
         (sqlalchemy.types.Binary, "unknown", "typeless")
     )
 
-    _brewery_to_sql_type = {
+    concrete_sql_type_map = {
         "string": sqlalchemy.types.Unicode,
         "text": sqlalchemy.types.UnicodeText,
         "date": sqlalchemy.types.Date,
@@ -37,7 +37,7 @@ except:
     sqlalchemy = MissingPackage("sqlalchemy", "SQL streams", "http://www.sqlalchemy.org/",
                                 comment = "Recommended version is > 0.7")
     _sql_to_brewery_types = ()
-    _brewery_to_sql_type = {}
+    concrete_sql_type_map = {}
 
 def split_table_schema(table_name):
     """Get schema and table name from table reference.
@@ -113,15 +113,19 @@ def fields_from_table(table):
 
     return brewery.metadata.FieldList(fields)
 
-def concrete_storage_type(field):
+def concrete_storage_type(field, type_map={}):
     """Derives a concrete storage type for the field based on field conversion
        dictionary"""
 
     concrete_type = field.concrete_storage_type
         
     if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
-        concrete_type = _brewery_to_sql_type.get(field.storage_type)
+        if type_map:
+            concrete_type = type_map.get(field.storage_type)
 
+        if not concrete_type:
+            concrete_type = concrete_sql_type_map.get(field.storage_type)
+        
         if not concrete_type:
             raise ValueError("unable to find concrete storage type for field '%s' "
                              "of type '%s'" % (field.name, field.storage_type))
@@ -215,7 +219,8 @@ class SQLDataTarget(base.DataTarget):
                     table=None, schema=None, truncate=False,
                     create=False, replace=False,
                     add_id_key=False, id_key_name=None,
-                    buffer_size=None, **options):
+                    buffer_size=None, fields=None, concrete_type_map=None,
+                    **options):
         """Creates a relational database data target stream.
         
         :Attributes:
@@ -232,6 +237,7 @@ class SQLDataTarget(base.DataTarget):
             * id_key_name: name of the auto-increment key. Default is 'id'
             * buffer_size: size of INSERT buffer - how many records are collected before they are
               inserted using multi-insert statement. Default is 1000
+            * fields : fieldlist for a new table
         
         Note: avoid auto-detection when you are reading from remote URL stream.
         
@@ -250,7 +256,9 @@ class SQLDataTarget(base.DataTarget):
         self.add_id_key = add_id_key
 
         self.table = None
-        self._fields = None
+        self.fields = fields
+        
+        self.concrete_type_map = concrete_type_map
 
         if id_key_name:
             self.id_key_name = id_key_name
@@ -278,8 +286,8 @@ class SQLDataTarget(base.DataTarget):
         if self.truncate:
             self.table.delete().execute()
 
-        if not self._fields:
-            self._fields = fields_from_table(self.table)
+        if not self.fields:
+            self.fields = fields_from_table(self.table)
 
         self.insert_command = self.table.insert()
         self._buffer = []
@@ -317,7 +325,7 @@ class SQLDataTarget(base.DataTarget):
             if not isinstance(field, brewery.metadata.Field):
                 raise ValueError("field %s is not subclass of brewery.metadata.Field" % (field))
 
-            concrete_type = concrete_storage_type(field)
+            concrete_type = concrete_storage_type(field, self.concrete_type_map)
 
             col = sqlalchemy.schema.Column(field.name, concrete_type)
             table.append_column(col)
@@ -332,14 +340,6 @@ class SQLDataTarget(base.DataTarget):
 
         self._flush()
         self.context.close()
-
-    def __get_fields(self):
-        return self._fields
-
-    def __set_fields(self, fields):
-        self._fields = fields
-
-    fields = property(__get_fields, __set_fields)
 
     def append(self, obj):
         if type(obj) == dict:

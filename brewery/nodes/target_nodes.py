@@ -299,11 +299,11 @@ class FormattedPrinterNode(base.TargetNode):
             if self.close_handle:
                 self.handle.close()
 
-class DatabaseTableTargetNode(base.TargetNode):
+class SQLTableTargetNode(base.TargetNode):
     """Feed data rows into a relational database table.
     """
     __node_info__ = {
-        "label": "Database Table Target",
+        "label": "SQL Table Target",
         "icon": "sql_table_target",
         "description" : "Feed data rows into a relational database table",
         "attributes" : [
@@ -348,15 +348,19 @@ class DatabaseTableTargetNode(base.TargetNode):
     }
 
     def __init__(self, *args, **kwargs):
-        super(DatabaseTableTargetNode, self).__init__()
+        super(SQLTableTargetNode, self).__init__()
         self.kwargs = kwargs
         self.args = args
         self.stream = None
+
+        # FIXME: document this
+        self.concrete_type_map = None
 
     def initialize(self):
         self.stream = ds.SQLDataTarget(*self.args, **self.kwargs)
 
         self.stream.fields = self.input_fields
+        self.stream.concrete_type_map = self.concrete_type_map
         self.stream.initialize()
 
     def run(self):
@@ -365,3 +369,6 @@ class DatabaseTableTargetNode(base.TargetNode):
 
     def finalize(self):
         self.stream.finalize()
+
+# Original name is depreciated
+DatabaseTableTargetNode = SQLTableTargetNode
