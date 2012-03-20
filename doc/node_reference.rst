@@ -44,6 +44,36 @@ read from the file header if specified by `read_header` flag. Field storage type
    * - quotechar
      - character used for quoting string values, default is double quote
 
+.. _GeneratorFunctionSourceNode:
+
+Callable Generator Source
+-------------------------
+
+.. image:: nodes/generator_function_source_node.png
+   :align: right
+
+**Synopsis:** *Uses a callable as record generator*
+
+**Class:** GeneratorFunctionSourceNode
+
+Source node uses a callable to generate records.
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - function
+     - Function (or any callable)
+   * - fields
+     - Fields the function generates
+   * - args
+     - Function arguments
+   * - kwargs
+     - Function key-value arguments
+
 .. _GoogleSpreadsheetSourceNode:
 
 Google Spreadsheet Source
@@ -112,7 +142,7 @@ object.
 
    * - attribute
      - description
-   * - list
+   * - a_list
      - List of records represented as dictionaries.
    * - fields
      - Fields in the list.
@@ -144,6 +174,33 @@ object.
    * - fields
      - Fields in the list.
 
+.. _SQLSourceNode:
+
+SQL Source
+----------
+
+.. image:: nodes/sql_source_node.png
+   :align: right
+
+**Synopsis:** *Read data from a sql table.*
+
+**Class:** SQLSourceNode
+
+Source node that reads from a sql table.
+    
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - uri
+     - SQLAlchemy URL
+   * - table
+     - table name
+
 .. _StreamSourceNode:
 
 Data Stream Source
@@ -173,6 +230,44 @@ in visual, web or other stream modelling tools.
      - description
    * - stream
      - Data stream object.
+
+.. _XLSSourceNode:
+
+XLS Source
+----------
+
+.. image:: nodes/xls_file_source_node.png
+   :align: right
+
+**Synopsis:** *Read data from an Excel (XLS) spreadsheet file.*
+
+**Class:** XLSSourceNode
+
+Source node that reads Excel XLS files.
+
+It is recommended to configure node fields before running. If you do not do so, fields are
+read from the file header if specified by `read_header` flag. Field storage types are set to
+`string` and analytical type is set to `typeless`.
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - resource
+     - File name or URL containing comma separated values
+   * - fields
+     - fields contained in the file
+   * - sheet
+     - Sheet index number (as int) or sheet name (as string)
+   * - read_header
+     - flag determining whether first line contains header or not
+   * - skip_rows
+     - number of rows to be skipped
+   * - encoding
+     - resource data encoding, by default no conversion is performed
 
 .. _YamlDirectorySourceNode:
 
@@ -342,8 +437,10 @@ values:
      - Derived field name
    * - formula
      - Callable or a string with python expression that will evaluate to new field value
-   * - field_type
+   * - analytical_type
      - Analytical type of the new field
+   * - storage_type
+     - Storage type of the new field
 
 .. _DistinctNode:
 
@@ -475,7 +572,7 @@ Master input should have fields `region_code` and `category_code`, input #1 shou
 
 To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
 should be a dictionary where keys are input tags and values are either
-:class:`brewery.ds.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+:class:`brewery.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
 
 Following example renames ``source_region_name`` field in input 0 and drops field `id` in
 input 1:
@@ -483,8 +580,8 @@ input 1:
 .. code-block:: python
 
     node.maps = {
-                    0: ds.FieldMap(rename = {"source_region_name":"region_name"}),
-                    1: ds.FieldMap(drop = ["id"])
+                    0: brewery.FieldMap(rename = {"source_region_name":"region_name"}),
+                    1: brewery.FieldMap(drop = ["id"])
                 }
 
 It is the same as:
@@ -739,7 +836,9 @@ Node renames input fields or drops them from the stream.
    * - map_fields
      - Dictionary of input to output field name.
    * - drop_fields
-     - List of fields to be dropped from the stream.
+     - List of fields to be dropped from the stream - incompatible with keep_fields.
+   * - keep_fields
+     - List of fields to keep from the stream - incompatible with drop_fields.
 
 .. _StringStripNode:
 
@@ -888,8 +987,8 @@ Node that writes rows into a comma separated values (CSV) file.
 
 .. _DatabaseTableTargetNode:
 
-Database Table Target
----------------------
+SQL Table Target
+----------------
 
 .. image:: nodes/sql_table_target.png
    :align: right
@@ -1050,6 +1149,45 @@ To get list of fields, ask for `output_fields`.
      - description
    * - rows
      - Created list of tuples.
+
+.. _SQLTableTargetNode:
+
+SQL Table Target
+----------------
+
+.. image:: nodes/sql_table_target.png
+   :align: right
+
+**Synopsis:** *Feed data rows into a relational database table*
+
+**Class:** SQLTableTargetNode
+
+Feed data rows into a relational database table.
+    
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - url
+     - Database URL in form: adapter://user:password@host/database
+   * - connection
+     - SQLAlchemy database connection - either this or url should be specified
+   * - table
+     - table name
+   * - truncate
+     - If set to ``True`` all data table are removed prior to node execution. Default is ``False`` - data are appended to the table
+   * - create
+     - create table if it does not exist or not
+   * - replace
+     - Set to True if creation should replace existing table or not, otherwise node will fail on attempt to create a table which already exists
+   * - buffer_size
+     - how many records are collected before they are inserted using multi-insert statement. Default is 1000
+   * - options
+     - other SQLAlchemy connect() options
 
 .. _StreamTargetNode:
 

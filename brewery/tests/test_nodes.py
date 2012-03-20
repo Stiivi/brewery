@@ -533,4 +533,27 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(5, len(self.output.buffer[0]))
         self.assertEqual(input_len, len(self.output.buffer)) 
         
-        
+    def test_generator_function(self):
+        node = brewery.nodes.GeneratorFunctionSourceNode()
+        def generator(start=0, end=10):
+            for i in range(start,end):
+                yield [i]
+                
+        node.function = generator
+        node.fields = brewery.metadata.FieldList(["i"])
+        node.outputs = [self.output]
+
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        self.assertEqual(10, len(self.output.buffer))
+
+        self.output.buffer = []
+        node.args = [0,5]
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        self.assertEqual(5, len(self.output.buffer))
+        a = [row[0] for row in self.output.buffer]
+        self.assertEqual([0,1,2,3,4], a)
+

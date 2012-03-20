@@ -239,8 +239,8 @@ class FormattedPrinterNode(base.TargetNode):
             }
         ]
     }
-    def __init__(self, format = None, target = sys.stdout, delimiter = None, header = None,
-                 footer = None):
+    def __init__(self, format=None, target=sys.stdout, delimiter=None, 
+                 header=None, footer=None):
         super(FormattedPrinterNode, self).__init__()
         self.format = format
         
@@ -368,6 +368,7 @@ class SQLTableTargetNode(base.TargetNode):
             self.stream.append(row)
 
     def finalize(self):
+        """Flush remaining records and close the connection if necessary"""
         self.stream.finalize()
 
 # Original name is depreciated

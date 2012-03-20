@@ -84,8 +84,7 @@ class RecordListSourceNode(base.SourceNode):
     def run(self):
         for record in self.list:
             self.put_record(record)
-        
-    
+            
 class StreamSourceNode(base.SourceNode):
     """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
     output.
@@ -531,3 +530,49 @@ class SQLSourceNode(base.SourceNode):
             
     def finalize(self):
         self.stream.finalize()
+
+class GeneratorFunctionSourceNode(base.SourceNode):
+    """Source node uses a callable to generate records."""
+
+    __node_info__ = {
+        "label" : "Callable Generator Source",
+        "description" : "Uses a callable as record generator",
+        "protected": True,
+        "attributes" : [
+            {
+                 "name": "function",
+                 "description": "Function (or any callable)"
+            },
+            {
+                 "name": "fields",
+                 "description": "Fields the function generates"
+            },
+            {
+                 "name": "args",
+                 "description": "Function arguments"
+            },
+            {
+                 "name": "kwargs",
+                 "description": "Function key-value arguments"
+            }
+        ]
+    }
+
+    def __init__(self, function=None, fields=None, *args, **kwargs):
+        super(GeneratorFunctionSourceNode, self).__init__()
+
+        self.function = function
+        self.fields = fields
+        self.args = args
+        self.kwargs = kwargs
+
+    @property
+    def output_fields(self):
+        if not self.fields:
+            raise ValueError("Fields are not initialized")
+        return self.fields
+
+    def run(self):
+        for row in self.function(*self.args, **self.kwargs):
+            self.put(row)
+
