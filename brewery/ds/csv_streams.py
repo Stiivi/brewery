@@ -62,7 +62,7 @@ class UnicodeWriter:
         for value in row:
             if type(value) == unicode or type(value) == str:
                 new_row.append(value.encode("utf-8"))
-            elif value:
+            elif value is not None:
                 new_row.append(unicode(value))
             else:
                 new_row.append(None)
