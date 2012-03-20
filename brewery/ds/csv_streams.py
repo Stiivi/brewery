@@ -194,8 +194,8 @@ class CSVDataSource(base.DataSource):
             yield dict(zip(fields, row))
 
 class CSVDataTarget(base.DataTarget):
-    def __init__(self, resource, write_headers = True, truncate = True, encoding = "utf-8", 
-                dialect = None, **kwds):
+    def __init__(self, resource, write_headers=True, truncate=True, encoding="utf-8", 
+                dialect=None, **kwds):
         """Creates a CSV data target
         
         :Attributes:

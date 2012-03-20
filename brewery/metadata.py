@@ -1,4 +1,5 @@
 import copy
+# from collections import OrderedDict
 
 __all__ = [
     "Field",
@@ -6,8 +7,30 @@ __all__ = [
     "fieldlist", # FIXME remove this
     "expand_record",
     "collapse_record",
-    "FieldMap"
+    "FieldMap",
+    "storage_types",
+    "analytical_types"
 ]
+
+"""Abstracted field storage types"""
+storage_types = ("unknown", "string", "text", "integer", "float", 
+                 "boolean", "date")
+
+"""Analytical types used by analytical nodes"""
+analytical_types = ("default", "typeless", "flag", "discrete", "range", 
+                    "set", "ordered_set")
+
+"""Mapping between storage types and their respective default analytical 
+types"""
+# NOTE: For the time being, this is private
+default_analytical_types = {
+                "unknown": "typeless",
+                "string": "typeless",
+                "text": "typeless",
+                "integer": "discrete",
+                "float": "range",
+                "date": "typeless"
+            }
 
 # FIXME: Depreciated - why it is here, if we have FieldList class?!
 def fieldlist(fields):
@@ -26,7 +49,7 @@ def fieldlist(fields):
     * `storage_type` is set to ``unknown``
     * `analytical_type` is set to ``typeless``
     """
-    
+    # FIXME: print some warning here
     return FieldList(fields)
 
 def expand_record(record, separator = '.'):
@@ -64,7 +87,65 @@ def collapse_record(record, separator = '.', root = None):
         else:
             result[collapsed_key] = value
     return result
+
+def to_field(obj):
+    """Converts `obj` to a field object. `obj` can be ``str``, ``tuple`` 
+    (``list``), ``dict`` object or :class:`Field` object. If it is `Field` 
+    instance, then same object is passed.
     
+    If field is not a `Field` instance, then construction of new field is as follows:
+
+    ``str``:
+        `field name` is set 
+
+    ``tuple``:
+        (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is 
+        obligatory, rest is optional
+
+    ``dict``
+        contains key-value pairs for initializing a :class:`Field` object
+
+    Attributes of a field that are not specified in the `obj` are filled as: 
+    `storage_type` is set to ``unknown``, `analytical_type` is set to 
+    ``typeless``
+    """
+
+
+    if isinstance(obj, Field):
+        field = obj
+    else:
+        d = { "storage_type": "unknown" }
+
+        if isinstance(obj, basestring):
+            d["name"] = obj
+        elif type(obj) == tuple or type(obj) == list:
+            d["name"] = obj[0]
+            try:
+                d["storage_type"] = obj[1]
+                try:
+                    d["analytical_type"] = obj[2]
+                except:
+                    pass
+            except:
+                pass
+        else: # assume dictionary
+            d["name"] = obj["name"]
+            d["label"] = obj.get("label")
+            d["storage_type"] = obj.get("storage_type")
+            d["analytical_type"] = obj.get("analytical_type")
+            d["adapter_storage_type"] = obj.get("adapter_storage_type")
+
+        if "analytical_type" not in d:
+            storage_type = d.get("storage_type")
+            if storage_type:
+                deftype = default_analytical_types.get(storage_type)
+                d["analytical_type"] = deftype or "typeless"
+            else:
+                d["analytical_type"] = "typeless"
+
+        field = Field(**d)
+    return field
+
 class Field(object):
     """Metadata - information about a field in a dataset or in a datastream.
 
@@ -81,21 +162,6 @@ class Field(object):
         * `missing_values` (optional) - Array of values that represent missing 
           values in the dataset for given field
     """
-
-    storage_types = ("unknown", "string", "text", "integer", "float", 
-                     "boolean", "date")
-
-    analytical_types = ("default", "typeless", "flag", "discrete", "range", 
-                        "set", "ordered_set")
-
-    default_analytical_type = {
-                    "unknown": "typeless",
-                    "string": "typeless",
-                    "text": "typeless",
-                    "integer": "discrete",
-                    "float": "range",
-                    "date": "typeless"
-                }
 
     def __init__(self, name, label=None, storage_type="unknown",
                  analytical_type="typeless", concrete_storage_type=None,
@@ -165,74 +231,27 @@ class FieldList(object):
         """
         super(FieldList, self).__init__()
 
+        # FIXME: use OrderedDict (Python 2.7+)
         self._fields = []
         self._field_dict = {}
         self._field_names = []
 
         if fields:
+            # Convert input to Field instances
+            # This is convenience, so one can pass list of strsings, for example
+
+            fields = [to_field(f) for f in fields]
             for field in fields:
                 self.append(field)
         
     def append(self, field):
-        """Add field to list of fields.
-        
-        :Parameters:
-            * `field` - :class:`Field` object, ``str``, ``tuple`` or ``dict`` object 
-
-        If field is not a `Field` object, then construction of new field is as follows:
-
-        * ``str``: `field name` is set 
-        * ``tuple``: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
-          obligatory, rest is optional
-        * ``dict``: contains key-value pairs for initializing a :class:`Field` object
-
-        For strings and in if not explicitly specified in a tuple or a dict case, then following rules
-        apply:
-
-        * `storage_type` is set to ``unknown``
-        * `analytical_type` is set to ``typeless``
-        """
-
-
-        d = {}
-        d["storage_type"] = "unknown"
-        d["analytical_type"] = "typeless"
-
-        if type(field) == Field:
-            # FIXME: should be a copy?
-            new_field = field
-        else:
-            if type(field) == str or type(field) == unicode:
-                d["name"] = field
-            elif type(field) == tuple or type(field) == list:
-                d["name"] = field[0]
-                if len(field) > 1:
-                    d["storage_type"] = field[1]
-                    if len(field) > 2:
-                        d["analytical_type"] = field[2]
-            elif type(field) == dict:
-                d["name"] = field["name"]
-                if "label" in field:
-                    d["label"] = field["label"]
-                if "storage_type" in field:
-                    d["storage_type"] = field["storage_type"]
-                if "analytical_type" in field:
-                    d["analytical_type"] = field["analytical_type"]
-                if "adapter_storage_type" in field:
-                    d["adapter_storage_type"] = field["adapter_storage_type"]
-            else:
-                raise ValueError("Unknown field object type ('%s' ) of field description object '%s'" \
-                                    % (type(field), field))
-
-            if "analytical_type" not in d:
-                deftype = Field.default_analytical_types[d["storage_type"]]
-                d["analytical_type"] = deftype
-
-            new_field = Field(**d)
-            
-        self._fields.append(new_field)
-        self._field_dict[new_field.name] = new_field
-        self._field_names.append(new_field.name)
+        """Appends a field to the list. This method requires `field` to be 
+        instance of `Field`"""
+    
+        field = to_field(field)
+        self._fields.append(field)
+        self._field_dict[field.name] = field
+        self._field_names.append(field.name)
         
     def names(self, indexes = None):
         """Return names of fields in the list.
@@ -243,9 +262,7 @@ class FieldList(object):
         """
         
         if indexes:
-            names = []
-            for i in indexes:
-                names.append(self._field_names[i])
+            names = [self._field_names[i] for i in indexes]
             return names
         else:
             return self._field_names
@@ -258,7 +275,7 @@ class FieldList(object):
         dictionaries, for example for performance purposes.
         """
 
-        indexes = [self.index(str(field)) for field in fields]
+        indexes = [self.index(field) for field in fields]
 
         return tuple(indexes)
 
@@ -280,12 +297,7 @@ class FieldList(object):
         if not names:
             return self._fields
 
-        fields = []
-        for name in names:
-            if name in self._field_dict:
-                fields.append(self._field_dict[name])
-            else:
-                raise KeyError("Field list has no field with name '%s'" % name)
+        fields = [self._field_dict[name] for name in names]
 
         return fields
 
@@ -409,13 +421,4 @@ class RowFieldFilter(object):
         
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
-        nrow = []
-        for i in self.indexes:
-            nrow.append(row[i])
-        return nrow
-
-def default_concrete_type_mapper(field, context):
-    """Default concrete type mapper. It just returns the concrete storage type.
-    You can use this as 'no-op' function for streams and nodes that support
-    customized concrete storage type conversions. See SQL streams for example"""
-    return field.concrete_storage_type
+        return [row[i] for i in self.indexes]
