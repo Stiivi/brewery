@@ -1,4 +1,5 @@
 import StringIO
+import traceback
 
 __all__ = [
     "FieldError",
@@ -59,9 +60,10 @@ class StreamRuntimeError(Exception):
         text += "\ntraceback\n"
 
         try:
-            text += u"".join(self.traceback)
-        except Exception, e:
-            text += u"<unable to get traceback string: %s>" % e
+            l = traceback.format_list(traceback.extract_tb(self.traceback))
+            text += "".join(l)
+        except Exception as e:
+            text += "<unable to get traceback string: %s>" % e
 
         text += "\n"
 

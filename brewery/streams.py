@@ -700,7 +700,9 @@ class _StreamNodeThread(threading.Thread):
         except NodeFinished as e:
             logging.info("node %s finished" % (self.node))
         except Exception as e:
-            # FIXME: log exception traceback as debug, not as error
+            tb = sys.exc_info()[2]
+            self.traceback = tb
+
             logging.error("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
             self.exception = e
 
