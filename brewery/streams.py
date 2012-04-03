@@ -774,10 +774,7 @@ class _StreamFork(object):
         """Returns node class"""
         # FIXME: use create_node here
         
-        class_dict = Node.class_dictionary()
-
-        if not name in class_dict:
-            raise AttributeError(name)
+        class_dict = node_dictionary()
 
         node_class = class_dict[name]
 
