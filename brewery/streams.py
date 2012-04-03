@@ -703,7 +703,7 @@ class _StreamNodeThread(threading.Thread):
             tb = sys.exc_info()[2]
             self.traceback = tb
 
-            logging.error("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
+            logging.debug("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
             self.exception = e
 
         # Flush pipes after node is finished

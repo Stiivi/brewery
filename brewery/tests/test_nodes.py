@@ -202,10 +202,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertAllRows()
 
     def record_results(self):
-        results = []
-        for record in self.output.records():
-            results.append(record)
-        return results
+        return [r for r in self.output.records()]
 
     def initialize_node(self, node):
         node.initialize()
@@ -218,7 +215,7 @@ class NodesTestCase(unittest.TestCase):
         self.create_distinct_sample()
 
         node.key_fields = ["type"]
-        node.add_aggregation("id", ["sum"])
+        node.add_measure("id", ["sum"])
         self.initialize_node(node)
         
         fields = node.output_fields.names()
@@ -248,7 +245,7 @@ class NodesTestCase(unittest.TestCase):
         self.create_distinct_sample()
 
         # Setup node
-        node.add_aggregation("id", ["sum"])
+        node.add_measure("id", ["sum"])
         self.initialize_node(node)
 
         fields = node.output_fields.names()
@@ -374,7 +371,7 @@ class NodesTestCase(unittest.TestCase):
         self.initialize_node(node)
         node.run()
         node.finalize()
-        print "BUFFER: %s" % self.output.buffer
+
         val = sum([row[4] for row in self.output.buffer])
         self.assertEqual(49500, val)
 

@@ -65,10 +65,13 @@ class DataSourceTestCase(unittest.TestCase):
         count = 0
         max_fields = 0
         min_fields = 0
+        self.rows = []
         for row in source.rows():
             count += 1
             max_fields = max(len(row), max_fields)
             min_fields = max(len(row), min_fields)
+            self.rows.append(row)
+            
         return { "count" : count, "max_fields": max_fields, "min_fields": min_fields }
 
     def test_file_source(self):
@@ -100,6 +103,18 @@ class DataSourceTestCase(unittest.TestCase):
         self.assertEqual(3, result["min_fields"])
         self.assertEqual(8, result["count"])
 
+
+    def test_csv_field_type(self):
+        src = brewery.ds.CSVDataSource(self.data_file('test.csv'), skip_rows=1,read_header=False)
+        fields = ['id', 'name', 'type', 'location.name', 'location.code', ['amount', 'integer']]
+        src.fields = brewery.FieldList(fields)
+        src.initialize()
+        self.assertEqual("integer", src.fields[5].storage_type)
+
+        result = self.read_source(src)
+        self.assertEqual(True, isinstance(self.rows[0][1], basestring))
+        self.assertEqual(True, isinstance(self.rows[0][5], int))
+    
     def test_xls_source(self):
         src = brewery.ds.XLSDataSource(self.data_file('test.xls'))
         src.initialize()
