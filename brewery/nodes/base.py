@@ -6,6 +6,7 @@ import brewery.utils as utils
 __all__ = (
     "create_node",
     "node_dictionary",
+    "get_node_info",
     "NodeFinished",
     "Node",
     "SourceNode",

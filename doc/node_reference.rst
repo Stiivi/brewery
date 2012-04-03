@@ -14,7 +14,7 @@ CSV Source
 
 **Synopsis:** *Read data from a comma separated values (CSV) file.*
 
-**Class:** CSVSourceNode
+**Identifier:** csv_source (class: :class:`brewery.nodes.CSVSourceNode`)
 
 Source node that reads comma separated file from a filesystem or a remote URL.
 
@@ -54,7 +54,7 @@ Callable Generator Source
 
 **Synopsis:** *Uses a callable as record generator*
 
-**Class:** GeneratorFunctionSourceNode
+**Identifier:** generator_function_source (class: :class:`brewery.nodes.GeneratorFunctionSourceNode`)
 
 Source node uses a callable to generate records.
 
@@ -84,7 +84,7 @@ Google Spreadsheet Source
 
 **Synopsis:** *Read data from a Google Spreadsheet.*
 
-**Class:** GoogleSpreadsheetSourceNode
+**Identifier:** google_spreadsheet_source (class: :class:`brewery.nodes.GoogleSpreadsheetSourceNode`)
 
 Source node that reads Google Spreadsheet.
 
@@ -130,7 +130,7 @@ Record List Source
 
 **Synopsis:** *Provide list of dict objects as data source.*
 
-**Class:** RecordListSourceNode
+**Identifier:** record_list_source (class: :class:`brewery.nodes.RecordListSourceNode`)
 
 Source node that feeds records (dictionary objects) from a list (or any other iterable)
 object.
@@ -157,7 +157,7 @@ Row List Source
 
 **Synopsis:** *Provide list of lists or tuples as data source.*
 
-**Class:** RowListSourceNode
+**Identifier:** row_list_source (class: :class:`brewery.nodes.RowListSourceNode`)
 
 Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
 object.
@@ -184,7 +184,7 @@ SQL Source
 
 **Synopsis:** *Read data from a sql table.*
 
-**Class:** SQLSourceNode
+**Identifier:** sql_source (class: :class:`brewery.nodes.SQLSourceNode`)
 
 Source node that reads from a sql table.
     
@@ -211,7 +211,7 @@ Data Stream Source
 
 **Synopsis:** *Generic data stream data source node.*
 
-**Class:** StreamSourceNode
+**Identifier:** stream_source (class: :class:`brewery.nodes.StreamSourceNode`)
 
 Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
 output.
@@ -241,7 +241,7 @@ XLS Source
 
 **Synopsis:** *Read data from an Excel (XLS) spreadsheet file.*
 
-**Class:** XLSSourceNode
+**Identifier:** xls_source (class: :class:`brewery.nodes.XLSSourceNode`)
 
 Source node that reads Excel XLS files.
 
@@ -279,7 +279,7 @@ YAML Directory Source
 
 **Synopsis:** *Read data from a directory containing YAML files*
 
-**Class:** YamlDirectorySourceNode
+**Identifier:** yaml_directory_source (class: :class:`brewery.nodes.YamlDirectorySourceNode`)
 
 Source node that reads data from a directory containing YAML files.
 
@@ -320,7 +320,7 @@ Aggregate Node
 
 **Synopsis:** *Aggregate values grouping by key fields.*
 
-**Class:** AggregateNode
+**Identifier:** aggregate (class: :class:`brewery.nodes.AggregateNode`)
 
 Aggregate
 
@@ -346,7 +346,7 @@ Append
 
 **Synopsis:** *Concatenate input streams.*
 
-**Class:** AppendNode
+**Identifier:** append (class: :class:`brewery.nodes.AppendNode`)
 
 Sequentialy append input streams. Concatenation order reflects input stream order. The
 input streams should have same set of fields.
@@ -362,7 +362,7 @@ Data Audit
 
 **Synopsis:** *Perform basic data audit.*
 
-**Class:** AuditNode
+**Identifier:** audit (class: :class:`brewery.nodes.AuditNode`)
 
 Node chcecks stream for empty strings, not filled values, number distinct values.
 
@@ -396,7 +396,7 @@ Derive Node
 
 **Synopsis:** *Derive a new field using an expression.*
 
-**Class:** DeriveNode
+**Identifier:** derive (class: :class:`brewery.nodes.DeriveNode`)
 
 Dreive a new field from other fields using an expression or callable function.
 
@@ -452,7 +452,7 @@ Distinct Node
 
 **Synopsis:** *Pass only distinct records (discard duplicates) or pass only duplicates*
 
-**Class:** DistinctNode
+**Identifier:** distinct (class: :class:`brewery.nodes.DistinctNode`)
 
 Node will pass distinct records with given distinct fields.
 
@@ -487,7 +487,7 @@ Function Select
 
 **Synopsis:** *Select records by a predicate function (python callable).*
 
-**Class:** FunctionSelectNode
+**Identifier:** function_select (class: :class:`brewery.nodes.FunctionSelectNode`)
 
 Select records that will be selected by a predicate function.
 
@@ -533,7 +533,7 @@ Merge Node
 
 **Synopsis:** *Merge two or more streams*
 
-**Class:** MergeNode
+**Identifier:** merge (class: :class:`brewery.nodes.MergeNode`)
 
 Merge two or more streams (join).
 
@@ -635,7 +635,7 @@ Sample Node
 
 **Synopsis:** *Pass data sample from input to output.*
 
-**Class:** SampleNode
+**Identifier:** sample (class: :class:`brewery.nodes.SampleNode`)
 
 Create a data sample from input stream. There are more sampling possibilities:
 
@@ -669,7 +669,7 @@ Select
 
 **Synopsis:** *Select or discard records from the stream according to a predicate.*
 
-**Class:** SelectNode
+**Identifier:** select (class: :class:`brewery.nodes.SelectNode`)
 
 Select or discard records from the stream according to a predicate.
 
@@ -721,7 +721,7 @@ Set Select
 
 **Synopsis:** *Select records by a predicate function.*
 
-**Class:** SetSelectNode
+**Identifier:** set_select (class: :class:`brewery.nodes.SetSelectNode`)
 
 Select records where field value is from predefined set of values.
 
@@ -757,7 +757,7 @@ Binning
 
 **Synopsis:** *Derive a field based on binned values (histogram)*
 
-**Class:** BinningNode
+**Identifier:** binning (class: :class:`brewery.nodes.BinningNode`)
 
 Derive a bin/category field from a value.
 
@@ -785,7 +785,7 @@ Coalesce Value To Type Node
 
 **Synopsis:** *Coalesce Value to Type*
 
-**Class:** CoalesceValueToTypeNode
+**Identifier:** coalesce_value_to_type (class: :class:`brewery.nodes.CoalesceValueToTypeNode`)
 
 Coalesce values of selected fields, or fields of given type to match the type.
 
@@ -821,7 +821,7 @@ Field Map
 
 **Synopsis:** *Rename or drop fields from the stream.*
 
-**Class:** FieldMapNode
+**Identifier:** field_map (class: :class:`brewery.nodes.FieldMapNode`)
 
 Node renames input fields or drops them from the stream.
     
@@ -850,7 +850,7 @@ String Strip
 
 **Synopsis:** *Strip characters.*
 
-**Class:** StringStripNode
+**Identifier:** string_strip (class: :class:`brewery.nodes.StringStripNode`)
 
 Strip spaces (orother specified characters) from string fields.
 
@@ -876,7 +876,7 @@ Text Substitute
 
 **Synopsis:** *Substitute text in a field using regular expression.*
 
-**Class:** TextSubstituteNode
+**Identifier:** text_substitute (class: :class:`brewery.nodes.TextSubstituteNode`)
 
 Substitute text in a field using regular expression.
 
@@ -904,7 +904,7 @@ Value Threshold
 
 **Synopsis:** *Bin values based on a threshold.*
 
-**Class:** ValueThresholdNode
+**Identifier:** value_threshold (class: :class:`brewery.nodes.ValueThresholdNode`)
 
 Create a field that will refer to a value bin based on threshold(s). Values of `range` type
 can be compared against one or two thresholds to get low/high or low/medium/high value bins.
@@ -961,7 +961,7 @@ CSV Target
 
 **Synopsis:** *Write rows as comma separated values into a file*
 
-**Class:** CSVTargetNode
+**Identifier:** csv_target (class: :class:`brewery.nodes.CSVTargetNode`)
 
 Node that writes rows into a comma separated values (CSV) file.
 
@@ -995,7 +995,7 @@ SQL Table Target
 
 **Synopsis:** *Feed data rows into a relational database table*
 
-**Class:** DatabaseTableTargetNode
+**Identifier:** sql_table_target (class: :class:`brewery.nodes.DatabaseTableTargetNode`)
 
 Feed data rows into a relational database table.
     
@@ -1034,7 +1034,7 @@ Formatted Printer
 
 **Synopsis:** *Print input using a string formatter to an output IO stream*
 
-**Class:** FormattedPrinterNode
+**Identifier:** formatted_printer (class: :class:`brewery.nodes.FormattedPrinterNode`)
 
 Target node that will print output based on format.
 
@@ -1107,7 +1107,7 @@ Record List Target
 
 **Synopsis:** *Store data as list of dictionaries (records)*
 
-**Class:** RecordListTargetNode
+**Identifier:** record_list_target (class: :class:`brewery.nodes.RecordListTargetNode`)
 
 Target node that stores data from input in a list of records (dictionary objects)
 object.
@@ -1134,7 +1134,7 @@ Row List Target
 
 **Synopsis:** *Store data as list of tuples*
 
-**Class:** RowListTargetNode
+**Identifier:** row_list_target (class: :class:`brewery.nodes.RowListTargetNode`)
 
 Target node that stores data from input in a list of rows (as tuples).
 
@@ -1160,7 +1160,7 @@ SQL Table Target
 
 **Synopsis:** *Feed data rows into a relational database table*
 
-**Class:** SQLTableTargetNode
+**Identifier:** sql_table_target (class: :class:`brewery.nodes.SQLTableTargetNode`)
 
 Feed data rows into a relational database table.
     
@@ -1199,7 +1199,7 @@ Data Stream Target
 
 **Synopsis:** *Generic data stream data target node.*
 
-**Class:** StreamTargetNode
+**Identifier:** stream_target (class: :class:`brewery.nodes.StreamTargetNode`)
 
 Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the 
 input to the target stream.

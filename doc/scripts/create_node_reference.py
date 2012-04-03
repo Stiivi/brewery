@@ -6,7 +6,7 @@ import string
 from brewery.nodes import *
 import brewery
 
-sys.path.insert(0, "..")
+# sys.path.insert(0, "..")
 
 node_types = [
     {"type": "source", "label": "Sources"},
@@ -36,11 +36,13 @@ def node_documentation(class_name, node):
     doc["class_name"] = class_name
     name = decamelize(class_name)
     doc["name"] = name
-    
-    if "__node_info__" in node.__dict__:
-        info = node.__node_info__
-    else:
+    doc["identifier"] = node.identifier()
+
+    try:
+        info = get_node_info(node)
+    except Exception as e:
         info = {}
+
     node_type = info.get("type")
 
     if not node_type:
@@ -85,7 +87,7 @@ def write_node_doc(doc, f):
     temp += ".. image:: nodes/${icon}.png\n" \
                 "   :align: right\n\n" \
                 "**Synopsis:** *${description}*\n\n" \
-                "**Class:** ${class_name}\n\n" \
+                "**Identifier:** ${identifier} (class: :class:`brewery.nodes.${class_name}`)\n\n" \
                 "${documentation}\n\n"
     
     template = string.Template(temp)
