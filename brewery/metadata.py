@@ -32,6 +32,11 @@ default_analytical_types = {
                 "date": "typeless"
             }
 
+_valid_retype_attributes = ("storage_type", 
+                     "analytical_type", 
+                     "concrete_storage_type",
+                     "missing_values")
+
 # FIXME: Depreciated - why it is here, if we have FieldList class?!
 def fieldlist(fields):
     """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
@@ -163,9 +168,9 @@ class Field(object):
           values in the dataset for given field
     """
 
-    def __init__(self, name, label=None, storage_type="unknown",
+    def __init__(self, name, storage_type="unknown",
                  analytical_type="typeless", concrete_storage_type=None,
-                 missing_values=None):
+                 missing_values=None, label=None):
         self.name = name
         self.label = label
         self.storage_type = storage_type
@@ -356,11 +361,26 @@ class FieldList(object):
             return FieldList(copy_fields)
         else:
             return FieldList(self._fields)
+                
+    def retype(self, dictionary):
+        """Retype fields according to the dictionary. Dictionary contains
+        field names as keys and field attribute dictionary as values."""
+        
+        for name, retype in dictionary.items():
+            field = self._field_dict[name]
+            for key, value in retype.items():
+                if key in _valid_retype_attributes:
+                    field.__setattr__(key, value)
+                else:
+                    raise Exception("Should not use retype to change field attribute '%s'", key)
             
 class FieldMap(object):
     """Filters fields in a stream"""
     def __init__(self, rename = None, drop = None, keep=None):
-
+        """Creates a field map. `rename` is a dictionary where keys are input
+        field names and values are output field names. `drop` is list of 
+        field names that will be dropped from the stream. If `keep` is used,
+        then all fields are dropped except those specified in `keep` list."""
         if drop and keep:
             raise Exception('Configuration error in FieldMap: you cant specify both keep and drop options.')
         super(FieldMap, self).__init__()
@@ -406,7 +426,7 @@ class FieldMap(object):
                 indexes.append(i)
                 
         return RowFieldFilter(indexes)
-        
+
 class RowFieldFilter(object):
     """Class for filtering fields in array"""
 

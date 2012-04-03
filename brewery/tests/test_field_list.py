@@ -52,3 +52,13 @@ class FieldListCase(unittest.TestCase):
         self.assertEqual(True, "a" in fields)
         self.assertEqual(True, field in fields)
         
+    def test_retype(self):
+        fields = brewery.FieldList(["a", "b", "c", "d"])
+        self.assertEqual("unknown", fields.field("a").storage_type)
+        retype_dict = {"a": {"storage_type":"integer"}}
+        fields.retype(retype_dict)
+        self.assertEqual("integer", fields.field("a").storage_type)
+
+        retype_dict = {"a": {"name":"foo"}}
+        self.assertRaises(Exception, fields.retype, retype_dict)
+        

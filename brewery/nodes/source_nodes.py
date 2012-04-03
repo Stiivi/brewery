@@ -187,36 +187,30 @@ class CSVSourceNode(base.SourceNode):
         self.args = args
         self.kwargs = kwargs
         self.stream = None
-        self._fields = None
+        self.fields = None
+        self._output_fields = None
         
     @property
     def output_fields(self):
         if not self.stream:
             raise ValueError("Stream is not initialized")
 
-        if not self.stream.fields:
+        if not self._output_fields:
             raise ValueError("Fields are not initialized")
 
-        return self.stream.fields
-
-    def __set_fields(self, fields):
-        self._fields = fields
-        if self.stream:
-            self.stream.fields = fields
-
-    def __get_fields(self):
-        return self._fields
-
-    fields = property(__get_fields, __set_fields)
+        return self._output_fields
 
     def initialize(self):
         self.stream = ds.CSVDataSource(self.resource, *self.args, **self.kwargs)
         
-        if self._fields:
-            self.stream.fields = self._fields
+        if self.fields:
+            self.stream.fields = self.fields
         
         self.stream.initialize()
-        self._fields = self.stream.fields
+        
+        # FIXME: this is experimental form of usage
+        self._output_fields = self.stream.fields.copy()
+        self._output_fields.retype(self._retype_dictionary)
 
     def run(self):
         for row in self.stream.rows():

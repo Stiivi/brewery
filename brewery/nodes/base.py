@@ -99,6 +99,10 @@ class Node(object):
         self.outputs = []
         self._active_outputs = []
         self.description = None
+        
+        # Experimental: dictionary to be used to retype output fields
+        # Currently used only in CSV source node.
+        self._retype_dictionary = {}
 
     def initialize(self):
         """Initializes the node. Initialization is separated from creation. Put any Node subclass
@@ -145,6 +149,20 @@ class Node(object):
             self.outputs.append(pipe)
         else:
             raise Exception("Output %s already connected" % pipe)
+    
+    def retype(self, name, **attributes):
+        """Retype an output field `name` to field `field`.
+        
+        .. note:
+        
+            This function is not set in stone and might change. Consider it to
+            be experimental feature.
+        """
+        self._retype_dictionary[name] = attributes
+        
+    def reset_type(self, name):
+        """Remove all retype information for field `name`"""
+        del self._retype_dictionary[name]
     
     def put(self, obj):
         """Put row into all output pipes.
