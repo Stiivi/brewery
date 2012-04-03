@@ -31,7 +31,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License (GPL)',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Topic :: Database',
         'Topic :: Scientific/Engineering',
@@ -44,7 +44,7 @@ setup(
     author="Stefan Urbanek",
     author_email="stefan.urbanek@gmail.com",
     description="Framework for analysing data and measuring quality of data using structured data streams",
-    license="GPL",
+    license="MIT",
     keywords="data analysis quality datamining",
     url="http://www.databrewery.org"
 

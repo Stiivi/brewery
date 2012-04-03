@@ -1,13 +1,19 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+    Brewery
+    ~~~~~~~
+    
+    Framework for stream-based data analysis and auditing. Focuses on
+    understandability and auditability of the analytical proces.
 
-"""Brewery"""
+    :license: MIT, see LICENSE for more details
+"""
+
+__version__ = '0.8.0'
 
 from metadata import *
 from streams import *
 from utils import *
-
-__version__ = '0.8.0'
 
 __all__ = [
     "logger_name",
