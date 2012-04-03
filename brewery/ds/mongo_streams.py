@@ -34,7 +34,7 @@ class MongoDBDataSource(base.DataSource):
         self.expand = expand
 
         self.collection = None
-        self._fields = None
+        self.fields = None
 
     def initialize(self):
         """Initialize Mongo source stream:
@@ -96,13 +96,13 @@ class MongoDBDataSource(base.DataSource):
 
             fields.append(field)
 
-        self._fields = list(fields)
-        return self._fields
+        self.fields = list(fields)
+        return self.fields
 
     def rows(self):
         if not self.collection:
             raise RuntimeError("Stream is not initialized")
-        fields = self.field_names
+        fields = self.fields.names
         iterator = self.collection.find(fields=fields)
         return MongoDBRowIterator(iterator, fields)
 
@@ -110,8 +110,8 @@ class MongoDBDataSource(base.DataSource):
         if not self.collection:
             raise RuntimeError("Stream is not initialized")
         # return MongoDBRowIterator(self.field_names, self.collection.find())
-        if self._fields:
-            fields = self.field_names
+        if self.fields:
+            fields = self.fields.names()
         else:
             fields = None
         iterator = self.collection.find(fields=fields)
@@ -210,7 +210,7 @@ class MongoDBDataTarget(base.DataTarget):
         self.truncate = truncate
 
         self.collection = None
-        self._fields = None
+        self.fields = None
 
     def initialize(self):
         """Initialize Mongo source stream:
@@ -228,6 +228,8 @@ class MongoDBDataTarget(base.DataTarget):
 
         if self.truncate:
             self.collection.remove()
+            
+        self.field_names = self.fields.names()
 
     def append(self, obj):
         if type(obj) == dict:

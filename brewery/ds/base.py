@@ -39,33 +39,55 @@ def open_resource(resource, mode = None):
         a flag whether returned handle should be closed or not. Closed should be resources which
         where opened by this method, that is resources referenced by a string or URL.
     """
-    handle = None
-    should_close = False
+
     if type(resource) == str or type(resource) == unicode:
+        should_close = True
         parts = urlparse.urlparse(resource)
         if parts.scheme == '' or parts.scheme == 'file':
             if mode:
-                handle = file(resource, mode)
-                should_close = True
+                handle = open(resource, mode=mode)
             else:
-                handle = file(resource)
-                should_close = True
+                handle = open(resource)
         else:
             handle = urllib2.urlopen(resource)
-            should_close = True
     else:
+        should_close = False
         handle = resource
-    return (handle, should_close)
 
+    return (handle, should_close)
 class DataStream(object):
     """Shared methods for data targets and data sources"""
     
-    def initialize(self):
-        """Delayed stream initialisation code. Subclasses might override this method to implement
-        file or handle opening, connecting to a database, doing web authentication, ... By
-        default this method does nothing.
+    def __init__(self):
+        """
+        A data stream object – abstract class.
         
-        The method does not take any arguments, it expects pre-configured object.
+        The subclasses should provide:
+        
+        * `fields`
+        
+        `fields` are :class:`FieldList` objects representing fields passed
+        through the receiving stream - either read from data source
+        (:meth:`DataSource.rows`) or written to data target
+        (:meth:`DataTarget.append`).
+
+        Subclasses should populate the `fields` property (or implenet an
+        accessor).
+
+        The subclasses might override:
+        
+        * `initialize()`
+        * `finalize()`
+        """
+        super(DataStream, self).__init__()
+
+    def initialize(self):
+        """Delayed stream initialisation code. Subclasses might override this
+        method to implement file or handle opening, connecting to a database,
+        doing web authentication, ... By default this method does nothing.
+        
+        The method does not take any arguments, it expects pre-configured
+        object.
         """
         pass
 
@@ -80,36 +102,20 @@ class DataStream(object):
         """
         pass
 
-    def __get_fields(self):
-        """Information about fields: tuple of :class:`Field` objects representing fields passed
-        through the receiving stream - either read from data source (:meth:`DataSource.rows`) or written
-        to data target (:meth:`DataTarget.append`).
-
-        Subclasses should implement `fields` property getter. Implementing `fields` setter is optional.
-
-        Implementation of `fields` setter is recommended for :class:`DataSource` subclasses such as CSV
-        files or typeless document based database. For example: explicitly specify field names for CSVs
-        without headers or for specify field analytical or storage types for further processing. Setter
-        is recommended also for :class:`DataTarget` subclasses that create datasets (new CSV file,
-        non-existing tables).
-        """
-        return self._fields
-
-    def __set_fields(self, fields):
-        self._fields = fields
-        # raise Exception("Data stream %s does not support setting fields." % str(self.__class__))
-
-    fields = property(__get_fields, __set_fields)
-
-    @property
-    def field_names(self):
-        """Returns list of field names. This is shourt-cut for extracting field.name attribute from
-        list of field objects returned by :meth:`fields`.
-        """
-        return [field.name for field in self.fields]
-
+    # def _get_fields(self):
+    #     raise NotImplementedError()
+    # 
+    # def _set_fields(self, fields):
+    #     raise NotImplementedError()
+    # 
+    # fields = property(_get_fields, _set_fields)
+        
 class DataSource(DataStream):
     """Input data stream - for reading."""
+
+    def __init__(self):
+        """Abstrac class for data sources."""
+        super(DataSource, self).__init__()
 
     def rows(self):
         """Return iterable object with tuples. This is one of two methods for reading from
@@ -147,10 +153,7 @@ class DataSource(DataStream):
 
         def probe_record(record, parent = None):
             for key, value in record.items():
-                if parent:
-                    full_key = parent + "." + key
-                else:
-                    full_key = key
+                full_key = parent + "." + key if parent else key
 
                 if self.expand and type(value) == dict:
                     probe_record(value, full_key)
@@ -168,7 +171,7 @@ class DataSource(DataStream):
         for record in self.records():
             if collapse:
                 record = collapse_record(record)
-            print record
+
             probe_record(record)
             if limit and count >= limit:
                 break
@@ -193,12 +196,15 @@ class DataSource(DataStream):
 
             fields.append(field)
 
-        self._fields = list(fields)
-        return self._fields
+        self.fields = list(fields)
+        return self.fields
 
 class DataTarget(DataStream):
     """Output data stream - for writing.
     """
+    def __init__(self):
+        """Abstrac class for data targets."""
+        super(DataTarget, self).__init__()
 
     def append(self, object):
         """Append an object into dataset. Object can be a tuple, array or a dict object. If tuple

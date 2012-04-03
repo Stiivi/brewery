@@ -33,9 +33,9 @@ class StreamAuditor(base.DataTarget):
             stat.probe(value)
 
     def _probe_row(self, row):
-        if not self._fields:
+        if not self.fields:
             raise ValueError("Fields are not initialized")
-        for i, field in enumerate(self.field_names):
+        for i, field in enumerate(self.fields.names()):
             stat = self._field_stat(field)
             value = row[i]
             stat.probe(value)

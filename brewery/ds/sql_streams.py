@@ -173,31 +173,28 @@ class SQLDataSource(base.DataSource):
 
         self.context = None
         self.table = None
-        self._fields = None
+        self.fields = None
         
         if autoinit:
             self.initialize()
 
     def initialize(self):
-        """Initialize source stream:
+        """Initialize source stream. If the fields are not initialized, then
+        they are read from the table.
         """
         if not self.context:
             self.context = SQLContext(self.url, self.connection, self.schema)
         if not self.table:
             self.table = self.context.table(self.table_name)
+        if not self.fields:
+            self.read_fields()
 
     def finalize(self):
         self.context.close()
 
-    @property
-    def fields(self):
-        if self._fields:
-            return self._fields
-        return self.read_fields()
-
     def read_fields(self):
-        self._fields = fields_from_table(self.table)
-        return self._fields
+        self.fields = fields_from_table(self.table)
+        return self.fields
 
     def rows(self):
         if not self.dataset:

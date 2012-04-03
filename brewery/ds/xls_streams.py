@@ -3,7 +3,7 @@
 
 import base
 import datetime
-import brewery.metadata
+from brewery.metadata import FieldList
 
 try:
     import xlrd
@@ -35,6 +35,7 @@ class XLSDataSource(base.DataSource):
         self._fields = None
         self.close_file = True
         self.encoding = encoding
+        self.fields = None
 
     def initialize(self):
         """Initialize XLS source stream:
@@ -55,7 +56,7 @@ class XLSDataSource(base.DataSource):
 
         self.row_count = self.sheet.nrows
 
-        self._read_fields()
+        self.read_fields()
 
     def finalize(self):
         if self.file and self.close_file:
@@ -73,11 +74,11 @@ class XLSDataSource(base.DataSource):
         for row in self.rows():
             yield dict(zip(fields, row))
 
-    def _read_fields(self):
+    def read_fields(self):
         # FIXME: be more sophisticated and read field types from next row
         if self.read_header:
             row = self.sheet.row_values(self.header_row)
-            self._fields = brewery.metadata.FieldList(row)
+            self.fields = FieldList(row)
             self.skip_rows = self.header_row + 1
 
 class XLSRowIterator(object):

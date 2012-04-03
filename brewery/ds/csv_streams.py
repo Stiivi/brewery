@@ -127,16 +127,21 @@ class CSVDataSource(base.DataSource):
         
         :Attributes:
             * resource: file name, URL or a file handle with CVS data
-            * read_header: flag determining whether first line contains header or not. 
-                ``True`` by default.
-            * encoding: source character encoding, by default no conversion is performed. 
-            * detect_encoding: read sample from source and determine whether source is UTF8 or not
-            * detect_headers: try to determine whether data source has headers in first row or not
-            * sample_size: maximum bytes to be read when detecting encoding and headers in file. By
-                default it is set to 200 bytes to prevent loading huge CSV files at once.
+            * read_header: flag determining whether first line contains header
+              or not. ``True`` by default.
+            * encoding: source character encoding, by default no conversion is
+              performed.
+            * detect_encoding: read sample from source and determine whether
+              source is UTF8 or not
+            * detect_headers: try to determine whether data source has headers
+              in first row or not
+            * sample_size: maximum bytes to be read when detecting encoding
+              and headers in file. By default it is set to 200 bytes to
+              prevent loading huge CSV files at once.
             * skip_rows: number of rows to be skipped. Default: ``None``
             
-        Note: avoid auto-detection when you are reading from remote URL stream.
+        Note: avoid auto-detection when you are reading from remote URL
+        stream.
         
         """
         self.read_header = read_header
@@ -154,17 +159,25 @@ class CSVDataSource(base.DataSource):
         
         self.close_file = False
         self.skip_rows = skip_rows
-        self._fields = fields
+        self.fields = fields
         
     def initialize(self):
         """Initialize CSV source stream:
         
         #. perform autodetection if required:
             #. detect encoding from a sample data (if requested)
-            #. detect whether CSV has headers from a sample data (if requested)
+            #. detect whether CSV has headers from a sample data (if
+            requested)
         #.  create CSV reader object
         #.  read CSV headers if requested and initialize stream fields
         
+        If fields are explicitly set prior to initialization, and header
+        reading is requested, then the header row is just skipped and fields
+        that were set before are used. Do not set fields if you want to read
+        the header.
+
+        All fields are set to `storage_type` = ``string`` and
+        `analytical_type` = ``unknown``.
         """
 
         self.file, self.close_file = base.open_resource(self.resource)
@@ -206,12 +219,11 @@ class CSVDataSource(base.DataSource):
         if self.read_header:
             field_names = self.reader.next()
             
-            # FIXME: this is temporary solution until Issue #17 is solved
-            # Description: if fields are set to the stream, then fields
-            # read from CSV are ignored (non-obvious)
+            # Fields set explicitly take priority over what is read from the
+            # header. (Issue #17 might be somehow related)
             if not self.fields:
                 fields = [ (name, "string", "default") for name in field_names]
-                self._fields = brewery.metadata.FieldList(fields)
+                self.fields = brewery.metadata.FieldList(fields)
             
         self.reader.set_fields(self.fields)
         
@@ -237,7 +249,8 @@ class CSVDataTarget(base.DataTarget):
         """Creates a CSV data target
         
         :Attributes:
-            * resource: target object - might be a filename or file-like object
+            * resource: target object - might be a filename or file-like
+              object
             * write_headers: write field names as headers into output file
             * truncate: remove data from file before writing, default: True
             
@@ -252,11 +265,9 @@ class CSVDataTarget(base.DataTarget):
 
         self.close_file = False
         self.file = None
+        
     def initialize(self):
-        if self.truncate:
-            mode = "w"
-        else:
-            mode = "a"
+        mode = "w" if self.truncate else "a"
 
         self.file, self.close_file = base.open_resource(self.resource, mode)
 
@@ -264,7 +275,7 @@ class CSVDataTarget(base.DataTarget):
                                     dialect = self.dialect, **self.kwds)
         
         if self.write_headers:
-            self.writer.writerow(self.field_names)
+            self.writer.writerow(self.fields.names())
 
     def finalize(self):
         if self.file and self.close_file:
