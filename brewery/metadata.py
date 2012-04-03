@@ -350,6 +350,9 @@ class FieldList(object):
         fields += array
         return fields
         
+    def __str__(self):
+        return "[" + ", ".join(self.names()) + "]"
+    
     def copy(self, fields = None):
         """Return a shallow copy of the list.
         
