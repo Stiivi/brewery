@@ -464,12 +464,17 @@ class AggregateNode(base.Node):
                 "name": "record_count_field",
                  "description": "Name of a field where record count will be stored. "
                                 "Default is `record_count`"
+            },
+            {
+                "name": "measures",
+                "description": "List of fields to be aggregated."
             }
+            
         ]
     }
     
-    def __init__(self, keys = None, default_aggregations = ["sum"], 
-                 record_count_field = "record_count"):
+    def __init__(self, keys=None, measures=None, default_aggregations=["sum"], 
+                 record_count_field="record_count"):
         """Creates a new node for aggregations. Supported aggregations: sum, avg, min, max""" 
                 
         super(AggregateNode, self).__init__()
@@ -479,15 +484,14 @@ class AggregateNode(base.Node):
             self.key_fields = []
             
         self.aggregations = {}
-        self.aggregated_fields = []
         self.record_count_field = record_count_field
+        self.measures = measures or []
             
-    def add_aggregation(self, field, aggregations = None):
+    def add_measure(self, field, aggregations = None):
         """Add aggregation for `field` """
         self.aggregations[field] = aggregations
-        self.aggregated_fields.append(field)
+        self.measures.append(field)
     
-
     @property
     def output_fields(self):
         # FIXME: use storage types based on aggregated field type
@@ -497,7 +501,7 @@ class AggregateNode(base.Node):
             for field in  self.input_fields.fields(self.key_fields):
                 fields.append(field)
 
-        for field in self.aggregated_fields:
+        for field in self.measures:
             fields.append(brewery.Field(field + "_sum", storage_type = "float", analytical_type = "range"))
             fields.append(brewery.Field(field + "_min", storage_type = "float", analytical_type = "range"))
             fields.append(brewery.Field(field + "_max", storage_type = "float", analytical_type = "range"))
@@ -513,19 +517,15 @@ class AggregateNode(base.Node):
         self.counts = {}
         
         key_indexes = self.input_fields.indexes(self.key_fields)
-        value_indexes = self.input_fields.indexes(self.aggregated_fields)
-        
+        measure_indexes = self.input_fields.indexes(self.measures)
+
         for row in pipe.rows():
             # Create aggregation key
-            key = []
-            for i in key_indexes:
-                key.append(row[i])
-
-            key = tuple(key)
+            key = tuple([row[i] for i in key_indexes])
 
             # Create new aggregate record for key if it does not exist
             #
-            if key not in self.aggregates:
+            if key not in self.keys:
                 self.keys.append(key)
                 key_aggregate = KeyAggregate()
                 self.aggregates[key] = key_aggregate
@@ -535,7 +535,7 @@ class AggregateNode(base.Node):
             # Create aggregations for each field to be aggregated
             #
             key_aggregate.count += 1
-            for i in value_indexes:
+            for i in measure_indexes:
                 if i not in key_aggregate.field_aggregates:
                     aggregate = Aggregate()
                     key_aggregate.field_aggregates[i] = aggregate
@@ -547,12 +547,10 @@ class AggregateNode(base.Node):
             
         # Pass results to output
         for key in self.keys:
-            row = []
-            for key_value in key:
-                row.append(key_value)
+            row = list(key[:])
 
             key_aggregate = self.aggregates[key]
-            for i in value_indexes:
+            for i in measure_indexes:
                 aggregate = key_aggregate.field_aggregates[i]
                 aggregate.finalize()
                 row.append(aggregate.sum)
