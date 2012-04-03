@@ -256,13 +256,15 @@ class FormattedPrinterNode(base.TargetNode):
         self.handle = None
         self.close_handle = False
 
-    def run(self):
+    def initialize(self):
         if type(self.target) == str or type(self.target) == unicode:
             self.handle = open(self.target, "w")
             self.close_handle = True
         else:
             self.handle = self.target
             self.close_handle = False
+
+    def run(self):
         
         names = self.input_fields.names()
 
@@ -275,8 +277,13 @@ class FormattedPrinterNode(base.TargetNode):
                 
             format_string = u"" + u"\t".join(fields)
 
-        if self.header:
+        if self.header is not None:
             self.handle.write(self.header)
+            if self.delimiter:
+                self.handle.write(self.delimiter)
+        else:
+            header_string = u"" + u"\t".join(names)
+            self.handle.write(header_string)
             if self.delimiter:
                 self.handle.write(self.delimiter)
             
@@ -293,6 +300,118 @@ class FormattedPrinterNode(base.TargetNode):
 
         self.handle.flush()
         
+    def finalize(self):
+        if self.handle:
+            self.handle.flush()
+            if self.close_handle:
+                self.handle.close()
+
+class PrettyPrinterNode(base.TargetNode):
+    """Target node that will pretty print output as a table.
+    """
+
+    node_info = {
+        "label" : "Pretty Printer",
+        "icong": "formatted_printer_node",
+        "description" : "Print input using a pretty formatter to an output IO stream",
+        "attributes" : [
+            {
+                 "name": "target",
+                 "description": "IO object. If not set then sys.stdout will be used. "
+                                "If it is a string, then it is considered a filename."
+            },
+            {
+                 "name": "max_column_width",
+                 "description": "Maximum column width. Default is unlimited. "\
+                                "If set to None, then it is unlimited."
+            },
+            {
+                 "name": "min_column_width",
+                 "description": "Minimum column width. Default is 0 characters."
+            }# ,
+            #             {
+            #                  "name": "sample",
+            #                  "description": "Number of records to sample to get column width"
+            #             },
+        ]
+    }
+    def __init__(self, target=sys.stdout, max_column_width=None, 
+                 min_column_width=0, sample=None,
+                 print_names=True, print_labels=False):
+
+        super(PrettyPrinterNode, self).__init__()
+
+        self.max_column_width = max_column_width
+        self.min_column_width = min_column_width or 0
+        self.sample = sample
+        self.print_names = print_names
+        self.print_labels = print_labels
+
+        self.target = target
+        self.handle = None
+        self.close_handle = False
+
+    def initialize(self):
+        if type(self.target) == str or type(self.target) == unicode:
+            self.handle = open(self.target, "w")
+            self.close_handle = True
+        else:
+            self.handle = self.target
+            self.close_handle = False
+            
+        self.widths = [0] * len(self.input.fields)
+        self.names = self.input.fields.names()
+
+        if self.print_names:
+            self.labels = [f.label for f in self.input.fields]
+        else:
+            self.labels = [f.label or f.name for f in self.input.fields]
+
+        self._update_widths(self.names)
+        if self.print_labels:
+            self._update_widths(self.labels)
+
+    def _update_widths(self, row):
+        for i, value in enumerate(row):
+            self.widths[i] = max(self.widths[i], len(str(value)))
+
+    def run(self):
+
+        rows = []
+
+        for row in self.input.rows():
+            rows.append(row)
+            self._update_widths(row)
+
+        #
+        # Create template
+        #
+        
+        if self.max_column_width:
+            self.widths = [min(w, self.max_column_width) for w in self.widths]
+        self.widths = [max(w, self.min_column_width) for w in self.widths]
+        fields = [u"{%d:%d}" % (i, w) for i,w in enumerate(self.widths)]
+        template = u"|" + u"|".join(fields) + u"|\n"
+
+        field_borders = [u"-"*w for w in self.widths]
+        self.border = u"+" + u"+".join(field_borders) + u"+\n"
+
+        self.handle.write(self.border)
+        if self.print_names:
+            self.handle.write(template.format(*self.names))
+        if self.print_labels:
+            self.handle.write(template.format(*self.labels))
+
+        if self.print_names or self.print_labels:
+            self.handle.write(self.border)
+        
+        for row in rows:
+            self.handle.write(template.format(*row))
+
+        self.handle.write(self.border)
+
+        self.handle.flush()
+
     def finalize(self):
         if self.handle:
             self.handle.flush()

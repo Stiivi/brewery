@@ -19,6 +19,6 @@ main.node.fields = brewery.FieldList([
                             ])
 main.aggregate(keys=["year", "category"], measures=["amount"])
 main.field_map(keep_fields=["year", "category", "amount_sum"])
-main.formatted_printer()
+main.pretty_printer()
 
 main.stream.run()
