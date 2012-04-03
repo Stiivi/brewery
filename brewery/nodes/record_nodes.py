@@ -20,7 +20,7 @@ class SampleNode(base.Node):
     
     """
     
-    __node_info__ = {
+    node_info = {
         "label" : "Sample Node",
         "description" : "Pass data sample from input to output.",
         "output" : "same fields as input",
@@ -66,7 +66,7 @@ class SampleNode(base.Node):
 class AppendNode(base.Node):
     """Sequentialy append input streams. Concatenation order reflects input stream order. The
     input streams should have same set of fields."""
-    __node_info__ = {
+    node_info = {
         "label" : "Append",
         "description" : "Concatenate input streams."
     }
@@ -165,7 +165,7 @@ class MergeNode(base.Node):
 
     """
     
-    __node_info__ = {
+    node_info = {
         "label" : "Merge Node",
         "description" : "Merge two or more streams",
         "attributes" : [
@@ -347,7 +347,7 @@ class DistinctNode(base.Node):
     should give no records on output if there are no duplicates.
     
     """
-    __node_info__ = {
+    node_info = {
         "label" : "Distinct Node",
         "description" : "Pass only distinct records (discard duplicates) or pass only duplicates",
         "attributes" : [
@@ -450,7 +450,7 @@ class KeyAggregate(object):
 class AggregateNode(base.Node):
     """Aggregate"""
     
-    __node_info__ = {
+    node_info = {
         "label" : "Aggregate Node",
         "description" : "Aggregate values grouping by key fields.",
         "output" : "Key fields followed by aggregations for each aggregated field. Last field is "
@@ -595,7 +595,7 @@ class SelectNode(base.Node):
 
     """
 
-    __node_info__ = {
+    node_info = {
         "label" : "Select",
         "description" : "Select or discard records from the stream according to a predicate.",
         "output" : "same fields as input",
@@ -656,7 +656,7 @@ class FunctionSelectNode(base.Node):
     selected records are passed to the output.
     """
     
-    __node_info__ = {
+    node_info = {
         "label" : "Function Select",
         "description" : "Select records by a predicate function (python callable).",
         "output" : "same fields as input",
@@ -720,7 +720,7 @@ class SetSelectNode(base.Node):
     """
     
     
-    __node_info__ = {
+    node_info = {
         "label" : "Set Select",
         "description" : "Select records by a predicate function.",
         "output" : "same fields as input",
@@ -780,7 +780,7 @@ class AuditNode(base.Node):
           to None if there are more distinct values than `distinct_threshold`.
     """
     
-    __node_info__ = {
+    node_info = {
         "icon" : "data_audit_node",
         "label" : "Data Audit",
         "description" : "Perform basic data audit.",

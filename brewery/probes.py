@@ -89,6 +89,8 @@ class StatisticsProbe(object):
         self.max = None
         self.sum = None
         self.count = 0
+        self.fields = ["min", "max", "sum", "count"]
+
     @property
     def average(self):
         return self.sum / self.count
@@ -112,16 +114,16 @@ class StatisticsProbe(object):
 class DistinctProbe(object):
     """Probe for distinct values."""
     def __init__(self, threshold = None):
-        self.distinct_values = set([])
+        self.values = set([])
         self.overflow = False
         self.threshold = threshold
+        self.fields = ["values", ("overflow", "integer")]
 
     def probe(self, value):
-        if self.threshold and len(self.distinct_values) >= threshold:
-            self.overflow = True
-            return
+        self.overflow = self.threshold and len(self.values) >= threshold
 
-        self.distinct_values.add(value)
+        if not self.overflow:
+            self.values.add(value)
 
 class StorageTypeProbe(object):
     """Probe for guessing field data type
@@ -133,6 +135,42 @@ class StorageTypeProbe(object):
     """    
     def __init__(self):
         self.storage_types = set()
+
+    def probe(self, value):
+        storage_type = value.__class__
+        self.storage_types.add(storage_type.__name__)
+
+    @property
+    def unique_storage_type(self):
+        """Return storage type if there is only one. This should always return a type in relational
+        databases, but does not have to in databases such as MongoDB."""
+
+        if len(self.storage_types) == 1:
+            return list(self.storage_types)[0]
+        else:
+            return None
+
+    def to_dict(self):
+        d = {
+            "storage_types": [str(st) for st in self.storage_types],
+            "unique_storage_type": self.unique_storage_type
+        }
+        return d
+
+class ValueTypeProbe(object):
+    """Probe for guessing field value data type. It should be one of:
+       `int`, `float`, ...
+
+    Attributes:
+        * field: name of a field which statistics are being presented
+        * storage_types: found storage types
+        * unique_storage_type: if there is only one storage type, then this is set to that type
+    """    
+    def __init__(self):
+        self.int_count = 0
+        self.float_count = 0
+        self.date_count = 0
+        # ISO datetime "%Y-%m-%dT%H:%M:%S" )
 
     def probe(self, value):
         storage_type = value.__class__

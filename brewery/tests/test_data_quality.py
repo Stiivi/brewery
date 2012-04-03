@@ -74,7 +74,7 @@ class DataQualityTestCase(unittest.TestCase):
         for record in self.records:
             probe.probe(record["type"])
         
-        distinct = list(probe.distinct_values)
+        distinct = list(probe.values)
         distinct.sort()
         print "DISTINCT: %s" % distinct
         self.assertEqual(4, len(distinct))

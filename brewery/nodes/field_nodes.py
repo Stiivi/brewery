@@ -5,13 +5,13 @@ import base
 import re
 import brewery
 import brewery.ds as ds
-from brewery.streams import FieldError
+from brewery.common import FieldError
 import itertools
 
 class FieldMapNode(base.Node):
     """Node renames input fields or drops them from the stream.
     """
-    __node_info__ = {
+    node_info = {
         "type": "field",
         "label" : "Field Map",
         "description" : "Rename or drop fields from the stream.",
@@ -84,7 +84,7 @@ class FieldMapNode(base.Node):
 class TextSubstituteNode(base.Node):
     """Substitute text in a field using regular expression."""
     
-    __node_info__ = {
+    node_info = {
         "type": "field",
         "label" : "Text Substitute",
         "description" : "Substitute text in a field using regular expression.",
@@ -167,7 +167,7 @@ class TextSubstituteNode(base.Node):
 class StringStripNode(base.Node):
     """Strip spaces (orother specified characters) from string fields."""
 
-    __node_info__ = {
+    node_info = {
         "type": "field",
         "icon": "string_strip_node",
         "label" : "String Strip",
@@ -232,7 +232,7 @@ class CoalesceValueToTypeNode(base.Node):
 
     """
 
-    __node_info__ = {
+    node_info = {
         "type": "field",
         "icon": "coalesce_value_to_type_node",
         "description" : "Coalesce Value to Type",
@@ -351,7 +351,7 @@ class ValueThresholdNode(base.Node):
         
     """
     
-    __node_info__ = {
+    node_info = {
         "type": "field",
         "label" : "Value Threshold",
         "description" : "Bin values based on a threshold.",
@@ -489,7 +489,7 @@ class DeriveNode(base.Node):
 
     """
 
-    __node_info__ = {
+    node_info = {
         "label" : "Derive Node",
         "description" : "Derive a new field using an expression.",
         "attributes" : [
@@ -577,7 +577,7 @@ class BinningNode(base.Node):
         
     """
     
-    __node_info__ = {
+    node_info = {
         "type": "field",
         "label" : "Binning",
         "icon": "histogram_node",

@@ -24,14 +24,14 @@ class NodesTestCase(unittest.TestCase):
             pipe.put([i, float(i)/4, "item-%s" % i, custom])
 
     def test_node_subclasses(self):
-        nodes = brewery.streams.Node.subclasses()
+        nodes = brewery.nodes.node_dictionary().values()
         self.assertIn(brewery.nodes.CSVSourceNode, nodes)
         self.assertIn(brewery.nodes.AggregateNode, nodes)
         self.assertIn(brewery.nodes.ValueThresholdNode, nodes)
         self.assertNotIn(brewery.streams.Stream, nodes)
 
     def test_node_dictionary(self):
-        d = brewery.nodes.Node.class_dictionary()
+        d = brewery.nodes.node_dictionary()
         self.assertIn("aggregate", d)
         self.assertIn("csv_source", d)
         self.assertIn("csv_target", d)
@@ -104,7 +104,7 @@ class NodesTestCase(unittest.TestCase):
         node.drop_field("q")
         self.initialize_node(node)
 
-        self.assertEqual(['index', 'str', 'custom'], node.output_field_names)
+        self.assertEqual(['index', 'str', 'custom'], node.output_fields.names())
         
         node.run()
         
@@ -221,7 +221,7 @@ class NodesTestCase(unittest.TestCase):
         node.add_aggregation("id", ["sum"])
         self.initialize_node(node)
         
-        fields = node.output_field_names
+        fields = node.output_fields.names()
         a = ['type', 'id_sum', 'id_min', 'id_max', 'id_average', 'record_count']
         
         self.assertEqual(a, fields)
@@ -251,7 +251,7 @@ class NodesTestCase(unittest.TestCase):
         node.add_aggregation("id", ["sum"])
         self.initialize_node(node)
 
-        fields = node.output_field_names
+        fields = node.output_fields.names()
         a = ['id_sum', 'id_min', 'id_max', 'id_average', 'record_count']
         self.assertEqual(a, fields)
 
@@ -374,6 +374,7 @@ class NodesTestCase(unittest.TestCase):
         self.initialize_node(node)
         node.run()
         node.finalize()
+        print "BUFFER: %s" % self.output.buffer
         val = sum([row[4] for row in self.output.buffer])
         self.assertEqual(49500, val)
 

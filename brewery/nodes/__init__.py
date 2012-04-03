@@ -7,13 +7,7 @@ from field_nodes import *
 from source_nodes import *
 from target_nodes import *
 
-__all__ = (
-    "Node",
-    "SourceNode",
-    "TargetNode",
-    "NodeFinished",
-    
-    "create_node",
+__all__ = [
     
     # Field nodes
     "FieldMapNode",
@@ -45,4 +39,6 @@ __all__ = (
     "RecordListTargetNode",
     "StreamTargetNode",
     "FormattedPrinterNode"
-)
+]
+
+__all__ += base.__all__

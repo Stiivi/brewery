@@ -5,14 +5,12 @@
 
 from metadata import *
 from streams import *
+from utils import *
 
 __version__ = '0.8.0'
 
-def default_logger_name():
-    return 'brewery'
-
 __all__ = [
-    "default_logger_name",
+    "logger_name",
     "set_brewery_search_paths",
     "__version__"
 ]

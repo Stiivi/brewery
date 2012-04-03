@@ -15,7 +15,7 @@ class StreamTargetNode(base.TargetNode):
     in visual, web or other stream modelling tools.
     """
     
-    __node_info__ = {
+    node_info = {
         "label" : "Data Stream Target",
         "icon": "row_list_target_node",
         "description" : "Generic data stream data target node.",
@@ -55,7 +55,7 @@ class RowListTargetNode(base.TargetNode):
     To get list of fields, ask for `output_fields`.
     """
 
-    __node_info__ = {
+    node_info = {
         "label" : "Row List Target",
         "description" : "Store data as list of tuples",
         "attributes" : [
@@ -89,7 +89,7 @@ class RecordListTargetNode(base.TargetNode):
     
     """
 
-    __node_info__ = {
+    node_info = {
         "label" : "Record List Target",
         "description" : "Store data as list of dictionaries (records)",
         "attributes" : [
@@ -124,7 +124,7 @@ class CSVTargetNode(base.TargetNode):
         * truncate: remove data from file before writing, default: True
         
     """
-    __node_info__ = {
+    node_info = {
         "label" : "CSV Target",
         "description" : "Write rows as comma separated values into a file",
         "attributes" : [
@@ -210,7 +210,7 @@ class FormattedPrinterNode(base.TargetNode):
 
     """
 
-    __node_info__ = {
+    node_info = {
         "label" : "Formatted Printer",
         "icong": "formatted_printer_node",
         "description" : "Print input using a string formatter to an output IO stream",
@@ -302,7 +302,7 @@ class FormattedPrinterNode(base.TargetNode):
 class SQLTableTargetNode(base.TargetNode):
     """Feed data rows into a relational database table.
     """
-    __node_info__ = {
+    node_info = {
         "label": "SQL Table Target",
         "icon": "sql_table_target",
         "description" : "Feed data rows into a relational database table",

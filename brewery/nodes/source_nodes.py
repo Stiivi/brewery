@@ -16,7 +16,7 @@ class RowListSourceNode(base.SourceNode):
     """Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
     object."""
 
-    __node_info__ = {
+    node_info = {
         "label" : "Row List Source",
         "description" : "Provide list of lists or tuples as data source.",
         "protected": True,
@@ -52,7 +52,7 @@ class RecordListSourceNode(base.SourceNode):
     """Source node that feeds records (dictionary objects) from a list (or any other iterable)
     object."""
 
-    __node_info__ = {
+    node_info = {
         "label" : "Record List Source",
         "description" : "Provide list of dict objects as data source.",
         "protected": True,
@@ -83,7 +83,7 @@ class RecordListSourceNode(base.SourceNode):
 
     def run(self):
         for record in self.list:
-            self.put_record(record)
+            self.put(record)
             
 class StreamSourceNode(base.SourceNode):
     """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
@@ -95,7 +95,7 @@ class StreamSourceNode(base.SourceNode):
     in visual, web or other stream modelling tools.
     """
     
-    __node_info__ = {
+    node_info = {
         "label" : "Data Stream Source",
         "icon": "row_list_source_node",
         "description" : "Generic data stream data source node.",
@@ -142,7 +142,7 @@ class CSVSourceNode(base.SourceNode):
     `string` and analytical type is set to `typeless`.
 
     """
-    __node_info__ = {
+    node_info = {
         "label" : "CSV Source",
         "icon": "csv_file_source_node",
         "description" : "Read data from a comma separated values (CSV) file.",
@@ -233,7 +233,7 @@ class XLSSourceNode(base.SourceNode):
     `string` and analytical type is set to `typeless`.
 
     """
-    __node_info__ = {
+    node_info = {
         "label" : "XLS Source",
         "icon": "xls_file_source_node",
         "description" : "Read data from an Excel (XLS) spreadsheet file.",
@@ -322,7 +322,7 @@ class YamlDirectorySourceNode(base.SourceNode):
     
     Optionally one can specify a field where file name will be stored.
     """
-    __node_info__ = {
+    node_info = {
         "label" : "YAML Directory Source",
         "icon": "yaml_directory_source_node",
         "description" : "Read data from a directory containing YAML files",
@@ -389,7 +389,7 @@ class GoogleSpreadsheetSourceNode(base.SourceNode):
     For details on query string syntax see the section on sq under
     http://code.google.com/apis/spreadsheets/reference.html#list_Parameters
     """
-    __node_info__ = {
+    node_info = {
         "label" : "Google Spreadsheet Source",
         "icon": "google_spreadsheet_source_node",
         "description" : "Read data from a Google Spreadsheet.",
@@ -477,7 +477,7 @@ class GoogleSpreadsheetSourceNode(base.SourceNode):
 class SQLSourceNode(base.SourceNode):
     """Source node that reads from a sql table.
     """
-    __node_info__ = {
+    node_info = {
         "label" : "SQL Source",
         "icon": "sql_source_node",
         "description" : "Read data from a sql table.",
@@ -534,7 +534,7 @@ class SQLSourceNode(base.SourceNode):
 class GeneratorFunctionSourceNode(base.SourceNode):
     """Source node uses a callable to generate records."""
 
-    __node_info__ = {
+    node_info = {
         "label" : "Callable Generator Source",
         "description" : "Uses a callable as record generator",
         "protected": True,

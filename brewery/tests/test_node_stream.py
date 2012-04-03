@@ -10,6 +10,7 @@ import StringIO
 
 from brewery.streams import *
 from brewery.nodes import *
+from brewery.common import *
 
 logging.basicConfig(level=logging.WARN)
 
@@ -93,7 +94,7 @@ class StreamBuildingTestCase(unittest.TestCase):
         self.assertEqual(["str"], node.keys)
 
 class FailNode(Node):
-    __node_info__ = {
+    node_info = {
         "attributes": [ {"name":"message"} ]
     }
     
