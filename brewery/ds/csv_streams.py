@@ -25,6 +25,21 @@ class UTF8Recoder(object):
     def next(self):
         return self.reader.next().encode('utf-8')
 
+def to_bool(value):
+    """Return boolean value. Convert string to True when "true", "yes" or "on"
+    """
+    return bool(value) or lower(value) in ["true", "yes", "on"]
+
+storage_conversion = {
+    "unknown": None,
+    "string": None,
+    "text": None,
+    "integer": int,
+    "float": float,
+    "boolean": to_bool,
+    "date": None
+}
+
 class UnicodeReader:
     """
     A CSV reader which will iterate over lines in the CSV file "f",
@@ -34,10 +49,28 @@ class UnicodeReader:
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
         f = UTF8Recoder(f, encoding)
         self.reader = csv.reader(f, dialect=dialect, **kwds)
+        self.converters = []
+
+    def set_fields(self, fields):
+        self.converters = [storage_conversion[f.storage_type] for f in fields]
 
     def next(self):
         row = self.reader.next()
-        return [unicode(s, "utf-8") for s in row]
+        result = []
+
+        # FIXME: make this nicer, this is just quick hack
+        for i, value in enumerate(row):
+            if self.converters:
+                f = self.converters[i]
+            else:
+                f = None
+
+            if f:
+                result.append(f(value))
+            else:
+                result.append(unicode(value, "utf-8"))
+            
+        return result
 
     def __iter__(self):
         return self
@@ -130,7 +163,7 @@ class CSVDataSource(base.DataSource):
             #. detect encoding from a sample data (if requested)
             #. detect whether CSV has headers from a sample data (if requested)
         #.  create CSV reader object
-        #.   read CSV headers if requested and initialize stream fields
+        #.  read CSV headers if requested and initialize stream fields
         
         """
 
@@ -162,7 +195,7 @@ class CSVDataSource(base.DataSource):
             self.reader_args["dialect"] = dialect
 
         # self.reader = csv.reader(handle, **self.reader_args)
-        self.reader = UnicodeReader(self.file, encoding = self.encoding, 
+        self.reader = UnicodeReader(self.file, encoding=self.encoding,
                                     **self.reader_args)
 
         if self.skip_rows:
@@ -173,9 +206,14 @@ class CSVDataSource(base.DataSource):
         if self.read_header:
             field_names = self.reader.next()
             
-            fields = [ (name, "string", "default") for name in field_names]
+            # FIXME: this is temporary solution until Issue #17 is solved
+            # Description: if fields are set to the stream, then fields
+            # read from CSV are ignored (non-obvious)
+            if not self.fields:
+                fields = [ (name, "string", "default") for name in field_names]
+                self._fields = brewery.metadata.FieldList(fields)
             
-            self._fields = brewery.metadata.FieldList(fields)
+        self.reader.set_fields(self.fields)
         
     def finalize(self):
         if self.file and self.close_file:
