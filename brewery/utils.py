@@ -4,6 +4,29 @@
 """Brewery handy utilities"""
 
 import re
+import logging
+
+logger_name = 'brewery'
+logger = None
+
+def get_logger():
+    """Get brewery default logger"""
+    if logger:
+        return logger
+    else:
+        return create_logger()
+        
+def create_logger():
+    """Create a default logger"""
+    logger = logging.getLogger(logger_name)
+
+    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(message)s')
+    
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    
+    return logger
 
 class MissingPackage(object):
     """Bogus class to handle missing optional packages - packages that are not necessarily required
@@ -69,3 +92,5 @@ def decamelize(name):
 
 def to_identifier(name):
     return re.sub(r' ', r'_', name).lower()
+    
+
