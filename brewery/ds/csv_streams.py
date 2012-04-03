@@ -46,10 +46,11 @@ class UnicodeReader:
     which is encoded in the given encoding.
     """
 
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8", empty_as_null=False, **kwds):
         f = UTF8Recoder(f, encoding)
         self.reader = csv.reader(f, dialect=dialect, **kwds)
         self.converters = []
+        self.empty_as_null = empty_as_null
 
     def set_fields(self, fields):
         self.converters = [storage_conversion[f.storage_type] for f in fields]
@@ -68,7 +69,11 @@ class UnicodeReader:
             if f:
                 result.append(f(value))
             else:
-                result.append(unicode(value, "utf-8"))
+                uni_str = unicode(value, "utf-8")
+                if not uni_str and self.empty_as_null:
+                    result.append(None)
+                else:
+                    result.append(uni_str)
             
         return result
 
@@ -122,7 +127,7 @@ class CSVDataSource(base.DataSource):
     """
     def __init__(self, resource, read_header=True, dialect=None, encoding=None,
                  detect_encoding=False, detect_header=False, sample_size=200, 
-                 skip_rows=None, fields=None, **reader_args):
+                 skip_rows=None, empty_as_null=True,fields=None, **reader_args):
         """Creates a CSV data source stream.
         
         :Attributes:
@@ -139,6 +144,7 @@ class CSVDataSource(base.DataSource):
               and headers in file. By default it is set to 200 bytes to
               prevent loading huge CSV files at once.
             * skip_rows: number of rows to be skipped. Default: ``None``
+            * empty_as_null: treat empty strings as ``Null`` values
             
         Note: avoid auto-detection when you are reading from remote URL
         stream.
@@ -148,6 +154,7 @@ class CSVDataSource(base.DataSource):
         self.encoding = encoding
         self.detect_encoding = detect_encoding
         self.detect_header = detect_header
+        self.empty_as_null = empty_as_null
         
         self._autodetection = detect_encoding or detect_header
         
@@ -209,6 +216,7 @@ class CSVDataSource(base.DataSource):
 
         # self.reader = csv.reader(handle, **self.reader_args)
         self.reader = UnicodeReader(self.file, encoding=self.encoding,
+                                    empty_as_null=self.empty_as_null,
                                     **self.reader_args)
 
         if self.skip_rows:
