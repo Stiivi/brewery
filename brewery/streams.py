@@ -4,7 +4,7 @@ import logging
 import threading
 import traceback
 import sys
-from brewery.utils import logger_name
+from brewery.utils import get_logger
 from brewery.nodes import *
 from brewery.common import *
 
@@ -14,6 +14,8 @@ __all__ = [
     "stream_from_dict",
     "create_builder"
 ]
+
+JOIN_TIMEOUT = None
 
 def stream_from_dict(desc):
     """Create a stream from dictionary `desc`."""
@@ -230,7 +232,7 @@ class Stream(object):
         self.node_dict = {}
         self.connections = set()
 
-        self.logger = logging.getLogger(logger_name)
+        self.logger = get_logger()
 
         if nodes:
             try:
@@ -446,7 +448,7 @@ class Stream(object):
             if isinstance(obj, Node):
                 node_instance = obj
             elif isinstance(obj, type) and issubclass(obj, Node):
-                logging.warn("Using classes in Stream.update is depreciated")
+                self.logger.warn("Using classes in Stream.update is depreciated")
                 node_instance = obj()
             else:
                 if not "type" in obj:
@@ -534,23 +536,23 @@ class Stream(object):
         
         """
 
-        logging.info("initializing stream")
-        logging.debug("sorting nodes")
+        self.logger.info("initializing stream")
+        self.logger.debug("sorting nodes")
         sorted_nodes = self.sorted_nodes()
         self.pipes = []
 
-        logging.debug("flushing pipes")
+        self.logger.debug("flushing pipes")
         for node in sorted_nodes:
             node.inputs = []
             node.outputs = []
 
         # Create pipes and connect nodes
         for node in sorted_nodes:
-            logging.debug("creating pipes for node %s" % node)
+            self.logger.debug("creating pipes for node %s" % node)
 
             targets = self.node_targets(node)
             for target in targets:
-                logging.debug("  connecting with %s" % (target))
+                self.logger.debug("  connecting with %s" % (target))
                 pipe = Pipe()
                 node.add_output(pipe)
                 target.add_input(pipe)
@@ -558,18 +560,18 @@ class Stream(object):
 
         # Initialize fields
         for node in sorted_nodes:
-            logging.debug("initializing node of type %s" % node.__class__)
-            logging.debug("  node has %d inputs and %d outputs"
+            self.logger.debug("initializing node of type %s" % node.__class__)
+            self.logger.debug("  node has %d inputs and %d outputs"
                                 % (len(node.inputs), len(node.outputs)))
             node.initialize()
 
             # Ignore target nodes
             if isinstance(node, TargetNode):
-                logging.debug("  node is target, ignoring creation of output pipes")
+                self.logger.debug("  node is target, ignoring creation of output pipes")
                 continue
 
             fields = node.output_fields
-            logging.debug("  node output fields: %s" % fields.names())
+            self.logger.debug("  node output fields: %s" % fields.names())
             for output_pipe in node.outputs:
                 output_pipe.fields = fields
 
@@ -593,42 +595,42 @@ class Stream(object):
     def _run(self):
 
 
-        logging.info("running stream")
+        self.logger.info("running stream")
 
         threads = []
         sorted_nodes = self.sorted_nodes()
 
-        logging.debug("launching threads")
+        self.logger.debug("launching threads")
         for node in sorted_nodes:
-            logging.debug("launching thread for node %s" % node)
+            self.logger.debug("launching thread for node %s" % node)
             thread = _StreamNodeThread(node)
             thread.start()
             threads.append((thread, node))
 
         self.exceptions = []
         for (thread, node) in threads:
-            logging.debug("joining thread for %s" % node)
+            self.logger.debug("joining thread for %s" % node)
             while True:
-                thread.join(0.2)
+                thread.join(JOIN_TIMEOUT)
                 if thread.isAlive():
                     pass
-                    # logging.debug("thread join timed out")
+                    # self.logger.debug("thread join timed out")
                 else:
                     if thread.exception:
                         self._add_thread_exception(thread)
                     else:
-                        logging.debug("thread joined")
+                        self.logger.debug("thread joined")
                     break
                 if self.exceptions:
-                    logging.info("node exception occured, trying to kill threads")
+                    self.logger.info("node exception occured, trying to kill threads")
                     self.kill_threads()
 
         if self.exceptions:
-            logging.info("run finished with exception")
+            self.logger.info("run finished with exception")
             # Raising only first exception found
             raise self.exceptions[0]
         else:
-            logging.info("run finished sucessfully")
+            self.logger.info("run finished sucessfully")
 
     def _add_thread_exception(self, thread):
         """Create a StreamRuntimeError exception object and fill attributes with all necessary
@@ -667,14 +669,14 @@ class Stream(object):
 
 
     def kill_threads(self):
-        logging.info("killing threads")
+        self.logger.info("killing threads")
 
     def _finalize(self):
-        logging.info("finalizing nodes")
+        self.logger.info("finalizing nodes")
 
         # FIXME: encapsulate finalization in exception handler, collect exceptions
         for node in self.sorted_nodes():
-            logging.debug("finalizing node %s" % node)
+            self.logger.debug("finalizing node %s" % node)
             node.finalize()
 
 class _StreamNodeThread(threading.Thread):
@@ -694,30 +696,30 @@ class _StreamNodeThread(threading.Thread):
 
     def run(self):
         """Wrapper method for running a node"""
-        logging.debug("%s: start" % self)
+        self.logger.debug("%s: start" % self)
         try:
             self.node.run()
         except NodeFinished as e:
-            logging.info("node %s finished" % (self.node))
+            self.logger.info("node %s finished" % (self.node))
         except Exception as e:
             tb = sys.exc_info()[2]
             self.traceback = tb
 
-            logging.debug("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
+            self.logger.debug("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
             self.exception = e
 
         # Flush pipes after node is finished
-        logging.debug("%s: finished" % self)
-        logging.debug("%s: flushing outputs" % self)
+        self.logger.debug("%s: finished" % self)
+        self.logger.debug("%s: flushing outputs" % self)
         for pipe in self.node.outputs:
             if not pipe.closed():
                 pipe.done_sending()
-        logging.debug("%s: flushed" % self)
-        logging.debug("%s: stopping inputs" % self)
+        self.logger.debug("%s: flushed" % self)
+        self.logger.debug("%s: stopping inputs" % self)
         for pipe in self.node.inputs:
             if not pipe.closed():
                 pipe.done_sending()
-        logging.debug("%s: stopped" % self)
+        self.logger.debug("%s: stopped" % self)
 
 class _StreamFork(object):
     """docstring for StreamFork"""
