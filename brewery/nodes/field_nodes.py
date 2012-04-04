@@ -270,9 +270,9 @@ class CoalesceValueToTypeNode(base.Node):
         else:
             fields = self.input.fields
 
-        self.string_fields = list(itertools.ifilter(lambda f: f.storage_type == "string", fields))
-        self.integer_fields = list(itertools.ifilter(lambda f: f.storage_type == "integer", fields))
-        self.float_fields = list(itertools.ifilter(lambda f: f.storage_type == "float", fields))
+        self.string_fields = [f for f in fields if f.storage_type == "string"]
+        self.integer_fields = [f for f in fields if f.storage_type == "integer"]
+        self.float_fields = [f for f in fields if f.storage_type == "float"]
         
         self.string_indexes = self.input.fields.indexes(self.string_fields)
         self.integer_indexes = self.input.fields.indexes(self.integer_fields)
