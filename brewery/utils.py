@@ -11,6 +11,8 @@ logger = None
 
 def get_logger():
     """Get brewery default logger"""
+    global logger
+    
     if logger:
         return logger
     else:
@@ -18,6 +20,7 @@ def get_logger():
         
 def create_logger():
     """Create a default logger"""
+    global logger
     logger = logging.getLogger(logger_name)
 
     formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(message)s')
