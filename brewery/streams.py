@@ -602,14 +602,14 @@ class Stream(object):
 
         self.logger.debug("launching threads")
         for node in sorted_nodes:
-            self.logger.debug("launching thread for node %s" % node)
+            self.logger.debug("launching thread for node %s" % node_label(node))
             thread = _StreamNodeThread(node)
             thread.start()
             threads.append((thread, node))
 
         self.exceptions = []
         for (thread, node) in threads:
-            self.logger.debug("joining thread for %s" % node)
+            self.logger.debug("joining thread for %s" % node_label(node))
             while True:
                 thread.join(JOIN_TIMEOUT)
                 if thread.isAlive():
@@ -676,9 +676,12 @@ class Stream(object):
 
         # FIXME: encapsulate finalization in exception handler, collect exceptions
         for node in self.sorted_nodes():
-            self.logger.debug("finalizing node %s" % node)
+            self.logger.debug("finalizing node %s" % node_label(node))
             node.finalize()
-
+def node_label(node):
+    """Debug label for a node: node identifier with python object id."""
+    return "%s(%s)" % (node.identifier() or str(type(node)), id(node))
+    
 class _StreamNodeThread(threading.Thread):
     def __init__(self, node):
         """Creates a stream node thread.
@@ -693,29 +696,32 @@ class _StreamNodeThread(threading.Thread):
         self.node = node
         self.exception = None
         self.traceback = None
+        self.logger = get_logger()
 
     def run(self):
         """Wrapper method for running a node"""
-        self.logger.debug("%s: start" % self)
+        
+        label = node_label(self.node)
+        self.logger.debug("%s: start" % label)
         try:
             self.node.run()
         except NodeFinished as e:
-            self.logger.info("node %s finished" % (self.node))
+            self.logger.info("node %s finished" % (label))
         except Exception as e:
             tb = sys.exc_info()[2]
             self.traceback = tb
 
-            self.logger.debug("node %s failed: %s" % (self.node, e.__class__.__name__), exc_info=sys.exc_info)
+            self.logger.debug("node %s failed: %s" % (label, e.__class__.__name__), exc_info=sys.exc_info)
             self.exception = e
 
         # Flush pipes after node is finished
-        self.logger.debug("%s: finished" % self)
-        self.logger.debug("%s: flushing outputs" % self)
+        self.logger.debug("%s: finished" % label)
+        self.logger.debug("%s: flushing outputs" % label)
         for pipe in self.node.outputs:
             if not pipe.closed():
                 pipe.done_sending()
-        self.logger.debug("%s: flushed" % self)
-        self.logger.debug("%s: stopping inputs" % self)
+        self.logger.debug("%s: flushed" % label)
+        self.logger.debug("%s: stopping inputs" % label)
         for pipe in self.node.inputs:
             if not pipe.closed():
                 pipe.done_sending()
