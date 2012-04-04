@@ -38,9 +38,6 @@ Example::
 
     brewery run stream.json > graph.dot
     dot -o graph.png -T png out.dot
-    
-
-
 
 mongoaudit
 ==========

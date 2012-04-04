@@ -335,6 +335,8 @@ Aggregate
      - List of fields according to which records are grouped
    * - record_count_field
      - Name of a field where record count will be stored. Default is `record_count`
+   * - measures
+     - List of fields to be aggregated.
 
 .. _AppendNode:
 
@@ -1096,6 +1098,35 @@ Output will look similar to this::
      - Header string - will be printed before printing first record
    * - footer
      - Footer string - will be printed after all records are printed
+
+.. _PrettyPrinterNode:
+
+Pretty Printer
+--------------
+
+.. image:: nodes/pretty_printer_node.png
+   :align: right
+
+**Synopsis:** *Print input using a pretty formatter to an output IO stream*
+
+**Identifier:** pretty_printer (class: :class:`brewery.nodes.PrettyPrinterNode`)
+
+Target node that will pretty print output as a table.
+    
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - target
+     - IO object. If not set then sys.stdout will be used. If it is a string, then it is considered a filename.
+   * - max_column_width
+     - Maximum column width. Default is unlimited. If set to None, then it is unlimited.
+   * - min_column_width
+     - Minimum column width. Default is 0 characters.
 
 .. _RecordListTargetNode:
 

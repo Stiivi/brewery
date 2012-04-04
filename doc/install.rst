@@ -1,13 +1,44 @@
+++++++++++++
 Installation
 ++++++++++++
 
+Quick Start
+===========
+
+Here are quick installation instructions for the impatient.
+
+Brewery is being developed for Python 2.7, reported to work on 2.6.
+
+Satisfy soft dependencies that cover most of the use cases. For more
+information read below.::
+
+    pip install sqlalchemy xlrd
+
+Install brewery::
+
+    pip install brewery
+
+Try:
+
+.. code-block:: python
+
+    import brewery
+
+    URL = "https://raw.github.com/Stiivi/cubes/master/examples/hello_world/data.csv"
+
+    b = brewery.create_builder()
+    b.csv_source(URL)
+    b.audit(distinct_threshold=None)
+    b.pretty_printer()
+
+    b.stream.run()
+
 Requirements
-------------
+============
 
-Brewery is being developed for Python 2.7, might work on 2.6.
-
-The framework currently does not have any hard dependency on other packages. All dependencies are
-optional and you need to install the packages only if certain features are going to be used.
+The framework currently does not have any hard dependency on other packages.
+All dependencies are optional and you need to install the packages only if
+certain features are going to be used.
 
 +-------------------------+---------------------------------------------------------+
 |Package                  | Feature                                                 |
@@ -28,30 +59,19 @@ optional and you need to install the packages only if certain features are going
 |                         | http://www.mongodb.org/downloads                        |
 +-------------------------+---------------------------------------------------------+
 
-In most cases you can satisfy dependencies just by installing the packages with ``pip install`` or
-``easy_install``.
 
+Customized Installation
+=======================
 
-Installation
-------------
+The project sources are stored in the `Github repository`_.
 
-Install using pip::
+.. _Github repository: https://github.com/Stiivi/cubes
 
-    pip install brewery
-    
-Install using distutils::
-
-    easy_install brewery
-
-Main project source repository is being hosted at github: https://github.com/Stiivi/brewery::
+Download from Github::
 
     git clone git://github.com/Stiivi/brewery.git
+    
+Install::
 
-Or if you prefer mercurial, then you can clone it from Bitbucket: https://bitbucket.org/Stiivi/brewery.
-Clone mercurial repository from bitbucket::
-
-    hg clone https://bitbucket.org/Stiivi/brewery
-
-Install from sources after downloading::
-
+    cd brewery
     python setup.py install

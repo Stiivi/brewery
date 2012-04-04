@@ -1,6 +1,11 @@
 Brewery - Data streaming, auditing and mining framework
 =======================================================
 
+*Know what you have and learn what is happening to your data*
+
+Brewery is a stream-based data analysis and auditing framework with focus on
+understandability, auditability, usability and versatility.
+
 Contents:
 
 .. toctree::
