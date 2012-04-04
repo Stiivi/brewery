@@ -3,7 +3,10 @@ Brewery Examples
 
 Basic
 -----
+
 * `aggregate_remote_csv.py` - aggregate measures from a remote CSV
+* `audit_unknown_csv.py` - perform very basic data audit (fields, nulls) of a
+  remote CSV file
 
 Intermediate
 ------------
