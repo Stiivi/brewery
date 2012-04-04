@@ -1,6 +1,25 @@
 Changes in Brewery
 ++++++++++++++++++
 
+Version 0.8.1
+=============
+
+News
+----
+
+* added ``nodes`` brewery runner command - list nodes and show help for a node
+* added ``pipe`` brewery runner command - create and run non-branched stream
+
+Changes
+-------
+
+* none so far
+
+Fixes
+-------
+
+* none so far
+
 Version 0.8
 ===========
 

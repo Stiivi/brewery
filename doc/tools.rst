@@ -23,12 +23,16 @@ Commands are:
 +-----------------------+----------------------------------------------------------------------+
 
 ``run``
+-------
 
 Example::
 
     brewery run stream.json
+    
+The json file should contain a dictionary with nodes and connections.
 
 ``graph``
+---------
 
 Generate a graphviz_ graph structure.
 
@@ -38,6 +42,51 @@ Example::
 
     brewery run stream.json > graph.dot
     dot -o graph.png -T png out.dot
+    
+``nodes``
+---------
+
+List available nodes. If a node name is specified, then node information,
+including list of node attributes is displayed.
+
+Example::
+
+    brewery nodes
+    brewery nodes csv_source
+
+``pipe``
+--------
+
+Create and run non-branched pipe stream. Each argument is either a node or a
+node attribute. The attribute has form ``attribute_name=value``. There should
+be at least one node defined. If there is no source node, then CSV on standard
+input is assumed. if there is no target node, then CSV on standard output is
+assumed.
+
+Example - audit a CSV::
+
+    cat data.csv | brewery pipe audit
+    
+Make output nicer::
+
+    cat data.csv | brewery pipe audit pretty_printer
+    
+Read CSV from a file and store in newly created SQLite database table::
+
+    brewery pipe csv_source resource=data.csv \
+                 sql_table_target \
+                    url=sqlite:///data.sqlite \
+                    table=data  \
+                    create=1 \
+                    replace=1
+
+.. warning::
+
+    This command is not fully working. There is no type conversion of values,
+    which might cause problems. There is no way to specify non-scalar
+    values (arrays, dictionaries). Some nodes might not have properely
+    implemented attributes, therefore you might get error of non-existing
+    attribute even if the attribute is there.
 
 mongoaudit
 ==========

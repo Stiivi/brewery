@@ -17,7 +17,8 @@ import os.path
 import urlparse
 import argparse
 import urllib2
-
+import re
+import textwrap
 import brewery.streams
 
 class ToolError(Exception):
@@ -105,7 +106,110 @@ def create_graph(args):
     graph += "}\n"
     
     print graph
+    
+def list_nodes(args):
+    
+    node_name = args.node
+    node_dict = brewery.nodes.node_dictionary()
 
+    if node_name:
+        if node_name in node_dict:
+            info = node_dict[node_name].node_info
+            
+            print "%s - %s\n" % (node_name, info.get("label") or node_name)
+            
+            if "description" in info:
+                print info["description"] + "\n"
+            
+            print "attributes:"
+            for attr in info.get("attributes") or []:
+                print "    %s - %s" % (attr["name"], attr.get("description") or "(no description)")
+            
+        else:
+            print "unknown node: %s" % node_name
+    else:
+    
+        nodes = node_dict.values()
+    
+        print "source nodes:"
+        for node in nodes:
+            if issubclass(node, brewery.nodes.SourceNode):
+                print "    " + node.identifier()
+
+        print "processing nodes:"
+        for node in nodes:
+            if not issubclass(node, brewery.nodes.SourceNode) \
+                and not issubclass(node, brewery.nodes.TargetNode):
+                print "    " + node.identifier()
+
+        print "target nodes:"
+        for node in nodes:
+            if issubclass(node, brewery.nodes.TargetNode):
+                print "    " + node.identifier()
+            
+def run_pipe(args):
+
+    # Collect nodes
+    pattern = re.compile(r"^(\w+)=(.*)")
+    templates = []
+    attribs = {}
+    current = None
+
+    # Cllect nodes and attributes
+    # 
+    # node name pattern: node_name
+    # attribute pattern: attribute=value
+    #
+    
+    for arg in args.node:
+        match = pattern.match(arg)
+        if match:
+            (attribute, value) = match.groups()
+            attribs[attribute] = value
+        else:
+            if current:
+                templates.append( (current, attribs) )
+                attribs = {}
+            current = arg
+    if current:
+        templates.append( (current, attribs) )
+
+    stream = brewery.Stream()
+    last_node = None
+    
+    nodes = []
+    for template, attribs in templates:
+        try:
+            node = brewery.nodes.create_node(template)
+        except KeyError:
+            sys.stderr.write("ERROR: unknown node %s\n" % template)
+            exit(1)
+
+        node.configure(attribs)
+        stream.add(node)
+        nodes.append(node)
+        
+        if last_node:
+            stream.connect(last_node, node)
+        last_node = node
+    
+    # If first node is not source node, then we add CSV node with standard
+    # input
+    
+    if not isinstance(nodes[0], brewery.nodes.SourceNode):
+        node = brewery.nodes.create_node("csv_source")
+        node.resource = sys.stdin
+        stream.add(node)
+        stream.connect(node, nodes[0])
+
+    if not isinstance(nodes[-1], brewery.nodes.TargetNode):
+        node = brewery.nodes.create_node("csv_target")
+        node.resource = sys.stdout
+        stream.add(node)
+        stream.connect(nodes[-1], node)
+    
+    stream.run()
+    
 ################################################################################
 # Main code
 
@@ -128,6 +232,33 @@ subparser.set_defaults(func=run_stream)
 subparser = subparsers.add_parser('graph', help = "generate a graphviz representation of the stream")
 subparser.add_argument('stream', help='path to the stream JSON file')
 subparser.set_defaults(func=create_graph)
+
+################################################################################
+# Command: pipe
+
+subparser = subparsers.add_parser('pipe', 
+                    help="create a simple Brewery node pipe",
+                    formatter_class=argparse.RawDescriptionHelpFormatter,
+                    description=textwrap.dedent('''\
+                    There should be at least one processing node specified.
+                    
+                    The arguments are either node names or node attributes.
+                    Attributes follow node name and have format: attribute=value
+                    
+                    If there is no source node, then CSV source on standard
+                    input is assumed. If there is no target node, then CSV
+                    target on standard output is assumed.
+                    ''')
+                )
+subparser.add_argument('node', nargs="+", help='list of processing nodes')
+subparser.set_defaults(func=run_pipe)
+
+################################################################################
+# Command: nodes
+
+subparser = subparsers.add_parser('nodes', help="list available nodes")
+subparser.add_argument('node', nargs='?', help='show information about single node')
+subparser.set_defaults(func=list_nodes)
 
 args = parser.parse_args(sys.argv[1:])
 
