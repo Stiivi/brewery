@@ -285,6 +285,8 @@ class SQLDataTarget(base.DataTarget):
 
         if not self.fields:
             self.fields = fields_from_table(self.table)
+        
+        self.field_names = self.fields.names()
 
         self.insert_command = self.table.insert()
         self._buffer = []
@@ -302,7 +304,7 @@ class SQLDataTarget(base.DataTarget):
                 table = self.context.table(self.table_name, autoload=False)
                 table.drop(checkfirst=False)
             else:
-                raise ValueError("Table '%s' already exists" % name)
+                raise ValueError("Table '%s' already exists" % self.table_name)
 
         table = sqlalchemy.Table(self.table_name, self.context.metadata)
 
