@@ -466,17 +466,28 @@ class SQLTableTargetNode(base.TargetNode):
         ]
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, url=None, table=None, truncate=False, create=False, 
+                 replace=False, **kwargs):
         super(SQLTableTargetNode, self).__init__()
+        self.url = url
+        self.table = table
+        self.truncate = truncate
+        self.create = create
+        self.replace = replace
+        
         self.kwargs = kwargs
-        self.args = args
         self.stream = None
 
         # FIXME: document this
         self.concrete_type_map = None
 
     def initialize(self):
-        self.stream = ds.SQLDataTarget(*self.args, **self.kwargs)
+        self.stream = ds.SQLDataTarget(url=self.url,
+                                table=self.table,
+                                truncate=self.truncate,
+                                create=self.create,
+                                replace=self.replace,
+                                **self.kwargs)
 
         self.stream.fields = self.input_fields
         self.stream.concrete_type_map = self.concrete_type_map
