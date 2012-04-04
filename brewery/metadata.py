@@ -14,7 +14,7 @@ __all__ = [
 
 """Abstracted field storage types"""
 storage_types = ("unknown", "string", "text", "integer", "float", 
-                 "boolean", "date")
+                 "boolean", "date", "array")
 
 """Analytical types used by analytical nodes"""
 analytical_types = ("default", "typeless", "flag", "discrete", "range", 
@@ -29,7 +29,8 @@ default_analytical_types = {
                 "text": "typeless",
                 "integer": "discrete",
                 "float": "range",
-                "date": "typeless"
+                "date": "typeless",
+                "array": "typeless"
             }
 
 _valid_retype_attributes = ("storage_type", 
