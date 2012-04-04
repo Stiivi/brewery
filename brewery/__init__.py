@@ -17,6 +17,7 @@ from utils import *
 
 __all__ = [
     "logger_name",
+    "get_logger",
     "set_brewery_search_paths",
     "__version__"
 ]
