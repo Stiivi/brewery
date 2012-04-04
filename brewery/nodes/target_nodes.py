@@ -373,7 +373,7 @@ class PrettyPrinterNode(base.TargetNode):
 
     def _update_widths(self, row):
         for i, value in enumerate(row):
-            self.widths[i] = max(self.widths[i], len(str(value)))
+            self.widths[i] = max(self.widths[i], len(unicode(value)))
 
     def run(self):
 
