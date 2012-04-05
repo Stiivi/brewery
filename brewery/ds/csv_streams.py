@@ -247,7 +247,7 @@ class CSVDataSource(base.DataSource):
         return self.reader
 
     def records(self):
-        fields = self.field_names
+        fields = self.fields.names()
         for row in self.reader:
             yield dict(zip(fields, row))
 
@@ -285,6 +285,8 @@ class CSVDataTarget(base.DataTarget):
         if self.write_headers:
             self.writer.writerow(self.fields.names())
 
+        self.field_names = self.fields.names()
+        
     def finalize(self):
         if self.file and self.close_file:
             self.file.close()
