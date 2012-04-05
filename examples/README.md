@@ -12,3 +12,5 @@ Intermediate
 ------------
 
 * `generator_function.py` - use a custom function as a source data generator
+* `merge_multiple_files` - sequentialy merge multiple CSV files and unite all
+  fields
