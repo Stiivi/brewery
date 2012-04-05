@@ -253,7 +253,7 @@ class CSVDataSource(base.DataSource):
 
 class CSVDataTarget(base.DataTarget):
     def __init__(self, resource, write_headers=True, truncate=True, encoding="utf-8", 
-                dialect=None, **kwds):
+                dialect=None,fields=None, **kwds):
         """Creates a CSV data target
         
         :Attributes:
@@ -266,9 +266,9 @@ class CSVDataTarget(base.DataTarget):
         self.resource = resource
         self.write_headers = write_headers
         self.truncate = truncate
-        self._fields = None
         self.encoding = encoding
         self.dialect = dialect
+        self.fields = fields
         self.kwds = kwds
 
         self.close_file = False

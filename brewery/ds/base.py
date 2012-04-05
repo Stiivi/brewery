@@ -101,15 +101,18 @@ class DataStream(object):
         Default implementation does nothing.
         """
         pass
-
-    # def _get_fields(self):
-    #     raise NotImplementedError()
-    # 
-    # def _set_fields(self, fields):
-    #     raise NotImplementedError()
-    # 
-    # fields = property(_get_fields, _set_fields)
         
+    # Context management
+    #
+    # See: http://docs.python.org/reference/datamodel.html#context-managers
+    #
+    def __enter__(self):
+        self.initialize()
+        return self
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.finalize()
+
 class DataSource(DataStream):
     """Input data stream - for reading."""
 
