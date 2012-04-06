@@ -42,7 +42,7 @@ class NodesTestCase(unittest.TestCase):
         node = brewery.nodes.SampleNode()
         self.setup_node(node)
         self.create_sample()
-        node.sample_size = 5
+        node.size = 5
         self.initialize_node(node)
         node.run()
         node.finalize()

@@ -27,8 +27,9 @@ class SampleNode(base.Node):
         "output" : "same fields as input",
         "attributes" : [
             {
-                 "name": "sample_size",
-                 "description": "Size of the sample to be passed to the output"
+                 "name": "size",
+                 "description": "Size of the sample to be passed to the output",
+                 "type": "integer"
             },
             {
                 "name": "discard",
@@ -39,18 +40,18 @@ class SampleNode(base.Node):
     }
     
 
-    def __init__(self, sample_size = 1000, discard_sample = False, mode = None):
+    def __init__(self, size = 1000, discard_sample = False, mode = None):
         """Creates and initializes sample node
         
         :Parameters:
-            * `sample_size` - number of records to be sampled
+            * `size` - number of records to be sampled
             * `discard_sample` - flag whether the sample is discarded or included. By default `False` -
               sample is included.
             * `mode` - sampling mode - ``first`` - get first N items, ``nth`` - get one in n, ``random``
               - get random %. Note: mode is not yet implemented.
             """
         super(SampleNode, self).__init__()
-        self.sample_size = sample_size
+        self.size = size
         self.discard_sample = discard_sample
 
     def run(self):
@@ -61,7 +62,7 @@ class SampleNode(base.Node):
             logging.debug("sampling row %d" % count)
             self.put(row)
             count += 1
-            if count >= self.sample_size:
+            if count >= self.size:
                 break
 
 class AppendNode(base.Node):
