@@ -67,3 +67,12 @@ class FieldListCase(unittest.TestCase):
         selectors = fields.selectors(["b", "d"])
         self.assertEqual([False, True, False, True], selectors)
     
+    # FIXME: move this to separate metadata/data utils testing
+    def test_coalesce(self):
+        self.assertEqual(1, brewery.coalesce_value("1", "integer"))
+        self.assertEqual("1", brewery.coalesce_value(1, "string"))
+        self.assertEqual(1.5, brewery.coalesce_value("1.5", "float"))
+        self.assertEqual(1000, brewery.coalesce_value("1 000", "integer", strip=True))
+        self.assertEqual(['1','2','3'], brewery.coalesce_value("1,2,3", "list", strip=True))
+        
+    

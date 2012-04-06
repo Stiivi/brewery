@@ -1,6 +1,7 @@
 import copy
 import itertools
 import functools
+import re
 # from collections import OrderedDict
 
 __all__ = [
@@ -11,7 +12,8 @@ __all__ = [
     "collapse_record",
     "FieldMap",
     "storage_types",
-    "analytical_types"
+    "analytical_types",
+    "coalesce_value"
 ]
 
 """Abstracted field storage types"""
@@ -451,3 +453,39 @@ class RowFieldFilter(object):
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
         return list(itertools.compress(row, self.selectors))
+
+def coalesce_value(value, storage_type, empty_values={}, strip=False):
+    """Coalesces `value` to given storage `type`. `empty_values` is a dictionary
+    where keys are storage type names and values are values to be used
+    as empty value replacements."""
+    if storage_type in ["string", "text"]:
+        if strip:
+            value = value.strip()
+        elif value:
+            value = unicode(value)
+
+        if value == "" or value is None:
+            value = empty_values.get("string")
+    elif storage_type == "integer":
+        # FIXME: use configurable thousands separator (now uses space)
+        if strip:
+            value = re.sub(r"\s", "", value.strip())
+
+        try:
+            value = int(value)
+        except:
+            value = empty_values.get("integer")
+    elif storage_type == "float":
+        # FIXME: use configurable thousands separator (now uses space)
+        if strip:
+            value = re.sub(r"\s", "", value.strip())
+
+        try:
+            value = float(value)
+        except:
+            value = empty_values.get("float")
+    elif storage_type == "list":
+        # FIXME: undocumented type
+        value = value.split(",")
+        
+    return value
