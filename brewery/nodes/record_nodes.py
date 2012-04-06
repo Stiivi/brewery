@@ -6,6 +6,7 @@ import brewery
 import brewery.ds as ds
 import brewery.dq as dq
 import logging
+import itertools
 
 class SampleNode(base.Node):
     """Create a data sample from input stream. There are more sampling possibilities:
@@ -390,7 +391,11 @@ class DistinctNode(base.Node):
             self.distinct_fields = []
             
         self.discard = discard
-            
+        
+    def initialize(self):
+        field_map = brewery.FieldMap(keep=self.distinct_fields)
+        self.row_filter = field_map.row_filter(self.input_fields)
+
     def run(self):
         pipe = self.input
         self.distinct_values = set()
@@ -402,12 +407,10 @@ class DistinctNode(base.Node):
                 self.put(row)
             return
 
-        indexes = self.input_fields.indexes(self.distinct_fields)
-
         for row in pipe.rows():
             pass_flag = True
             # Construct key tuple from distinct fields
-            key_tuple = tuple([row[index] for index in indexes])
+            key_tuple = tuple(self.row_filter(row))
 
             if key_tuple not in self.distinct_values:
                 self.distinct_values.add(key_tuple)
@@ -513,13 +516,12 @@ class AggregateNode(base.Node):
         self.keys = []
         self.counts = {}
         
-        key_indexes = self.input_fields.indexes(self.key_fields)
+        key_selectors = self.input_fields.selectors(self.key_fields)
         measure_indexes = self.input_fields.indexes(self.measures)
-
+        
         for row in pipe.rows():
             # Create aggregation key
-            key = tuple([row[i] for i in key_indexes])
-
+            key = tuple(itertools.compress(row, key_selectors))
             # Create new aggregate record for key if it does not exist
             #
             if key not in self.keys:

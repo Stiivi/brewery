@@ -62,3 +62,8 @@ class FieldListCase(unittest.TestCase):
         retype_dict = {"a": {"name":"foo"}}
         self.assertRaises(Exception, fields.retype, retype_dict)
         
+    def test_selectors(self):
+        fields = brewery.FieldList(["a", "b", "c", "d"])
+        selectors = fields.selectors(["b", "d"])
+        self.assertEqual([False, True, False, True], selectors)
+    

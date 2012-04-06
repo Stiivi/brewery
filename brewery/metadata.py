@@ -1,4 +1,6 @@
 import copy
+import itertools
+import functools
 # from collections import OrderedDict
 
 __all__ = [
@@ -232,7 +234,6 @@ class FieldList(object):
             # Convert input to Field instances
             # This is convenience, so one can pass list of strsings, for example
 
-            fields = [to_field(f) for f in fields]
             for field in fields:
                 self.append(field)
         
@@ -271,6 +272,15 @@ class FieldList(object):
 
         return tuple(indexes)
 
+    def selectors(self, fields = None):
+        """Return a list representing field selector - which fields are
+        selected from a row."""
+        
+        sel_names = [str(field) for field in fields]
+
+        selectors = [str(name) in sel_names for name in self.names()]
+        return selectors
+        
     def index(self, field):
         """Return index of a field"""
         
@@ -406,29 +416,38 @@ class FieldMap(object):
 
     def row_filter(self, fields):
         """Returns an object that will convert rows with structure specified in `fields`. You can
-        use the object to filter fields from a row (list, array) according to this map."""
-        indexes = []
+        use the object to filter fields from a row (list, array) according to this map.
+        """
+        return RowFieldFilter(self.field_selectors(fields))
         
-        for i, field in enumerate(fields):
-            if (self.drop and field.name not in self.drop) or \
-                (self.keep and field.name in self.keep) or \
-                not (self.keep or self.drop):
-                indexes.append(i)
+    def field_selectors(self, fields):
+        """Returns selectors of fields to be used by `itertools.compress()`. 
+        This is the preferred way of field filtering.
+        """
+
+        selectors = []
+        
+        for field in fields:
+            flag = (self.drop and field.name not in self.drop) \
+                    or (self.keep and field.name in self.keep) \
+                    or not (self.keep or self.drop)
+            selectors.append(flag)
                 
-        return RowFieldFilter(indexes)
+        return selectors
+        
 
 class RowFieldFilter(object):
     """Class for filtering fields in array"""
 
-    def __init__(self, indexes = None):
+    def __init__(self, selectors = None):
         """Create an instance of RowFieldFilter. `indexes` is a list of indexes that are passed
         to output."""
         super(RowFieldFilter, self).__init__()
-        if indexes is not None:
-            self.indexes = indexes
-        else:
-            self.indexes = []
+        self.selectors = selectors or []
+        
+    def __call__(self, row):
+        return self.filter(row)
         
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
-        return [row[i] for i in self.indexes]
+        return list(itertools.compress(row, self.selectors))
