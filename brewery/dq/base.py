@@ -2,6 +2,24 @@
 # -*- coding: utf-8 -*-
 import sets
 
+class ProbeSet(object):
+    """Set of probes"""
+    def __init__(self, probes=None):
+        """Creates a probe-set which acts as multi-probe. `probes` should be
+        a list of probes."""
+        super(ProbeSet, self).__init__()
+        self.probes = probes
+        
+    def probe(self, value):
+        """Probe the value in all of the probes."""
+        for probe in self.probes:
+            probe.probe(value)
+            
+    def finalize(self):
+        """Finalize all probes."""
+        for probe in self.probes:
+            probe.finalize()
+        
 class FieldTypeProbe(object):
     """Probe for guessing field data type
     
