@@ -648,7 +648,7 @@ class Stream(object):
             except:
                 pass
 
-        node_info = node.__class__.__dict__.get("__node_info__")
+        node_info = node.node_info
 
         attrs = {}
         if node_info and "attributes" in node_info:

@@ -77,7 +77,9 @@ def subclass_iterator(cls, _seen=None):
     if not isinstance(cls, type):
         raise TypeError('_subclass_iterator must be called with '
                         'new-style classes, not %.100r' % cls)
-    if _seen is None: _seen = set()
+
+    _seen = _seen or set()
+
     try:
         subs = cls.__subclasses__()
     except TypeError: # fails only when cls is type

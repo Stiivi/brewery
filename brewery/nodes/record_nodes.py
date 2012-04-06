@@ -407,11 +407,8 @@ class DistinctNode(base.Node):
         for row in pipe.rows():
             pass_flag = True
             # Construct key tuple from distinct fields
-            key_tuple = []
-            for index in indexes:
-                key_tuple.append(row[index])
+            key_tuple = tuple([row[index] for index in indexes])
 
-            key_tuple = tuple(key_tuple)
             if key_tuple not in self.distinct_values:
                 self.distinct_values.add(key_tuple)
                 if not self.discard:
