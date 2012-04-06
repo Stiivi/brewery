@@ -78,6 +78,15 @@ class DataStream(object):
         
         * `initialize()`
         * `finalize()`
+        
+        The class supports context management, for example::
+        
+            with ds.CSVDataSource("output.csv") as s:
+                for row in s.rows():
+                    print row
+
+        In this case, the initialize() and finalize() methods are called
+        automatically.
         """
         super(DataStream, self).__init__()
 

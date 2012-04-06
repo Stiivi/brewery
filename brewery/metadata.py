@@ -40,22 +40,8 @@ _valid_retype_attributes = ("storage_type",
 
 # FIXME: Depreciated - why it is here, if we have FieldList class?!
 def fieldlist(fields):
-    """Create a :class:`FieldList` from a list of strings, dictionaries or tuples.
-
-    How fields are constructed:
-
-    * string: `field name` is set 
-    * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
-      obligatory, rest is optional
-    * dict: contains key-value pairs for initializing a :class:`Field` object
-
-    For strings and in if not explicitly specified in a tuple or a dict case, then following rules
-    apply:
-
-    * `storage_type` is set to ``unknown``
-    * `analytical_type` is set to ``typeless``
-    """
     # FIXME: print some warning here
+    raise DeprecationWarning
     return FieldList(fields)
 
 def expand_record(record, separator = '.'):

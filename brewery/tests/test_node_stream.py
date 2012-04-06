@@ -109,7 +109,7 @@ class SlowSourceNode(Node):
     node_info = {}
     @property
     def output_fields(self):
-        return brewery.fieldlist(["i"])
+        return brewery.FieldList(["i"])
         
     def run(self):
         for cycle in range(0,10):
@@ -125,7 +125,7 @@ class StreamInitializationTestCase(unittest.TestCase):
         #            |
         #            +---> sample ----> map ----> target
 
-        self.fields = brewery.fieldlist(["a", "b", "c", "str"])
+        self.fields = brewery.FieldList(["a", "b", "c", "str"])
         self.src_list = [[1,2,3,"a"], [4,5,6,"b"], [7,8,9,"a"]]
         self.target_list = []
         self.aggtarget_list = []
