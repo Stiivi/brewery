@@ -280,16 +280,16 @@ class FieldList(object):
         
         sel_names = [str(field) for field in fields]
 
-        selectors = [str(name) in sel_names for name in self.names()]
+        selectors = [unicode(name) in sel_names for name in self.names()]
         return selectors
         
     def index(self, field):
         """Return index of a field"""
         
         try:
-            index = self._field_names.index(str(field))
+            index = self._field_names.index(unicode(field))
         except ValueError:
-            raise KeyError("Field list has no field with name '%s'" % str(field))
+            raise KeyError("Field list has no field with name '%s'" % unicode(field))
 
         return index
 

@@ -33,6 +33,11 @@ Try:
 
     b.stream.run()
 
+Or the same from the command line::
+
+    $ curl https://raw.github.com/Stiivi/cubes/master/examples/hello_world/data.csv | \
+          brewery pipe audit pretty_printer
+
 Requirements
 ============
 
