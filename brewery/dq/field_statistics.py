@@ -47,9 +47,9 @@ class FieldStatistics(object):
         self.record_count = 0
         self.value_ratio = 0
         
-        self.distinct_values = sets.Set()
+        self.distinct_values = set()
         self.distinct_overflow = False
-        self.storage_types = sets.Set()
+        self.storage_types = set()
 
         self.null_count = 0
         self.null_value_ratio = 0

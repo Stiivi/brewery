@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sets
 
 class ProbeSet(object):
     """Set of probes"""
@@ -31,7 +30,7 @@ class FieldTypeProbe(object):
     def __init__(self, field):
         self.field = field
 
-        self.storage_types = sets.Set()
+        self.storage_types = set()
 
         self.null_count = 0
         self.empty_string_count = 0
