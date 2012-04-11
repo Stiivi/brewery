@@ -126,8 +126,8 @@ class CSVDataSource(base.DataSource):
     Some code taken from OKFN Swiss library.
     """
     def __init__(self, resource, read_header=True, dialect=None, encoding=None,
-                 detect_encoding=False, detect_header=False, sample_size=200, 
-                 skip_rows=None, empty_as_null=True,fields=None, **reader_args):
+                 detect_header=False, sample_size=200, skip_rows=None,
+                 empty_as_null=True,fields=None, **reader_args):
         """Creates a CSV data source stream.
         
         :Attributes:
@@ -136,8 +136,6 @@ class CSVDataSource(base.DataSource):
               or not. ``True`` by default.
             * encoding: source character encoding, by default no conversion is
               performed.
-            * detect_encoding: read sample from source and determine whether
-              source is UTF8 or not
             * detect_headers: try to determine whether data source has headers
               in first row or not
             * sample_size: maximum bytes to be read when detecting encoding
@@ -152,11 +150,8 @@ class CSVDataSource(base.DataSource):
         """
         self.read_header = read_header
         self.encoding = encoding
-        self.detect_encoding = detect_encoding
         self.detect_header = detect_header
         self.empty_as_null = empty_as_null
-        
-        self._autodetection = detect_encoding or detect_header
         
         self.sample_size = sample_size
         self.resource = resource
@@ -191,18 +186,14 @@ class CSVDataSource(base.DataSource):
 
         handle = None
         
-        if self._autodetection:
+        if self.detect_header:
             
             sample = self.file.read(self.sample_size)
 
             # Encoding test
-            if self.detect_encoding and type(sample) == unicode:
-                self.encoding = "utf-8"
-
-            if self.detect_header:
-                sample = sample.encode('utf-8')
-                sniffer = csv.Sniffer()
-                self.read_header = sniffer.has_header(sample)
+            sample = sample.encode('utf-8')
+            sniffer = csv.Sniffer()
+            self.read_header = sniffer.has_header(sample)
 
             self.file.seek(0)
             
