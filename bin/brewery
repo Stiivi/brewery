@@ -20,6 +20,7 @@ import urllib2
 import re
 import textwrap
 import brewery.streams
+from operator import itemgetter
 
 class ToolError(Exception):
     """Just exception"""
@@ -110,11 +111,11 @@ def create_graph(args):
 def list_nodes(args):
     
     node_name = args.node
-    node_dict = brewery.nodes.node_dictionary()
+    catalogue = brewery.nodes.node_catalogue()
 
     if node_name:
-        if node_name in node_dict:
-            info = node_dict[node_name].node_info
+        if node_name in catalogue:
+            info = catalogue[node_name]
             
             print "%s - %s\n" % (node_name, info.get("label") or node_name)
             
@@ -129,24 +130,20 @@ def list_nodes(args):
             print "unknown node: %s" % node_name
     else:
     
-        nodes = node_dict.values()
+        all_nodes = sorted(catalogue.values(), key=itemgetter("name"))
     
-        print "source nodes:"
-        for node in nodes:
-            if issubclass(node, brewery.nodes.SourceNode):
-                print "    " + node.identifier()
+        types = ["source", "processing", "target"]
+        for t in types:
+            nodes = [node for node in all_nodes if node["type"] == t]
+            print_nodes(nodes, t)
 
-        print "processing nodes:"
-        for node in nodes:
-            if not issubclass(node, brewery.nodes.SourceNode) \
-                and not issubclass(node, brewery.nodes.TargetNode):
-                print "    " + node.identifier()
+def print_nodes(nodes, label):
+    print "%s nodes:" % label
+    for node in nodes:
+        print "    " + node["name"]
 
-        print "target nodes:"
-        for node in nodes:
-            if issubclass(node, brewery.nodes.TargetNode):
-                print "    " + node.identifier()
-            
+    print ""
+    
 def run_pipe(args):
 
     # Collect nodes

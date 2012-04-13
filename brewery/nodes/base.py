@@ -6,6 +6,7 @@ import brewery.utils as utils
 __all__ = (
     "create_node",
     "node_dictionary",
+    "node_catalogue",
     "get_node_info",
     "NodeFinished",
     "Node",
@@ -26,7 +27,9 @@ def create_node(identifier, *args, **kwargs):
     return node
 
 def node_dictionary():
-    """Return a dictionary containing node name as key and node class as value."""
+    """Return a dictionary containing node name as key and node class as
+    value. This will be depreciated soon in favour of
+    :func:`node_catalogue()`"""
     
     classes = node_subclasses(Node)
     dictionary = {}
@@ -41,6 +44,48 @@ def node_dictionary():
             pass
 
     return dictionary
+
+def node_catalogue():
+    """Returns a dictionary of information about all available nodes. Keys are
+    node identifiers, values are dictionaries. The information dictionary contains
+    all the keys from the node's `node_info` dictionary plus keys: `factory`
+    with node class, `type` (if not provided) is set to one of ``source``,
+    ``processing`` or ``target``.
+    """
+    
+    classes = node_subclasses(Node)
+    
+    catalogue = {}
+    
+    for node_class in classes:
+        try:
+            name = node_class.identifier()
+        except AttributeError as e:
+            # If node does not provide identifier, we consider it to be
+            # private or abstract class
+            continue
+
+        # Get copy of node info
+        info = dict(get_node_info(node_class))
+        info["name"] = name
+        info["factory"] = node_class
+        
+        # Get node type based on superclass, if not provided
+
+        if "type" not in info:
+            if issubclass(node_class, SourceNode):
+                info["type"] = "source"
+            elif not issubclass(node_class, SourceNode) \
+                    and not issubclass(node_class, TargetNode):
+                info["type"] = "processing"
+            elif issubclass(node_class, TargetNode):
+                info["type"] = "target"
+            else:
+                info["type"] = "unknown"
+
+        catalogue[name] = info
+
+    return catalogue
 
 def node_subclasses(root, abstract = False):
     """Get all subclasses of node.
