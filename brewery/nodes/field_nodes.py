@@ -290,7 +290,7 @@ class CoalesceValueToTypeNode(base.Node):
                 elif value:
                     value = unicode(value)
 
-                if value == "" or value is None:
+                if not value:
                     value = self.string_none
 
                 row[i] = value
@@ -300,10 +300,13 @@ class CoalesceValueToTypeNode(base.Node):
                 if type(value) == str or type(value) == unicode:
                     value = re.sub(r"\s", "", value.strip())
 
-                try:
-                    value = int(value)
-                except ValueError:
+                if value is None:
                     value = self.integer_none
+                else:
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        value = self.integer_none
 
                 row[i] = value
 
@@ -312,10 +315,13 @@ class CoalesceValueToTypeNode(base.Node):
                 if type(value) == str or type(value) == unicode:
                     value = re.sub(r"\s", "", value.strip())
 
-                try:
-                    value = float(value)
-                except:
+                if value is None:
                     value = self.float_none
+                else:
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        value = self.float_none
 
                 row[i] = value
 
