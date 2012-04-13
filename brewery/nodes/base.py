@@ -20,7 +20,7 @@ _node_info_warnings = set()
 def create_node(identifier, *args, **kwargs):
     """Creates a node of type specified by `identifier`. Options are passed to
     the node initializer"""
-    
+
     d = node_dictionary()
     node_class = d[identifier]
     node = node_class(*args, **kwargs)
@@ -30,15 +30,15 @@ def node_dictionary():
     """Return a dictionary containing node name as key and node class as
     value. This will be depreciated soon in favour of
     :func:`node_catalogue()`"""
-    
+
     classes = node_subclasses(Node)
     dictionary = {}
-    
+
     for c in classes:
         try:
             name = c.identifier()
             dictionary[name] = c
-        except AttributeError as e:
+        except AttributeError:
             # If node does not provide identifier, we consider it to be
             # private or abstract class
             pass
@@ -52,15 +52,15 @@ def node_catalogue():
     with node class, `type` (if not provided) is set to one of ``source``,
     ``processing`` or ``target``.
     """
-    
+
     classes = node_subclasses(Node)
-    
+
     catalogue = {}
-    
+
     for node_class in classes:
         try:
             name = node_class.identifier()
-        except AttributeError as e:
+        except AttributeError:
             # If node does not provide identifier, we consider it to be
             # private or abstract class
             continue
@@ -69,7 +69,7 @@ def node_catalogue():
         info = dict(get_node_info(node_class))
         info["name"] = name
         info["factory"] = node_class
-        
+
         # Get node type based on superclass, if not provided
 
         if "type" not in info:
@@ -89,7 +89,7 @@ def node_catalogue():
 
 def node_subclasses(root, abstract = False):
     """Get all subclasses of node.
-    
+
     :Parameters:
         * `abstract`: If set to ``True`` all abstract classes are included as well. Default is
           ``False``
@@ -110,12 +110,13 @@ def node_subclasses(root, abstract = False):
 def get_node_info(cls):
     """Get node info attribute of a node - transient function during
     depreciation"""
-    
+
     if hasattr(cls, "__node_info__") and cls not in _node_info_warnings:
-        logger.warn("depreciated __node_info__ present in %s, rename to node_info" \
+
+        utils.get_logger().warn("depreciated __node_info__ present in %s, rename to node_info" \
                     " (this warning will be shown only once)" % str(cls))
         _node_info_warnings.add(cls)
-        
+
         return cls.__node_info__
     else:
         return cls.node_info
@@ -127,12 +128,12 @@ class NodeFinished(Exception):
 
 class Node(object):
     """Base class for procesing node
-    
+
     .. abstract_node
     """
     def __init__(self):
         """Creates a new data processing node.
-        
+
         :Attributes:
             * `inputs`: input pipes
             * `outputs`: output pipes
@@ -144,7 +145,7 @@ class Node(object):
         self.outputs = []
         self._active_outputs = []
         self.description = None
-        
+
         # Experimental: dictionary to be used to retype output fields
         # Currently used only in CSV source node.
         self._retype_dictionary = {}
@@ -152,13 +153,13 @@ class Node(object):
     def initialize(self):
         """Initializes the node. Initialization is separated from creation. Put any Node subclass
         initialization in this method. Default implementation does nothing.
-        
+
         .. note:
             Why the ``initialize()`` method? Node initiaization is different action from node object
             instance initialization in the ``__init__()`` method. Before executing node contents, the
             node has to be initialized - files or network connections opened, temporary tables created,
             data that are going to be used for configuration fetched, ... Initialization might require
-            node to be fully configured first: all node attributes set to desired values. 
+            node to be fully configured first: all node attributes set to desired values.
         """
         pass
 
@@ -169,20 +170,20 @@ class Node(object):
     def run(self):
         """Main method for running the node code. Subclasses should implement this method.
         """
-        
+
         raise NotImplementedError("Subclasses of Node should implement the run() method")
-        
+
     @property
     def input(self):
         """Return single node imput if exists. Convenience property for nodes which process only one
         input. Raises exception if there are no inputs or are more than one imput."""
-        
+
         if len(self.inputs) == 1:
             return self.inputs[0]
         else:
             raise Exception("Single input requested. Node has none or more than one input (%d)."
                                     % len(self.inputs))
-    
+
     def add_input(self, pipe):
         if pipe not in self.inputs:
             self.inputs.append(pipe)
@@ -194,24 +195,24 @@ class Node(object):
             self.outputs.append(pipe)
         else:
             raise Exception("Output %s already connected" % pipe)
-    
+
     def retype(self, name, **attributes):
         """Retype an output field `name` to field `field`.
-        
+
         .. note:
-        
+
             This function is not set in stone and might change. Consider it to
             be experimental feature.
         """
         self._retype_dictionary[name] = attributes
-        
+
     def reset_type(self, name):
         """Remove all retype information for field `name`"""
         del self._retype_dictionary[name]
-    
+
     def put(self, obj):
         """Put row into all output pipes.
-        
+
         Raises `NodeFinished` exception when node's target nodes are not receiving data anymore.
         In most cases this exception might be ignored, as it is handled in the node thread
         wrapper. If you want to perform necessary clean-up in the `run()` method before exiting,
@@ -225,11 +226,11 @@ class Node(object):
             if not output.closed():
                 output.put(obj)
                 active_outputs += 1
-        
+
         # This is not very safe, as run() might not expect it
         if not active_outputs:
             raise NodeFinished
-  
+
     def put_record(self, obj):
         """Put record into all output pipes. Convenience method. Not recommended to be used.
 
@@ -245,11 +246,11 @@ class Node(object):
     def input_fields(self):
         """Return fields from input pipe, if there is one and only one input pipe."""
         return self.input.fields
-        
+
     @property
     def output_fields(self):
         """Return fields passed to the output by the node.
-        
+
         Subclasses should override this method. Default implementation returns same fields as
         input has, raises exception when there are more inputs or if there is no input
         connected."""
@@ -262,14 +263,14 @@ class Node(object):
                              "initialized")
 
         return self.input.fields
-    
+
     @property
     def output_field_names(self):
         """Convenience method for gettin names of fields generated by the node. For more information
         see :meth:`brewery.nodes.Node.output_fields`"""
         raise PendingDeprecationWarning
         return self.output_fields.names()
-        
+
     @classmethod
     def identifier(cls):
         """Returns an identifier name of the node class. Identifier is used
@@ -281,26 +282,26 @@ class Node(object):
         class name will be used with `node` suffix removed. For example:
         ``CSVSourceNode`` will be ``csv_source``.
         """
-        
+
         logger = utils.get_logger()
-        
+
         # FIXME: this is temporary warning
         info = get_node_info(cls)
         ident = None
 
         if info:
             ident = info.get("name")
-            
+
         if not ident:
             ident = utils.to_identifier(utils.decamelize(cls.__name__))
             if ident.endswith("_node"):
                 ident = ident[:-5]
-                
+
         return ident
 
     def configure(self, config, protected = False):
         """Configure node.
-        
+
         :Parameters:
             * `config` - a dictionary containing node attributes as keys and values as attribute
               values. Key ``type`` is ignored as it is used for node creation.
@@ -308,13 +309,13 @@ class Node(object):
               to set protected attribute will result in an exception. Use `protected` when you are
               configuring nodes through a user interface or a custom tool. Default is ``False``: all
               attributes can be set.
-              
+
         If key in the `config` dictionary does not refer to a node attribute specified in node
-        description, then it is ignored. 
+        description, then it is ignored.
         """
 
         attributes = dict((a["name"], a) for a in get_node_info(self)["attributes"])
-        
+
         for attribute, value in config.items():
             info = attributes.get(attribute)
 
@@ -324,19 +325,19 @@ class Node(object):
 
             if protected and info.get("protected"):
                 # FIXME: use some custom exception
-                raise Exception("Trying to set protected attribute '%s' of node '%s'" % 
+                raise Exception("Trying to set protected attribute '%s' of node '%s'" %
                                         (attribute, str(type(self))))
             else:
                 setattr(self, attribute, value)
 
 class SourceNode(Node):
     """Abstract class for all source nodes
-    
+
     All source nodes should provide an attribute or implement a property (``@property``) called
     ``output_fields``.
-    
+
     .. abstract_node
-    
+
     """
     def __init__(self):
         super(SourceNode, self).__init__()
@@ -350,9 +351,9 @@ class SourceNode(Node):
 
 class TargetNode(Node):
     """Abstract class for all target nodes
-    
+
     .. abstract_node
-    
+
     """
     def __init__(self):
         super(TargetNode, self).__init__()
@@ -364,4 +365,3 @@ class TargetNode(Node):
 
     def add_output(self, pipe):
         raise RuntimeError("Should not add output pipe to a target node")
-    

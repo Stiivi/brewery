@@ -3,24 +3,23 @@
 
 import base
 import brewery
-import brewery.ds as ds
 import brewery.dq as dq
 import logging
 import itertools
 
 class SampleNode(base.Node):
     """Create a data sample from input stream. There are more sampling possibilities:
-    
+
     * fixed number of records
     * % of records, random *(not yet implemented)*
     * get each n-th record *(not yet implemented)*
-    
+
     Node can work in two modes: pass sample to the output or discard sample and pass the rest.
     The mode is controlled through the `discard` flag. When it is false, then sample is passed
     and rest is discarded. When it is true, then sample is discarded and rest is passed.
-    
+
     """
-    
+
     node_info = {
         "label" : "Sample Node",
         "description" : "Pass data sample from input to output.",
@@ -38,11 +37,11 @@ class SampleNode(base.Node):
             }
         ]
     }
-    
+
 
     def __init__(self, size = 1000, discard_sample = False, mode = None):
         """Creates and initializes sample node
-        
+
         :Parameters:
             * `size` - number of records to be sampled
             * `discard_sample` - flag whether the sample is discarded or included. By default `False` -
@@ -57,7 +56,7 @@ class SampleNode(base.Node):
     def run(self):
         pipe = self.input
         count = 0
-        
+
         for row in pipe.rows():
             logging.debug("sampling row %d" % count)
             self.put(row)
@@ -92,16 +91,16 @@ class AppendNode(base.Node):
 
 class MergeNode(base.Node):
     """Merge two or more streams (join).
-    
-    Inputs are joined in a star-like fashion: one input is considered master and others are 
+
+    Inputs are joined in a star-like fashion: one input is considered master and others are
     details adding information to the master. By default master is the first input.
     Joins are specified as list of tuples: (`input_tag`, `master_input_key`, `other_input_key`).
-    
+
     Following configuration code shows how to add region and category details:
 
     .. code-block:: python
 
-        node.keys = [ [1, "region_code", "code"], 
+        node.keys = [ [1, "region_code", "code"],
                       [2, "category_code", "code"] ]
 
     Master input should have fields `region_code` and `category_code`, other inputs should have
@@ -109,7 +108,7 @@ class MergeNode(base.Node):
 
     .. code-block:: python
 
-        node.keys = [ [1, "region_code", "code"], 
+        node.keys = [ [1, "region_code", "code"],
                       [2, ("category_code", "year"), ("code", "year")] ]
 
     As a key you might use either name of a sigle field or list of fields for compound keys. If
@@ -120,7 +119,7 @@ class MergeNode(base.Node):
 
     .. code-block:: python
 
-        node.keys = [ [1, "region_code"], 
+        node.keys = [ [1, "region_code"],
                       [2, "category_code"] ]
 
     Master input should have fields `region_code` and `category_code`, input #1 should have
@@ -129,10 +128,10 @@ class MergeNode(base.Node):
     To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
     should be a dictionary where keys are input tags and values are either
     :class:`brewery.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
-    
+
     Following example renames ``source_region_name`` field in input 0 and drops field `id` in
     input 1:
-    
+
     .. code-block:: python
 
         node.maps = {
@@ -153,9 +152,9 @@ class MergeNode(base.Node):
     in cases nodes are being constructed from external description (such as JSON dictionary).
 
     .. note::
-    
+
         Limitations of current implementation (might be improved in the future):
-    
+
         * only inner join between datasets: that means that only those input records are joined
           that will have matching keys
         * "detail" datasets should have unique keys, otherwise the behaviour is undefined
@@ -166,7 +165,7 @@ class MergeNode(base.Node):
     set is the largest from all inputs.
 
     """
-    
+
     node_info = {
         "label" : "Merge Node",
         "description" : "Merge two or more streams",
@@ -191,7 +190,7 @@ class MergeNode(base.Node):
             }
         ]
     }
-    
+
     def __init__(self, joins = None, master = None, maps = None):
         super(MergeNode, self).__init__()
         if joins:
@@ -203,17 +202,17 @@ class MergeNode(base.Node):
             self.master = master
         else:
             self.master = 0
-            
+
         self.maps = maps
-            
+
         self._output_fields = []
-    
+
     def initialize(self):
         pass
         # Check joins and normalize them first
         self._keys = {}
         self._kindexes = {}
-        
+
         self.master_input = self.inputs[self.master]
         self.detail_inputs = []
         for (tag, pipe) in enumerate(self.inputs):
@@ -239,11 +238,11 @@ class MergeNode(base.Node):
 
             if detail_tag == self.master:
                 raise Exception("Can not join master to itself.")
-            
+
             self._keys[detail_tag] = (detail_key, master_key)
-            
+
             detail_input = self.inputs[detail_tag]
-            
+
             # Get field indexes
             detail_indexes = detail_input.fields.indexes(detail_key)
             master_indexes = self.master_input.fields.indexes(master_key)
@@ -255,7 +254,7 @@ class MergeNode(base.Node):
             self._input_rows[tag] = {}
 
         # Create map filters
-        
+
         self._filters = {}
         self._maps = {}
         if self.maps:
@@ -280,11 +279,11 @@ class MergeNode(base.Node):
         self._output_fields = brewery.FieldList(fields)
 
 
-        
+
     @property
     def output_fields(self):
         return self._output_fields
-        
+
     def run(self):
         """Only inner join is implemented"""
         # First, read details, then master. )
@@ -301,7 +300,7 @@ class MergeNode(base.Node):
                 joined_row = rfilter.filter(row[:])
             else:
                 joined_row = row[:]
-                
+
             joined = False
             for (tag, pipe) in self.detail_inputs:
                 detail_data = self._input_rows[tag]
@@ -311,7 +310,7 @@ class MergeNode(base.Node):
                 for i in self._kindexes[tag][1]:
                     key.append(row[i])
                 key = tuple(key)
-                
+
                 detail = detail_data.get(tuple(key))
 
                 if not detail:
@@ -320,10 +319,10 @@ class MergeNode(base.Node):
                 else:
                     joined = True
                     joined_row += detail
-                    
+
             if joined:
                 self.put(joined_row)
-                
+
     def _read_input(self, tag, pipe, key_indexes, detail):
         rfilter = self._filters.get(tag)
         for row in pipe.rows():
@@ -338,16 +337,16 @@ class MergeNode(base.Node):
 
 class DistinctNode(base.Node):
     """Node will pass distinct records with given distinct fields.
-    
+
     If `discard` is ``False`` then first record with distinct keys is passed to the output. This is
     used to find all distinct key values.
-    
+
     If `discard` is ``True`` then first record with distinct keys is discarded and all duplicate
     records with same key values are passed to the output. This mode is used to find duplicate
     records. For example: there should be only one invoice per organisation per month. Set
     `distinct_fields` to `organisaion` and `month`, sed `discard` to ``True``. Running this node
     should give no records on output if there are no duplicates.
-    
+
     """
     node_info = {
         "label" : "Distinct Node",
@@ -369,30 +368,30 @@ class DistinctNode(base.Node):
 
     def __init__(self, distinct_fields = None, discard = False):
         """Creates a node that will pass distinct records with given distinct fields.
-        
+
         :Parameters:
             * `distinct_fields` - list of names of key fields
             * `discard` - whether the distinct fields are discarded or kept. By default False.
-            
+
         If `discard` is ``False`` then first record with distinct keys is passed to the output. This is
         used to find all distinct key values.
-        
+
         If `discard` is ``True`` then first record with distinct keys is discarded and all duplicate
         records with same key values are passed to the output. This mode is used to find duplicate
         records. For example: there should be only one invoice per organisation per month. Set
         `distinct_fields` to `organisaion` and `month`, sed `discard` to ``True``. Running this node
         should give no records on output if there are no duplicates.
-        
+
         """
-        
+
         super(DistinctNode, self).__init__()
         if distinct_fields:
             self.distinct_fields = distinct_fields
         else:
             self.distinct_fields = []
-            
+
         self.discard = discard
-        
+
     def initialize(self):
         field_map = brewery.FieldMap(keep=self.distinct_fields)
         self.row_filter = field_map.row_filter(self.input_fields)
@@ -409,7 +408,6 @@ class DistinctNode(base.Node):
             return
 
         for row in pipe.rows():
-            pass_flag = True
             # Construct key tuple from distinct fields
             key_tuple = tuple(self.row_filter(row))
 
@@ -431,13 +429,13 @@ class Aggregate(object):
         self.min = 0
         self.max = 0
         self.average = None
-    
+
     def aggregate_value(self, value):
         self.count += 1
         self.sum += value
         self.min = min(self.min, value)
         self.max = max(self.max, value)
-        
+
     def finalize(self):
         if self.count:
             self.average = self.sum / self.count
@@ -447,10 +445,10 @@ class KeyAggregate(object):
     def __init__(self):
         self.count = 0
         self.field_aggregates = {}
-        
+
 class AggregateNode(base.Node):
     """Aggregate"""
-    
+
     node_info = {
         "label" : "Aggregate Node",
         "description" : "Aggregate values grouping by key fields.",
@@ -470,29 +468,29 @@ class AggregateNode(base.Node):
                 "name": "measures",
                 "description": "List of fields to be aggregated."
             }
-            
+
         ]
     }
-    
-    def __init__(self, keys=None, measures=None, default_aggregations=["sum"], 
+
+    def __init__(self, keys=None, measures=None, default_aggregations=["sum"],
                  record_count_field="record_count"):
-        """Creates a new node for aggregations. Supported aggregations: sum, avg, min, max""" 
-                
+        """Creates a new node for aggregations. Supported aggregations: sum, avg, min, max"""
+
         super(AggregateNode, self).__init__()
         if keys:
             self.key_fields = keys
         else:
             self.key_fields = []
-            
+
         self.aggregations = {}
         self.record_count_field = record_count_field
         self.measures = measures or []
-            
+
     def add_measure(self, field, aggregations = None):
         """Add aggregation for `field` """
         self.aggregations[field] = aggregations
         self.measures.append(field)
-    
+
     @property
     def output_fields(self):
         # FIXME: use storage types based on aggregated field type
@@ -510,16 +508,16 @@ class AggregateNode(base.Node):
         fields.append(brewery.Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
 
         return fields
-        
+
     def run(self):
         pipe = self.input
         self.aggregates = {}
         self.keys = []
         self.counts = {}
-        
+
         key_selectors = self.input_fields.selectors(self.key_fields)
         measure_indexes = self.input_fields.indexes(self.measures)
-        
+
         for row in pipe.rows():
             # Create aggregation key
             key = tuple(itertools.compress(row, key_selectors))
@@ -544,7 +542,7 @@ class AggregateNode(base.Node):
                 value = row[i]
 
                 aggregate.aggregate_value(value)
-            
+
         # Pass results to output
         for key in self.keys:
             row = list(key[:])
@@ -580,9 +578,9 @@ class SelectNode(base.Node):
 
         def is_big_enough(**record):
             return record["i"] > 1000000
-            
+
         node.condition = is_big_enough
-        
+
 
     The condition can be also a string with python expression where local variables are record field
     values:
@@ -639,7 +637,7 @@ class FunctionSelectNode(base.Node):
 
 
     Example: configure a node that will select records where `amount` field is greater than 100
-    
+
     .. code-block:: python
 
         def select_greater_than(value, threshold):
@@ -653,7 +651,7 @@ class FunctionSelectNode(base.Node):
     inversed and fields that function evaluates as ``True`` are discarded. Default is False -
     selected records are passed to the output.
     """
-    
+
     node_info = {
         "label" : "Function Select",
         "description" : "Select records by a predicate function (python callable).",
@@ -680,8 +678,8 @@ class FunctionSelectNode(base.Node):
     }
 
     def __init__(self, function = None, fields = None, discard = False, **kwargs):
-        """Creates a node that will select records based on condition `function`. 
-        
+        """Creates a node that will select records based on condition `function`.
+
         :Parameters:
             * `function`: callable object that returns either True or False
             * `fields`: list of fields passed to the function
@@ -689,17 +687,17 @@ class FunctionSelectNode(base.Node):
               evaluates as ``True`` are discarded. Default is False - selected records are passed
               to the output.
             * `kwargs`: additional arguments passed to the function
-        
+
         """
         super(FunctionSelectNode, self).__init__()
         self.function = function
         self.fields = fields
         self.discard = discard
         self.kwargs = kwargs
-    
+
     def initialize(self):
         self.indexes = self.input_fields.indexes(self.fields)
-    
+
     def run(self):
         for row in self.input.rows():
             values = [row[index] for index in self.indexes]
@@ -709,15 +707,15 @@ class FunctionSelectNode(base.Node):
 
 class SetSelectNode(base.Node):
     """Select records where field value is from predefined set of values.
-    
+
     Use case examples:
-    
+
     * records from certain regions in `region` field
     * recprds where `quality` status field is `low` or `medium`
-    
+
     """
-    
-    
+
+
     node_info = {
         "label" : "Set Select",
         "description" : "Select records by a predicate function.",
@@ -766,9 +764,9 @@ class SetSelectNode(base.Node):
 
 class AuditNode(base.Node):
     """Node chcecks stream for empty strings, not filled values, number distinct values.
-    
+
     Audit note passes following fields to the output:
-    
+
         * `field_name` - name of a field from input
         * `record_count` - number of records
         * `null_count` - number of records with null value for the field
@@ -777,7 +775,7 @@ class AuditNode(base.Node):
         * `distinct_count` - number of distinct values (if less than distinct threshold). Set
           to None if there are more distinct values than `distinct_threshold`.
     """
-    
+
     node_info = {
         "icon" : "data_audit_node",
         "label" : "Data Audit",
@@ -795,14 +793,14 @@ class AuditNode(base.Node):
 
     def __init__(self, distinct_threshold = 10):
         """Creates a field audit node.
-        
+
         :Attributes:
             * `distinct_threshold` - number of distinct values to be tested. If there are more
             than the threshold, then values are not included any more and result `distinct_values`
             is set to None
-        
+
         Audit note passes following fields to the output:
-        
+
             * field_name - name of a field from input
             * record_count - number of records
             * null_count - number of records with null value for the field
@@ -810,11 +808,11 @@ class AuditNode(base.Node):
             * empty_string_count - number of strings that are empty (for fields of type string)
             * distinct_values - number of distinct values (if less than distinct threshold). Set
               to None if there are more distinct values than `distinct_threshold`.
-        
+
         """
         super(AuditNode, self).__init__()
         self.distinct_threshold = distinct_threshold
-    
+
     @property
     def output_fields(self):
 
@@ -826,7 +824,7 @@ class AuditNode(base.Node):
                                ("empty_string_count", "integer", "range"),
                                ("distinct_count", "integer", "range")
                                ]
-                               
+
         fields = brewery.FieldList(audit_record_fields)
         return fields
 
@@ -835,19 +833,19 @@ class AuditNode(base.Node):
         for field in self.input_fields:
             stat = dq.FieldStatistics(field.name, distinct_threshold = self.distinct_threshold)
             self.stats.append(stat)
-        
+
     def run(self):
         for row in self.input.rows():
             for i, value in enumerate(row):
                 self.stats[i].probe(value)
-        
+
         for stat in self.stats:
             stat.finalize()
             if stat.distinct_overflow:
                 dist_count = None
             else:
                 dist_count = len(stat.distinct_values)
-                
+
             row = [ stat.field,
                     stat.record_count,
                     stat.null_count,

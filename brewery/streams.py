@@ -531,7 +531,7 @@ class _StreamNodeThread(threading.Thread):
         self.logger.debug("%s: start" % label)
         try:
             self.node.run()
-        except NodeFinished as e:
+        except NodeFinished:
             self.logger.info("node %s finished" % label)
         except Exception as e:
             tb = sys.exc_info()[2]

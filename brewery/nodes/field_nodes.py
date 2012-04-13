@@ -4,9 +4,7 @@
 import base
 import re
 import brewery
-import brewery.ds as ds
 from brewery.common import FieldError
-import itertools
 
 class FieldMapNode(base.Node):
     """Node renames input fields or drops them from the stream.
@@ -54,13 +52,13 @@ class FieldMapNode(base.Node):
             self.kept_fields = set(keep_fields)
         else:
             self.kept_fields = set([])
-            
+
         self._output_fields = []
-        
+
     def rename_field(self, source, target):
         """Change field name"""
         self.mapped_fields[source] = target
-    
+
     def drop_field(self, field):
         """Do not pass field from source to target"""
         self.dropped_fields.add(field)
@@ -83,7 +81,7 @@ class FieldMapNode(base.Node):
 
 class TextSubstituteNode(base.Node):
     """Substitute text in a field using regular expression."""
-    
+
     node_info = {
         "type": "field",
         "label" : "Text Substitute",
@@ -113,35 +111,35 @@ class TextSubstituteNode(base.Node):
 
     def __init__(self, field, derived_field = None):
         """Creates a node for text replacement.
-        
+
         :Attributes:
             * `field`: field to be used for substitution (should contain a string)
             * `derived_field`: new field to be created after substitutions. If set to ``None`` then the
               source field will be replaced with new substituted value. Default is ``None`` - same field
               replacement.
-        
+
         """
         super(TextSubstituteNode, self).__init__()
 
         self.field = field
         self.derived_field = derived_field
         self.substitutions = []
-        
+
     def add_substitution(self, pattern, repl):
         """Add replacement rule for field.
-        
+
         :Parameters:
             * `pattern` - regular expression to be searched
             * `replacement` - string to be used as replacement, default is empty string
         """
 
         self.substitutions.append( (re.compile(pattern), repl) )
-    
+
     # FIXME: implement this
     # @property
     # def output_fields(self):
     #     pass
-        
+
     def run(self):
         pipe = self.input
 
@@ -151,7 +149,7 @@ class TextSubstituteNode(base.Node):
             append = False
 
         index = self.input_fields.index(self.field)
-            
+
         for row in pipe.rows():
             value = row[index]
             for (pattern, repl) in self.substitutions:
@@ -221,7 +219,7 @@ class StringStripNode(base.Node):
 
 class CoalesceValueToTypeNode(base.Node):
     """Coalesce values of selected fields, or fields of given type to match the type.
-    
+
     * `string`, `text`
         * Strip strings
         * if non-string, then it is converted to a unicode string
@@ -263,7 +261,7 @@ class CoalesceValueToTypeNode(base.Node):
             self.empty_values = empty_values
         else:
             self.empty_values = {}
-        
+
     def initialize(self):
         if self.fields:
             fields = self.fields
@@ -273,17 +271,17 @@ class CoalesceValueToTypeNode(base.Node):
         self.string_fields = [f for f in fields if f.storage_type == "string"]
         self.integer_fields = [f for f in fields if f.storage_type == "integer"]
         self.float_fields = [f for f in fields if f.storage_type == "float"]
-        
+
         self.string_indexes = self.input.fields.indexes(self.string_fields)
         self.integer_indexes = self.input.fields.indexes(self.integer_fields)
         self.float_indexes = self.input.fields.indexes(self.float_fields)
-        
+
         self.string_none = self.empty_values.get("string")
         self.integer_none = self.empty_values.get("integer")
         self.float_none = self.empty_values.get("float")
-        
+
     def run(self):
-        
+
         for row in self.input.rows():
             for i in self.string_indexes:
                 value = row[i]
@@ -291,7 +289,7 @@ class CoalesceValueToTypeNode(base.Node):
                     value = value.strip()
                 elif value:
                     value = unicode(value)
-                    
+
                 if value == "" or value is None:
                     value = self.string_none
 
@@ -304,7 +302,7 @@ class CoalesceValueToTypeNode(base.Node):
 
                 try:
                     value = int(value)
-                except:
+                except ValueError:
                     value = self.integer_none
 
                 row[i] = value
@@ -320,7 +318,7 @@ class CoalesceValueToTypeNode(base.Node):
                     value = self.float_none
 
                 row[i] = value
-        
+
             self.put(row)
 
 class ValueThresholdNode(base.Node):
@@ -328,10 +326,10 @@ class ValueThresholdNode(base.Node):
     can be compared against one or two thresholds to get low/high or low/medium/high value bins.
 
     *Note: this node is not yet implemented*
-    
+
     The result is stored in a separate field that will be constructed from source field name and
     prefix/suffix.
-    
+
     For example:
         * amount < 100 is low
         * 100 <= amount <= 1000 is medium
@@ -339,18 +337,18 @@ class ValueThresholdNode(base.Node):
 
     Generated field will be `amount_threshold` and will contain one of three possible values:
     `low`, `medium`, `hight`
-    
-    Another possible use case might be for binning after data audit: we want to measure null 
+
+    Another possible use case might be for binning after data audit: we want to measure null
     record count and we set thresholds:
-        
+
         * ratio < 5% is ok
         * 5% <= ratio <= 15% is fair
         * ratio > 15% is bad
-        
+
     We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
-        
+
     """
-    
+
     node_info = {
         "type": "field",
         "label" : "Value Threshold",
@@ -376,17 +374,18 @@ class ValueThresholdNode(base.Node):
         ]
     }
 
-    def __init__(self, thresholds = None, bin_names = None, prefix = None, suffix = None):
+    def __init__(self, thresholds=None, bin_names=None, prefix=None, suffix=None):
+        super(ValueThresholdNode, self).__init__()
         self.thresholds = thresholds
         self.bin_names = bin_names
         self.prefix = prefix
         self.suffix = suffix
         self._output_fields = None
-    
+
     @property
     def output_fields(self):
         return self._output_fields
-    
+
     def initialize(self):
         field_names = [t[0] for t in self.thresholds]
 
@@ -399,7 +398,7 @@ class ValueThresholdNode(base.Node):
             prefix = self.prefix
         else:
             prefix = ""
-            
+
         if self.suffix:
             suffix = self.suffix
         else:
@@ -411,15 +410,13 @@ class ValueThresholdNode(base.Node):
             field.analytical_type = "set"
             self._output_fields.append(field)
 
-        input_fields = self.input.fields
-
         # Check input fields
         for name in field_names:
             if not name in self.input.fields:
                 raise FieldError("No input field with name %s" % name)
-                
+
         self.threshold_field_indexes = self.input.fields.indexes(field_names)
-        
+
     def run(self):
         thresholds = []
         for t in self.thresholds:
@@ -430,14 +427,14 @@ class ValueThresholdNode(base.Node):
                 thresholds.append( (t[1], ) )
             elif len(t) >= 2:
                 thresholds.append( (t[1], t[2]) )
-            elif len(t) == 0:
+            elif not t:
                 raise ValueError("Invalid threshold specification: should be field name, low and optional high")
-        
+
         if not self.bin_names:
             bin_names = ("low", "medium", "high")
         else:
             bin_names = self.bin_names
-        
+
         for row in self.input.rows():
             for i, t in enumerate(thresholds):
                 value = row[self.threshold_field_indexes[i]]
@@ -476,9 +473,9 @@ class DeriveNode(base.Node):
 
         def get_half(**record):
             return record["i"] / 2
-            
+
         node.formula = get_half
-        
+
 
     The formula can be also a string with python expression where local variables are record field
     values:
@@ -544,7 +541,7 @@ class DeriveNode(base.Node):
         for field in self.input.fields:
             self._output_fields.append(field)
 
-        new_field = brewery.Field(self.field_name, analytical_type = self.analytical_type, 
+        new_field = brewery.Field(self.field_name, analytical_type = self.analytical_type,
                                   storage_type = self.storage_type)
         self._output_fields.append(new_field)
 
@@ -564,23 +561,22 @@ class BinningNode(base.Node):
     """Derive a bin/category field from a value.
 
     .. warning::
-    
+
         Not yet implemented
-    
+
     Binning modes:
-    
+
     * fixed width (for example: by 100)
     * fixed number of fixed-width bins
     * n-tiles by count or by sum
     * record rank
-    
-        
+
+
     """
-    
+
     node_info = {
         "type": "field",
         "label" : "Binning",
         "icon": "histogram_node",
         "description" : "Derive a field based on binned values (histogram)"
     }
-           

@@ -19,11 +19,11 @@ class MultiProbe(object):
             self.probes = probes
         else:
             self.probes = []
-        
+
     def probe(self, value):
         for probe in self.probes:
             probe.probe(value)
-        
+
 
     def to_dict(self):
         d = {}
@@ -31,22 +31,22 @@ class MultiProbe(object):
             name = utils.to_identifier(utils.decamelize(probe.__class__.__name__))
             re.sub('_probe$', name, '')
             d[name] = probe.to_dict()
-            
+
         return d
 
 class MissingValuesProbe(object):
     """Data quality statistics for a dataset field
-    
+
     :Attributes:
         * `count`: total count of null records
-    """    
+    """
     def __init__(self):
         self.count = 0
-        
+
     def probe(self, value):
         """Probe the value.
         """
-        
+
         if value is None:
             self.count += 1
 
@@ -59,7 +59,7 @@ class CompletenessProbe(object):
     :Attributes:
         * `count`: total count of records
         * `unknown`: number of unknown records (NULL, None, nil, ...)
-    """    
+    """
     def __init__(self):
         self.count = 0
         self.unknown = 0
@@ -70,7 +70,7 @@ class CompletenessProbe(object):
         self.count += 1
         if value is None:
             self.unknown += 1
-            
+
     def to_dict(self):
         return {"count": self.count, "unknown": self.unknown}
 
@@ -83,7 +83,7 @@ class StatisticsProbe(object):
         * `sum` - sum of values
         * `count` - count of values
         * `average` - average value
-    """    
+    """
     def __init__(self):
         self.min = None
         self.max = None
@@ -94,7 +94,7 @@ class StatisticsProbe(object):
     @property
     def average(self):
         return self.sum / self.count
-        
+
     def probe(self, value):
         self.count += 1
         if value is not None:
@@ -120,7 +120,7 @@ class DistinctProbe(object):
         self.fields = ["values", ("overflow", "integer")]
 
     def probe(self, value):
-        self.overflow = self.threshold and len(self.values) >= threshold
+        self.overflow = self.threshold and len(self.values) >= self.threshold
 
         if not self.overflow:
             self.values.add(value)
@@ -132,7 +132,7 @@ class StorageTypeProbe(object):
         * field: name of a field which statistics are being presented
         * storage_types: found storage types
         * unique_storage_type: if there is only one storage type, then this is set to that type
-    """    
+    """
     def __init__(self):
         self.storage_types = set()
 
@@ -165,7 +165,7 @@ class ValueTypeProbe(object):
         * field: name of a field which statistics are being presented
         * storage_types: found storage types
         * unique_storage_type: if there is only one storage type, then this is set to that type
-    """    
+    """
     def __init__(self):
         self.int_count = 0
         self.float_count = 0

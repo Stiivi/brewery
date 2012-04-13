@@ -37,7 +37,7 @@ class RowListSourceNode(base.SourceNode):
         else:
             self.list = []
         self.fields = fields
-        
+
     @property
     def output_fields(self):
         if not self.fields:
@@ -68,7 +68,8 @@ class RecordListSourceNode(base.SourceNode):
         ]
     }
 
-    def __init__(self, a_list = None, fields = None):
+    def __init__(self, a_list=None, fields=None):
+        super(RecordListSourceNode, self).__init__()
         if a_list:
             self.list = a_list
         else:
@@ -84,9 +85,9 @@ class RecordListSourceNode(base.SourceNode):
     def run(self):
         for record in self.list:
             self.put(record)
-            
+
 class StreamSourceNode(base.SourceNode):
-    """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
+    """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the
     output.
 
     The source data stream should configure fields on initialize().
@@ -94,7 +95,7 @@ class StreamSourceNode(base.SourceNode):
     Note that this node is only for programatically created processing streams. Not useable
     in visual, web or other stream modelling tools.
     """
-    
+
     node_info = {
         "label" : "Data Stream Source",
         "icon": "row_list_source_node",
@@ -120,17 +121,17 @@ class StreamSourceNode(base.SourceNode):
         #     raise ValueError("No stream class specified for data source of type '%s'" % stream_type)
 
         # self.stream = stream_class(**kwargs)
-        # self.stream.fields = 
+        # self.stream.fields =
         self.stream.initialize()
 
     @property
     def output_fields(self):
         return self.stream.fields
-        
+
     def run(self):
         for row in self.stream.rows():
             self.put(row)
-        
+
     def finalize(self):
         self.stream.finalize()
 
@@ -189,7 +190,7 @@ class CSVSourceNode(base.SourceNode):
         self.stream = None
         self.fields = None
         self._output_fields = None
-        
+
     @property
     def output_fields(self):
         if not self.stream:
@@ -202,12 +203,12 @@ class CSVSourceNode(base.SourceNode):
 
     def initialize(self):
         self.stream = ds.CSVDataSource(self.resource, *self.args, **self.kwargs)
-        
+
         if self.fields:
             self.stream.fields = self.fields
-        
+
         self.stream.initialize()
-        
+
         # FIXME: this is experimental form of usage
         self._output_fields = self.stream.fields.copy()
         self._output_fields.retype(self._retype_dictionary)
@@ -215,7 +216,7 @@ class CSVSourceNode(base.SourceNode):
     def run(self):
         for row in self.stream.rows():
             self.put(row)
-            
+
     def finalize(self):
         self.stream.finalize()
 
@@ -305,15 +306,15 @@ class XLSSourceNode(base.SourceNode):
 
 class YamlDirectorySourceNode(base.SourceNode):
     """Source node that reads data from a directory containing YAML files.
-    
+
     The data source reads files from a directory and treats each file as single record. For example,
     following directory will contain 3 records::
-    
+
         data/
             contract_0.yml
             contract_1.yml
             contract_2.yml
-    
+
     Optionally one can specify a field where file name will be stored.
     """
     node_info = {
@@ -375,11 +376,11 @@ class GoogleSpreadsheetSourceNode(base.SourceNode):
 
     You should provide either spreadsheet_key or spreadsheet_name, if more than one spreadsheet with
     given name are found, then the first in list returned by Google is used.
-    
+
     For worksheet selection you should provide either worksheet_id or worksheet_name. If more than
     one worksheet with given name are found, then the first in list returned by Google is used. If
     no worksheet_id nor worksheet_name are provided, then first worksheet in the workbook is used.
-    
+
     For details on query string syntax see the section on sq under
     http://code.google.com/apis/spreadsheets/reference.html#list_Parameters
     """
@@ -492,7 +493,7 @@ class SQLSourceNode(base.SourceNode):
         self.kwargs = kwargs
         self.stream = None
         self._fields = None
-        
+
     @property
     def output_fields(self):
         if not self.stream:
@@ -521,7 +522,7 @@ class SQLSourceNode(base.SourceNode):
     def run(self):
         for row in self.stream.rows():
             self.put(row)
-            
+
     def finalize(self):
         self.stream.finalize()
 
