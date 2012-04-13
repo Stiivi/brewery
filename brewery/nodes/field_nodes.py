@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from .base import Node
+from ..metadata import FieldMap, FieldList, Field
+from ..common import FieldError
 
-import base
 import re
-import brewery
-from brewery.common import FieldError
 
-class FieldMapNode(base.Node):
+class FieldMapNode(Node):
     """Node renames input fields or drops them from the stream.
     """
     node_info = {
@@ -68,7 +69,7 @@ class FieldMapNode(base.Node):
         return self._output_fields
 
     def initialize(self):
-        self.map = brewery.FieldMap(rename=self.mapped_fields, drop=self.dropped_fields, keep=self.kept_fields)
+        self.map = FieldMap(rename=self.mapped_fields, drop=self.dropped_fields, keep=self.kept_fields)
         self._output_fields = self.map.map(self.input.fields)
         self.filter = self.map.row_filter(self.input.fields)
 
@@ -79,7 +80,7 @@ class FieldMapNode(base.Node):
             row = self.filter.filter(row)
             self.put(row)
 
-class TextSubstituteNode(base.Node):
+class TextSubstituteNode(Node):
     """Substitute text in a field using regular expression."""
 
     node_info = {
@@ -162,7 +163,7 @@ class TextSubstituteNode(base.Node):
             self.put(row)
 
 
-class StringStripNode(base.Node):
+class StringStripNode(Node):
     """Strip spaces (orother specified characters) from string fields."""
 
     node_info = {
@@ -217,7 +218,7 @@ class StringStripNode(base.Node):
 
             self.put(row)
 
-class CoalesceValueToTypeNode(base.Node):
+class CoalesceValueToTypeNode(Node):
     """Coalesce values of selected fields, or fields of given type to match the type.
 
     * `string`, `text`
@@ -327,7 +328,7 @@ class CoalesceValueToTypeNode(base.Node):
 
             self.put(row)
 
-class ValueThresholdNode(base.Node):
+class ValueThresholdNode(Node):
     """Create a field that will refer to a value bin based on threshold(s). Values of `range` type
     can be compared against one or two thresholds to get low/high or low/medium/high value bins.
 
@@ -395,7 +396,7 @@ class ValueThresholdNode(base.Node):
     def initialize(self):
         field_names = [t[0] for t in self.thresholds]
 
-        self._output_fields = brewery.FieldList()
+        self._output_fields = FieldList()
 
         for field in self.input.fields:
             self._output_fields.append(field)
@@ -411,7 +412,7 @@ class ValueThresholdNode(base.Node):
             suffix = "_bin"
 
         for name in field_names:
-            field = brewery.Field(prefix + name + suffix)
+            field = Field(prefix + name + suffix)
             field.storage_type = "string"
             field.analytical_type = "set"
             self._output_fields.append(field)
@@ -461,7 +462,7 @@ class ValueThresholdNode(base.Node):
                 row.append(bin)
             self.put(row)
 
-class DeriveNode(base.Node):
+class DeriveNode(Node):
     """Dreive a new field from other fields using an expression or callable function.
 
     The parameter names of the callable function should reflect names of the fields:
@@ -503,7 +504,7 @@ class DeriveNode(base.Node):
             },
             {
                  "name": "formula",
-                 "description": "Callable or a string with python expression that will evaluate to " \
+                 "description": "Callable or a string with python expression that will evaluate to "
                                 "new field value"
             },
             {
@@ -542,12 +543,12 @@ class DeriveNode(base.Node):
         else:
             self._formula_callable = self.formula
 
-        self._output_fields = brewery.FieldList()
+        self._output_fields = FieldList()
 
         for field in self.input.fields:
             self._output_fields.append(field)
 
-        new_field = brewery.Field(self.field_name, analytical_type = self.analytical_type,
+        new_field = Field(self.field_name, analytical_type = self.analytical_type,
                                   storage_type = self.storage_type)
         self._output_fields.append(new_field)
 
@@ -563,7 +564,7 @@ class DeriveNode(base.Node):
 
             self.put_record(record)
 
-class BinningNode(base.Node):
+class BinningNode(Node):
     """Derive a bin/category field from a value.
 
     .. warning::

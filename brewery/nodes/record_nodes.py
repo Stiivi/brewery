@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import base
-import brewery
-from brewery import dq
+from __future__ import absolute_import
+from .base import Node
+from ..dq.field_statistics import FieldStatistics
+from ..metadata import FieldMap, FieldList, Field
 import logging
 import itertools
 
-class SampleNode(base.Node):
+class SampleNode(Node):
     """Create a data sample from input stream. There are more sampling possibilities:
 
     * fixed number of records
@@ -64,7 +64,7 @@ class SampleNode(base.Node):
             if count >= self.size:
                 break
 
-class AppendNode(base.Node):
+class AppendNode(Node):
     """Sequentialy append input streams. Concatenation order reflects input stream order. The
     input streams should have same set of fields."""
     node_info = {
@@ -89,7 +89,7 @@ class AppendNode(base.Node):
             for row in pipe.rows():
                 self.put(row)
 
-class MergeNode(base.Node):
+class MergeNode(Node):
     """Merge two or more streams (join).
 
     Inputs are joined in a star-like fashion: one input is considered master and others are
@@ -127,7 +127,7 @@ class MergeNode(base.Node):
 
     To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
     should be a dictionary where keys are input tags and values are either
-    :class:`brewery.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+    :class:`FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
 
     Following example renames ``source_region_name`` field in input 0 and drops field `id` in
     input 1:
@@ -135,8 +135,8 @@ class MergeNode(base.Node):
     .. code-block:: python
 
         node.maps = {
-                        0: brewery.FieldMap(rename = {"source_region_name":"region_name"}),
-                        1: brewery.FieldMap(drop = ["id"])
+                        0: FieldMap(rename = {"source_region_name":"region_name"}),
+                        1: FieldMap(drop = ["id"])
                     }
 
     It is the same as:
@@ -260,8 +260,8 @@ class MergeNode(base.Node):
         if self.maps:
             for (tag, fmap) in self.maps.items():
                 if type(fmap) == dict:
-                    fmap = brewery.FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"), keep=fmap.get("keep"))
-                elif type(fmap) != brewery.FieldMap:
+                    fmap = FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"), keep=fmap.get("keep"))
+                elif type(fmap) != FieldMap:
                     raise Exception("Unknown field map type: %s" % type(fmap) )
                 f = fmap.row_filter(self.inputs[tag].fields)
                 self._maps[tag] = fmap
@@ -276,7 +276,7 @@ class MergeNode(base.Node):
             else:
                 fields += pipe.fields
 
-        self._output_fields = brewery.FieldList(fields)
+        self._output_fields = FieldList(fields)
 
 
 
@@ -335,7 +335,7 @@ class MergeNode(base.Node):
             else:
                 detail[tuple(key)] = row
 
-class DistinctNode(base.Node):
+class DistinctNode(Node):
     """Node will pass distinct records with given distinct fields.
 
     If `discard` is ``False`` then first record with distinct keys is passed to the output. This is
@@ -393,7 +393,7 @@ class DistinctNode(base.Node):
         self.discard = discard
 
     def initialize(self):
-        field_map = brewery.FieldMap(keep=self.distinct_fields)
+        field_map = FieldMap(keep=self.distinct_fields)
         self.row_filter = field_map.row_filter(self.input_fields)
 
     def run(self):
@@ -446,7 +446,7 @@ class KeyAggregate(object):
         self.count = 0
         self.field_aggregates = {}
 
-class AggregateNode(base.Node):
+class AggregateNode(Node):
     """Aggregate"""
 
     node_info = {
@@ -472,11 +472,13 @@ class AggregateNode(base.Node):
         ]
     }
 
-    def __init__(self, keys=None, measures=None, default_aggregations=["sum"],
+    def __init__(self, keys=None, measures=None, default_aggregations=None,
                  record_count_field="record_count"):
         """Creates a new node for aggregations. Supported aggregations: sum, avg, min, max"""
 
         super(AggregateNode, self).__init__()
+        if default_aggregations is None:
+            default_aggregations= ["sum"]
         if keys:
             self.key_fields = keys
         else:
@@ -494,18 +496,18 @@ class AggregateNode(base.Node):
     @property
     def output_fields(self):
         # FIXME: use storage types based on aggregated field type
-        fields = brewery.FieldList()
+        fields = FieldList()
 
         if self.key_fields:
             for field in  self.input_fields.fields(self.key_fields):
                 fields.append(field)
 
         for field in self.measures:
-            fields.append(brewery.Field(field + "_sum", storage_type = "float", analytical_type = "range"))
-            fields.append(brewery.Field(field + "_min", storage_type = "float", analytical_type = "range"))
-            fields.append(brewery.Field(field + "_max", storage_type = "float", analytical_type = "range"))
-            fields.append(brewery.Field(field + "_average", storage_type = "float", analytical_type = "range"))
-        fields.append(brewery.Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
+            fields.append(Field(field + "_sum", storage_type = "float", analytical_type = "range"))
+            fields.append(Field(field + "_min", storage_type = "float", analytical_type = "range"))
+            fields.append(Field(field + "_max", storage_type = "float", analytical_type = "range"))
+            fields.append(Field(field + "_average", storage_type = "float", analytical_type = "range"))
+        fields.append(Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
 
         return fields
 
@@ -560,7 +562,7 @@ class AggregateNode(base.Node):
 
             self.put(row)
 
-class SelectNode(base.Node):
+class SelectNode(Node):
     """Select or discard records from the stream according to a predicate.
 
     The parameter names of the callable function should reflect names of the fields:
@@ -598,7 +600,7 @@ class SelectNode(base.Node):
         "attributes" : [
             {
                  "name": "condition",
-                 "description": "Callable or a string with python expression that will evaluate to " \
+                 "description": "Callable or a string with python expression that will evaluate to "
                                 "a boolean value"
             },
             {
@@ -632,7 +634,7 @@ class SelectNode(base.Node):
             if self._condition_callable(**record):
                 self.put_record(record)
 
-class FunctionSelectNode(base.Node):
+class FunctionSelectNode(Node):
     """Select records that will be selected by a predicate function.
 
 
@@ -705,7 +707,7 @@ class FunctionSelectNode(base.Node):
             if (flag and not self.discard) or (not flag and self.discard):
                 self.put(row)
 
-class SetSelectNode(base.Node):
+class SetSelectNode(Node):
     """Select records where field value is from predefined set of values.
 
     Use case examples:
@@ -762,7 +764,7 @@ class SetSelectNode(base.Node):
             if (flag and not self.discard) or (not flag and self.discard):
                 self.put(row)
 
-class AuditNode(base.Node):
+class AuditNode(Node):
     """Node chcecks stream for empty strings, not filled values, number distinct values.
 
     Audit note passes following fields to the output:
@@ -825,13 +827,13 @@ class AuditNode(base.Node):
                                ("distinct_count", "integer", "range")
                                ]
 
-        fields = brewery.FieldList(audit_record_fields)
+        fields = FieldList(audit_record_fields)
         return fields
 
     def initialize(self):
         self.stats = []
         for field in self.input_fields:
-            stat = dq.FieldStatistics(field.name, distinct_threshold = self.distinct_threshold)
+            stat = FieldStatistics(field.name, distinct_threshold = self.distinct_threshold)
             self.stats.append(stat)
 
     def run(self):

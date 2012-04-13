@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from .base import SourceNode
+from ..ds.csv_streams import CSVDataSource
+from ..ds.elasticsearch_streams import ESDataSource
+from ..ds.gdocs_streams import GoogleSpreadsheetDataSource
+from ..ds.sql_streams import SQLDataSource
+from ..ds.xls_streams import XLSDataSource
+from ..ds.yaml_dir_streams import YamlDirectoryDataSource
 
-import base
-from brewery import ds
-
-# data_sources = {
-#     "csv": {"class": CSVDataSource},
-#     "xls": {"class": XLSDataSource},
-#     "yamldir": {"class": YamlDirectoryDataSource},
-#     "mongodb": {"class": MongoDBDataSource},
-#     "sql": {"class": SQLDataSource}
-# }
-
-class RowListSourceNode(base.SourceNode):
+class RowListSourceNode(SourceNode):
     """Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
     object."""
 
@@ -48,7 +45,7 @@ class RowListSourceNode(base.SourceNode):
         for row in self.list:
             self.put(row)
 
-class RecordListSourceNode(base.SourceNode):
+class RecordListSourceNode(SourceNode):
     """Source node that feeds records (dictionary objects) from a list (or any other iterable)
     object."""
 
@@ -86,7 +83,7 @@ class RecordListSourceNode(base.SourceNode):
         for record in self.list:
             self.put(record)
 
-class StreamSourceNode(base.SourceNode):
+class StreamSourceNode(SourceNode):
     """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the
     output.
 
@@ -135,7 +132,7 @@ class StreamSourceNode(base.SourceNode):
     def finalize(self):
         self.stream.finalize()
 
-class CSVSourceNode(base.SourceNode):
+class CSVSourceNode(SourceNode):
     """Source node that reads comma separated file from a filesystem or a remote URL.
 
     It is recommended to configure node fields before running. If you do not do so, fields are
@@ -202,7 +199,7 @@ class CSVSourceNode(base.SourceNode):
         return self._output_fields
 
     def initialize(self):
-        self.stream = ds.CSVDataSource(self.resource, *self.args, **self.kwargs)
+        self.stream = CSVDataSource(self.resource, *self.args, **self.kwargs)
 
         if self.fields:
             self.stream.fields = self.fields
@@ -220,7 +217,7 @@ class CSVSourceNode(base.SourceNode):
     def finalize(self):
         self.stream.finalize()
 
-class XLSSourceNode(base.SourceNode):
+class XLSSourceNode(SourceNode):
     """Source node that reads Excel XLS files.
 
     It is recommended to configure node fields before running. If you do not do so, fields are
@@ -288,7 +285,7 @@ class XLSSourceNode(base.SourceNode):
     fields = property(__get_fields, __set_fields)
 
     def initialize(self):
-        self.stream = ds.XLSDataSource(*self.args, **self.kwargs)
+        self.stream = XLSDataSource(*self.args, **self.kwargs)
 
         if self._fields:
             self.stream.fields = self._fields
@@ -304,7 +301,7 @@ class XLSSourceNode(base.SourceNode):
         self.stream.finalize()
 
 
-class YamlDirectorySourceNode(base.SourceNode):
+class YamlDirectorySourceNode(SourceNode):
     """Source node that reads data from a directory containing YAML files.
 
     The data source reads files from a directory and treats each file as single record. For example,
@@ -358,7 +355,7 @@ class YamlDirectorySourceNode(base.SourceNode):
         return self.stream.fields
 
     def initialize(self):
-        self.stream = ds.YamlDirectoryDataSource(*self.args, **self.kwargs)
+        self.stream = YamlDirectoryDataSource(*self.args, **self.kwargs)
 
         self.stream.fields = self.fields
         self.stream.initialize()
@@ -371,7 +368,7 @@ class YamlDirectorySourceNode(base.SourceNode):
     def finalize(self):
         self.stream.finalize()
 
-class GoogleSpreadsheetSourceNode(base.SourceNode):
+class GoogleSpreadsheetSourceNode(SourceNode):
     """Source node that reads Google Spreadsheet.
 
     You should provide either spreadsheet_key or spreadsheet_name, if more than one spreadsheet with
@@ -453,7 +450,7 @@ class GoogleSpreadsheetSourceNode(base.SourceNode):
     fields = property(__get_fields, __set_fields)
 
     def initialize(self):
-        self.stream = ds.GoogleSpreadsheetDataSource(*self.args, **self.kwargs)
+        self.stream = GoogleSpreadsheetDataSource(*self.args, **self.kwargs)
 
         if self._fields:
             self.stream.fields = self._fields
@@ -469,7 +466,7 @@ class GoogleSpreadsheetSourceNode(base.SourceNode):
         self.stream.finalize()
 
 
-class SQLSourceNode(base.SourceNode):
+class SQLSourceNode(SourceNode):
     """Source node that reads from a sql table.
     """
     node_info = {
@@ -515,7 +512,7 @@ class SQLSourceNode(base.SourceNode):
     fields = property(__get_fields, __set_fields)
 
     def initialize(self):
-        self.stream = ds.SQLDataSource(*self.args, **self.kwargs)
+        self.stream = SQLDataSource(*self.args, **self.kwargs)
         self.stream.initialize()
         self._fields = self.stream.fields
 
@@ -526,7 +523,68 @@ class SQLSourceNode(base.SourceNode):
     def finalize(self):
         self.stream.finalize()
 
-class GeneratorFunctionSourceNode(base.SourceNode):
+class ESSourceNode(SourceNode):
+    """Source node that reads from an ElasticSearch index.
+    """
+    node_info = {
+        "label" : "SQL Source",
+        "icon": "sql_source_node",
+        "description" : "Read data from a sql table.",
+        "attributes" : [
+                {
+                "name": "uri",
+                "description": "ElasticSearch URL"
+            },
+                {
+                "name": "index",
+                "description": "index name",
+                },
+                {
+                "name": "type",
+                "description": "type name",
+                }
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(ESSourceNode, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.stream = None
+        self._fields = None
+
+    @property
+    def output_fields(self):
+        if not self.stream:
+            raise ValueError("Stream is not initialized")
+
+        if not self.stream.fields:
+            raise ValueError("Fields are not initialized")
+
+        return self.stream.fields
+
+    def __set_fields(self, fields):
+        self._fields = fields
+        if self.stream:
+            self.stream.fields = fields
+
+    def __get_fields(self):
+        return self._fields
+
+    fields = property(__get_fields, __set_fields)
+
+    def initialize(self):
+        self.stream = ESDataSource(*self.args, **self.kwargs)
+        self.stream.initialize()
+        self._fields = self.stream.fields
+
+    def run(self):
+        for row in self.stream.rows():
+            self.put(row)
+
+    def finalize(self):
+        self.stream.finalize()
+
+class GeneratorFunctionSourceNode(SourceNode):
     """Source node uses a callable to generate records."""
 
     node_info = {
