@@ -4,6 +4,7 @@
 sandbox/*
 .DS_Store
 build/*
+.idea/*
 env/
 dist/
 *.tmproj
