@@ -263,5 +263,5 @@ load_config(args)
 try:
     args.func(args)
 except ToolError as e:
-    print "Error: %s" % str(e)
+    sys.stderr.write("Error: %s" % str(e))
     exit(1)

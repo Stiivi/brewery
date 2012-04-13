@@ -45,7 +45,7 @@ class StreamRuntimeError(Exception):
         `output` parameter. By default text is printed to standard output."""
 
         if not output:
-            output = sys.stdout
+            output = sys.stderr
 
         text = u"stream failed. reason: %s\n" % self.message
         text += u"exception: %s: \n" % self.exception.__class__.__name__
