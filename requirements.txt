@@ -1,0 +1,7 @@
+pyes
+pymongo
+gdata
+PyYAML
+sqlalchemy
+xlrd
+
