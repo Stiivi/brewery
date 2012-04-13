@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import threading
-import traceback
 import sys
-from brewery.nodes.base import node_dictionary
+from brewery.nodes.base import node_dictionary, TargetNode, NodeFinished
 from brewery.utils import get_logger
 from brewery.nodes import *
 from brewery.common import *
@@ -533,7 +531,7 @@ class _StreamNodeThread(threading.Thread):
         try:
             self.node.run()
         except NodeFinished as e:
-            self.logger.info("node %s finished" % (label))
+            self.logger.info("node %s finished" % label)
         except Exception as e:
             tb = sys.exc_info()[2]
             self.traceback = tb
