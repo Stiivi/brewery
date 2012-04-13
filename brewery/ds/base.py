@@ -54,7 +54,7 @@ def open_resource(resource, mode = None):
         should_close = False
         handle = resource
 
-    return (handle, should_close)
+    return handle, should_close
 
 class DataStream(object):
     """Shared methods for data targets and data sources"""

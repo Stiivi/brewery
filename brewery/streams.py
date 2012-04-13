@@ -170,7 +170,7 @@ class Pipe(SimpleDataPipe):
         some data."""
 
         done_sending = False
-        while(not done_sending):
+        while not done_sending:
             self._note("C _not_empty acq?")
             self.not_empty.acquire()
             try:
@@ -307,7 +307,7 @@ class Stream(Graph):
             for connection in connections:
                 self.connect(connection[0], connection[1])
 
-    def configure(self, config = {}):
+    def configure(self, config=None):
         """Configure node properties based on configuration. Only named nodes can be configured at the
         moment.
 
@@ -328,7 +328,8 @@ class Stream(Graph):
         # List of nodes:
         #     * bundled attributes in single dictioary
         # FIXME: this is inconsistent with node configuration! node.config()
-
+        if config is None:
+            config = {}
         configurations = {}
 
         # Collect configurations for each node
