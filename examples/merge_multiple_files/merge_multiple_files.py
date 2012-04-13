@@ -21,7 +21,7 @@ And see the field completeness (data quality dimension):
 
 """
 import brewery
-import brewery.ds as ds
+from brewery import ds
 import sys
 
 # List of sources - you might want to keep this list in a json file

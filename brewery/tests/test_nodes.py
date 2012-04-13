@@ -3,7 +3,7 @@
 
 import unittest
 import brewery
-import brewery.ds as ds
+from brewery import ds
 import brewery.nodes
 
 class NodesTestCase(unittest.TestCase):

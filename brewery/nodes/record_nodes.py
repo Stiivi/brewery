@@ -3,7 +3,7 @@
 
 import base
 import brewery
-import brewery.dq as dq
+from brewery import dq
 import logging
 import itertools
 

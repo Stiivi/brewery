@@ -11,7 +11,7 @@ import pymongo
 import json
 import sys
 import brewery
-import brewery.ds as ds
+from brewery import ds
 
 key_stats = {}
 

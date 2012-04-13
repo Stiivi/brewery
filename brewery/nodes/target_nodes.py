@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base
-import brewery.ds as ds
+from brewery import ds
 import sys
 
 class StreamTargetNode(base.TargetNode):

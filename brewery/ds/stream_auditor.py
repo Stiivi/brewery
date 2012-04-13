@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base
-import brewery.dq as dq
+from brewery import dq
 
 class StreamAuditor(base.DataTarget):
     """Target stream for auditing data values from stream. For more information about probed value

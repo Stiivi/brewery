@@ -2,7 +2,7 @@
 import unittest
 import threading
 import time
-import brewery.ds as ds
+from brewery import ds
 import brewery.metadata
 
 from sqlalchemy import Table, Column, Integer, String, Text
