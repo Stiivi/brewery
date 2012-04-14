@@ -3,7 +3,7 @@
 
 import unittest
 import brewery
-import brewery.ds as ds
+from brewery import ds
 
 class FieldListCase(unittest.TestCase):
     def test_names(self):

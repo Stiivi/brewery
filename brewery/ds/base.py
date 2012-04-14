@@ -6,13 +6,13 @@
 
 # Data sources
 # ============
-# 
+#
 # Should implement:
 # * fields
 # * prepare()
 # * rows() - returns iterable with value tuples
 # * records() - returns iterable with dictionaries of key-value pairs
-# 
+#
 # Data targets
 # ============
 # Should implement:
@@ -26,15 +26,15 @@
 import urllib2
 import urlparse
 import brewery.dq
-import copy
+from brewery.metadata import collapse_record, Field
 
 def open_resource(resource, mode = None):
     """Get file-like handle for a resource. Conversion:
-    
+
     * if resource is a string and it is not URL or it is file:// URL, then opens a file
     * if resource is URL then opens urllib2 handle
     * otherwise assume that resource is a file-like handle
-    
+
     Returns tuple: (handle, should_close) where `handle` is file-like object and `should_close` is
         a flag whether returned handle should be closed or not. Closed should be resources which
         where opened by this method, that is resources referenced by a string or URL.
@@ -54,18 +54,19 @@ def open_resource(resource, mode = None):
         should_close = False
         handle = resource
 
-    return (handle, should_close)
+    return handle, should_close
+
 class DataStream(object):
     """Shared methods for data targets and data sources"""
-    
+
     def __init__(self):
         """
         A data stream object – abstract class.
-        
+
         The subclasses should provide:
-        
+
         * `fields`
-        
+
         `fields` are :class:`FieldList` objects representing fields passed
         through the receiving stream - either read from data source
         (:meth:`DataSource.rows`) or written to data target
@@ -75,12 +76,12 @@ class DataStream(object):
         accessor).
 
         The subclasses might override:
-        
+
         * `initialize()`
         * `finalize()`
-        
+
         The class supports context management, for example::
-        
+
             with ds.CSVDataSource("output.csv") as s:
                 for row in s.rows():
                     print row
@@ -94,7 +95,7 @@ class DataStream(object):
         """Delayed stream initialisation code. Subclasses might override this
         method to implement file or handle opening, connecting to a database,
         doing web authentication, ... By default this method does nothing.
-        
+
         The method does not take any arguments, it expects pre-configured
         object.
         """
@@ -102,15 +103,15 @@ class DataStream(object):
 
     def finalize(self):
         """Subclasses might put finalisation code here, for example:
-        
+
         * closing a file stream
         * sending data over network
         * writing a chart image to a file
-        
+
         Default implementation does nothing.
         """
         pass
-        
+
     # Context management
     #
     # See: http://docs.python.org/reference/datamodel.html#context-managers
@@ -118,7 +119,7 @@ class DataStream(object):
     def __enter__(self):
         self.initialize()
         return self
-        
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.finalize()
 
@@ -146,17 +147,17 @@ class DataSource(DataStream):
         provide metadata directly, such as CSV files, document bases databases or directories with
         structured files. Does nothing in relational databases, as fields are represented by table
         columns and table metadata can obtained from database easily.
-        
+
         Note that this method can be quite costly, as by default all records within dataset are read
         and analysed.
-        
+
         After executing this method, stream ``fields`` is set to the newly read field list and may
         be configured (set more appropriate data types for example).
-        
+
         :Arguments:
             - `limit`: read only specified number of records from dataset to guess field properties
             - `collapse`: whether records are collapsed into flat structure or not
-            
+
         Returns: tuple with Field objects. Order of fields is datastore adapter specific.
         """
 
@@ -221,7 +222,7 @@ class DataTarget(DataStream):
     def append(self, object):
         """Append an object into dataset. Object can be a tuple, array or a dict object. If tuple
         or array is used, then value position should correspond to field position in the field list,
-        if dict is used, the keys should be valid field names.        
+        if dict is used, the keys should be valid field names.
         """
         raise NotImplementedError()
-     
+

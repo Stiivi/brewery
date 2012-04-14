@@ -7,8 +7,8 @@ Example of auditing a CSV file:
 
 .. code-block:: python
 
-    import brewery.ds as ds
-    import brewery.dq as dq
+    from brewery import ds
+    from brewery import dq
 
     # Open a data stream
     src = ds.CSVDataSource("data.csv")

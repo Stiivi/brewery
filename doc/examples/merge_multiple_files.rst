@@ -51,7 +51,7 @@ Import brewery and all other necessary packages:
 .. code-block:: python
 
     import brewery
-    import brewery.ds as ds
+    from brewery import ds
     import sys
 
 Specify sources:

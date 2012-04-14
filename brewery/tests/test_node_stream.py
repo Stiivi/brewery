@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import brewery
-import brewery.ds as ds
+from brewery import ds
 import unittest
 import logging
 import time

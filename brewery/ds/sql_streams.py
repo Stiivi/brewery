@@ -51,10 +51,10 @@ def split_table_schema(table_name):
     else:
         return (None, split[0])
 
-        
+
 class SQLContext(object):
     """Holds context of SQL store operations."""
-    
+
     def __init__(self, url = None, connection = None, schema = None):
         """Creates a SQL context"""
 
@@ -71,26 +71,26 @@ class SQLContext(object):
             engine = sqlalchemy.create_engine(url)
             self.connection = engine.connect()
             self.should_close = True
-            
+
         self.metadata = sqlalchemy.MetaData()
         self.metadata.bind = self.connection.engine
         self.schema = schema
-    
+
     def close(self):
         if self.should_close and self.connection:
             self.connection.close()
-            
+
     def table(self, name, autoload=True):
         """Get table by name"""
-        
-        return sqlalchemy.Table(name, self.metadata, 
+
+        return sqlalchemy.Table(name, self.metadata,
                                 autoload=autoload, schema=self.schema)
 
 def fields_from_table(table):
     """Get fields from a table. Field types are normalized to the Brewery
     data types. Analytical type is set according to a default conversion
     dictionary."""
-    
+
     fields = []
 
     for column in table.columns:
@@ -118,14 +118,14 @@ def concrete_storage_type(field, type_map={}):
        dictionary"""
 
     concrete_type = field.concrete_storage_type
-        
+
     if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
         if type_map:
             concrete_type = type_map.get(field.storage_type)
 
         if not concrete_type:
             concrete_type = concrete_sql_type_map.get(field.storage_type)
-        
+
         if not concrete_type:
             raise ValueError("unable to find concrete storage type for field '%s' "
                              "of type '%s'" % (field.name, field.storage_type))
@@ -139,13 +139,13 @@ class SQLDataSource(base.DataSource):
                     table=None, statement=None, schema=None, autoinit = True,
                     **options):
         """Creates a relational database data source stream.
-        
+
         :Attributes:
             * url: SQLAlchemy URL - either this or connection should be specified
             * connection: SQLAlchemy database connection - either this or url should be specified
             * table: table name
             * statement: SQL statement to be used as a data source (not supported yet)
-            * autoinit: initialize on creation, no explicit initialize() is 
+            * autoinit: initialize on creation, no explicit initialize() is
               needed
             * options: SQL alchemy connect() options
         """
@@ -174,7 +174,7 @@ class SQLDataSource(base.DataSource):
         self.context = None
         self.table = None
         self.fields = None
-        
+
         if autoinit:
             self.initialize()
 
@@ -219,7 +219,7 @@ class SQLDataTarget(base.DataTarget):
                     buffer_size=None, fields=None, concrete_type_map=None,
                     **options):
         """Creates a relational database data target stream.
-        
+
         :Attributes:
             * url: SQLAlchemy URL - either this or connection should be specified
             * connection: SQLAlchemy database connection - either this or url should be specified
@@ -235,9 +235,9 @@ class SQLDataTarget(base.DataTarget):
             * buffer_size: size of INSERT buffer - how many records are collected before they are
               inserted using multi-insert statement. Default is 1000
             * fields : fieldlist for a new table
-        
+
         Note: avoid auto-detection when you are reading from remote URL stream.
-        
+
         """
         if not options:
             options = {}
@@ -254,7 +254,7 @@ class SQLDataTarget(base.DataTarget):
 
         self.table = None
         self.fields = fields
-        
+
         self.concrete_type_map = concrete_type_map
 
         if id_key_name:
@@ -271,7 +271,7 @@ class SQLDataTarget(base.DataTarget):
         """Initialize source stream:
         """
 
-        self.context = SQLContext(url=self.url, 
+        self.context = SQLContext(url=self.url,
                                   connection=self.connection,
                                   schema=self.schema)
 
@@ -285,7 +285,7 @@ class SQLDataTarget(base.DataTarget):
 
         if not self.fields:
             self.fields = fields_from_table(self.table)
-        
+
         self.field_names = self.fields.names()
 
         self.insert_command = self.table.insert()
@@ -311,7 +311,7 @@ class SQLDataTarget(base.DataTarget):
         if self.add_id_key:
             id_key_name = self.id_key_name or 'id'
 
-            sequence_name = "seq_" + name + "_" + id_key_name
+            sequence_name = "seq_" + self.table_name + "_" + id_key_name
             sequence = sqlalchemy.schema.Sequence(sequence_name, optional=True)
 
             col = sqlalchemy.schema.Column(id_key_name,

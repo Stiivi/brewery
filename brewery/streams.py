@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import threading
-import traceback
 import sys
+from brewery.nodes.base import node_dictionary, TargetNode, NodeFinished
 from brewery.utils import get_logger
 from brewery.nodes import *
 from brewery.common import *
@@ -69,7 +68,7 @@ class Pipe(SimpleDataPipe):
     """Data pipe:
     Contains buffer for data that should be thransferred to another node.
     Data are being sent t other node when the buffer is full. Pipe is one-directional where
-    one thread is sending data to another thread. There is only one backward signalling: closing 
+    one thread is sending data to another thread. There is only one backward signalling: closing
     the pipe from remote object.
 
 
@@ -171,7 +170,7 @@ class Pipe(SimpleDataPipe):
         some data."""
 
         done_sending = False
-        while(not done_sending):
+        while not done_sending:
             self._note("C _not_empty acq?")
             self.not_empty.acquire()
             try:
@@ -226,7 +225,7 @@ class Stream(Graph):
             * `nodes` - dictionary with keys as node names and values as nodes
             * `connections` - list of two-item tuples. Each tuple contains source and target node
               or source and target node name.
-            * `stream` - another stream or 
+            * `stream` - another stream or
         """
         super(Stream, self).__init__(nodes, connections)
         self.logger = get_logger()
@@ -236,7 +235,7 @@ class Stream(Graph):
     def fork(self):
         """Creates a construction fork of the stream. Used for constructing streams in functional
         fashion. Example::
-        
+
             stream = Stream()
 
             fork = stream.fork()
@@ -244,25 +243,25 @@ class Stream(Graph):
             fork.formatted_printer()
 
             stream.run()
-        
+
         Fork responds to node names as functions. The function arguments are the same as node
         constructor (__init__ method) arguments. Each call will append new node to the fork and
         will connect the new node to the previous node in the fork.
-        
+
         To configure current node you can use ``fork.node``, like::
-        
+
             fork.csv_source("fork.csv")
             fork.node.read_header = True
-            
+
         To set actual node name use ``set_name()``::
 
             fork.csv_source("fork.csv")
             fork.set_name("source")
-            
+
             ...
-            
+
             source_node = stream.node("source")
-        
+
         To fork a fork, just call ``fork()``
         """
 
@@ -279,7 +278,7 @@ class Stream(Graph):
         # FIXME: use either node type identifier or fully initialized node, not
         #        node class (Warning: might break some existing code,
         #        depreciate it first
-        
+
         nodes = nodes or {}
         connections = connections or []
 
@@ -308,20 +307,20 @@ class Stream(Graph):
             for connection in connections:
                 self.connect(connection[0], connection[1])
 
-    def configure(self, config = {}):
+    def configure(self, config=None):
         """Configure node properties based on configuration. Only named nodes can be configured at the
         moment.
 
         `config` is a list of dictionaries with keys: ``node`` - node name, ``parameter`` - node parameter
         name, ``value`` - parameter value
-        
+
         .. warning:
-        
-            This method might change to a list of dictionaries where one 
+
+            This method might change to a list of dictionaries where one
             dictionary will represent one node, keys will be attributes.
-        
+
         """
-        
+
         # FIXME: this is wrong, it should be a single dict per node (or not?)
         # List of attributes:
         #     * can reflect a form for configuring whole stream
@@ -329,11 +328,12 @@ class Stream(Graph):
         # List of nodes:
         #     * bundled attributes in single dictioary
         # FIXME: this is inconsistent with node configuration! node.config()
-        
+        if config is None:
+            config = {}
         configurations = {}
 
         # Collect configurations for each node
-        
+
         for attribute in config:
             node_name = attribute["node"]
             attribute_name = attribute["attribute"]
@@ -352,15 +352,15 @@ class Stream(Graph):
         for (node_name, config) in configurations.items():
             node = self.coalesce_node(node_name)
             node.configure(config)
-        
+
     def _initialize(self):
         """Initializes the data processing stream:
-        
+
         * sorts nodes based on connection dependencies
         * creates pipes between nodes
         * initializes each node
         * initializes pipe fields
-        
+
         """
 
         self.logger.info("initializing stream")
@@ -404,12 +404,12 @@ class Stream(Graph):
 
     def run(self):
         """Run all nodes in the stream.
-        
+
         Each node is being wrapped and run in a separate thread.
-        
+
         When an exception occurs, the stream is stopped and all catched exceptions are stored in
         attribute `exceptions`.
-        
+
         """
         self._initialize()
 
@@ -503,20 +503,20 @@ class Stream(Graph):
         for node in self.sorted_nodes():
             self.logger.debug("finalizing node %s" % node_label(node))
             node.finalize()
-            
+
 def node_label(node):
     """Debug label for a node: node identifier with python object id."""
     return "%s(%s)" % (node.identifier() or str(type(node)), id(node))
-    
+
 class _StreamNodeThread(threading.Thread):
     def __init__(self, node):
         """Creates a stream node thread.
-        
+
         :Attributes:
             * `node`: a Node object
             * `exception`: attribute will contain exception if one occurs during run()
             * `traceback`: will contain traceback if exception occurs
-        
+
         """
         super(_StreamNodeThread, self).__init__()
         self.node = node
@@ -526,13 +526,13 @@ class _StreamNodeThread(threading.Thread):
 
     def run(self):
         """Wrapper method for running a node"""
-        
+
         label = node_label(self.node)
         self.logger.debug("%s: start" % label)
         try:
             self.node.run()
-        except NodeFinished as e:
-            self.logger.info("node %s finished" % (label))
+        except NodeFinished:
+            self.logger.info("node %s finished" % label)
         except Exception as e:
             tb = sys.exc_info()[2]
             self.traceback = tb
@@ -585,31 +585,31 @@ class _StreamFork(object):
     def merge(self, obj, **kwargs):
         """Joins two streams using the MergeNode (please refer to the node documentaton
         for more information).
-        
+
         `obj` is a fork or a node to be merged. `kwargs` are MergeNode configuration arguments,
         such as `joins`.
-        
+
         """
         raise NotImplementedError
         # if type(obj) == StreamFork:
         #     node = obj.node
         # else:
         #     node = obj
-        # 
+        #
         # self.stream.append(node)
-        # 
+        #
         # merge = MergeNode(**kwargs)
         # self.stream.append(merge)
         # self.stream.connect()
 
     def append(self, obj):
         """Appends data from nodes using AppendNode"""
-        raise NotImplementedError 
+        raise NotImplementedError
 
     def __getattr__(self, name):
         """Returns node class"""
         # FIXME: use create_node here
-        
+
         class_dict = node_dictionary()
 
         node_class = class_dict[name]
@@ -633,5 +633,4 @@ def create_builder():
     """Creates a stream builder for incremental stream building."""
     stream = Stream()
     return stream.fork()
-    
-    
+

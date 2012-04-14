@@ -1,5 +1,6 @@
 import StringIO
 import traceback
+import sys
 
 __all__ = [
     "FieldError",
@@ -10,7 +11,7 @@ __all__ = [
 class FieldError(Exception):
     """Exception raised on field incompatibility or missing fields."""
     pass
-    
+
 class StreamError(Exception):
     """Exception raised on stream."""
     pass

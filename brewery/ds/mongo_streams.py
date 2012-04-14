@@ -6,7 +6,7 @@ import brewery.dq
 
 try:
     import pymongo
-except:
+except ImportError:
     from brewery.utils import MissingPackage
     pymongo = MissingPackage("pymongo", "MongoDB streams", "http://www.mongodb.org/downloads/")
 
@@ -16,7 +16,7 @@ class MongoDBDataSource(base.DataSource):
     def __init__(self, collection, database=None, host=None, port=None,
                  expand=False, **mongo_args):
         """Creates a MongoDB data source stream.
-        
+
         :Attributes:
             * collection: mongo collection name
             * database: database name
@@ -118,7 +118,7 @@ class MongoDBDataSource(base.DataSource):
         return MongoDBRecordIterator(iterator, self.expand)
 
 class MongoDBRowIterator(object):
-    """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as 
+    """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as
     dictionaries"""
     def __init__(self, cursor, field_names):
         self.cursor = cursor
@@ -164,7 +164,7 @@ def collapse_record(record, parent=None):
     return ret
 
 class MongoDBRecordIterator(object):
-    """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as 
+    """Wrapper for pymongo.cursor.Cursor to be able to return rows() as tuples and records() as
     dictionaries"""
     def __init__(self, cursor, expand=False):
         self.cursor = cursor
@@ -175,7 +175,7 @@ class MongoDBRecordIterator(object):
 
     def next(self):
         record = self.cursor.next()
-        
+
         if not record:
             raise StopIteration
 
@@ -200,7 +200,7 @@ class MongoDBDataTarget(base.DataTarget):
                 separated key path to the child..
             * truncate: delete existing data in the collection. Default: False
         """
-        
+
         self.collection_name = collection
         self.database_name = database
         self.host = host
@@ -228,7 +228,7 @@ class MongoDBDataTarget(base.DataTarget):
 
         if self.truncate:
             self.collection.remove()
-            
+
         self.field_names = self.fields.names()
 
     def append(self, obj):

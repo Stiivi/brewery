@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import base
-import brewery.ds as ds
+from __future__ import absolute_import
+from .base import TargetNode
+from ..ds.csv_streams import CSVDataTarget
+from ..ds.sql_streams import SQLDataTarget
 import sys
 
-class StreamTargetNode(base.TargetNode):
-    """Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the 
+class StreamTargetNode(TargetNode):
+    """Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the
     input to the target stream.
 
     The data target should match stream fields.
@@ -14,7 +15,7 @@ class StreamTargetNode(base.TargetNode):
     Note that this node is only for programatically created processing streams. Not useable
     in visual, web or other stream modelling tools.
     """
-    
+
     node_info = {
         "label" : "Data Stream Target",
         "icon": "row_list_target_node",
@@ -26,7 +27,7 @@ class StreamTargetNode(base.TargetNode):
             }
         ]
     }
-    
+
     def __init__(self, stream):
         super(StreamTargetNode, self).__init__()
         self.stream = stream
@@ -39,19 +40,19 @@ class StreamTargetNode(base.TargetNode):
         #     raise ValueError("No stream class specified for data source of type '%s'" % stream_type)
 
         # self.stream = stream_class(**kwargs)
-        # self.stream.fields = 
+        # self.stream.fields =
         self.stream.initialize()
-            
+
     def run(self):
         for row in self.input.rows():
             self.stream.append(row)
-        
+
     def finalize(self):
         self.stream.finalize()
 
-class RowListTargetNode(base.TargetNode):
+class RowListTargetNode(TargetNode):
     """Target node that stores data from input in a list of rows (as tuples).
-    
+
     To get list of fields, ask for `output_fields`.
     """
 
@@ -79,14 +80,14 @@ class RowListTargetNode(base.TargetNode):
             self.list.append(row)
     @property
     def rows(self):
-        return self.list        
-        
-class RecordListTargetNode(base.TargetNode):
+        return self.list
+
+class RecordListTargetNode(TargetNode):
     """Target node that stores data from input in a list of records (dictionary objects)
     object.
-    
+
     To get list of fields, ask for `output_fields`.
-    
+
     """
 
     node_info = {
@@ -115,14 +116,14 @@ class RecordListTargetNode(base.TargetNode):
     def records(self):
         return self.list
 
-class CSVTargetNode(base.TargetNode):
+class CSVTargetNode(TargetNode):
     """Node that writes rows into a comma separated values (CSV) file.
-    
+
     :Attributes:
         * resource: target object - might be a filename or file-like object
         * write_headers: write field names as headers into output file
         * truncate: remove data from file before writing, default: True
-        
+
     """
     node_info = {
         "label" : "CSV Target",
@@ -142,7 +143,7 @@ class CSVTargetNode(base.TargetNode):
             }
         ]
     }
-    
+
     def __init__(self, resource = None, *args, **kwargs):
         super(CSVTargetNode, self).__init__()
         self.resource = resource
@@ -151,7 +152,7 @@ class CSVTargetNode(base.TargetNode):
         self.stream = None
 
     def initialize(self):
-        self.stream = ds.CSVDataTarget(self.resource, *self.args, **self.kwargs)
+        self.stream = CSVDataTarget(self.resource, *self.args, **self.kwargs)
 
         self.stream.fields = self.input_fields
         self.stream.initialize()
@@ -164,26 +165,26 @@ class CSVTargetNode(base.TargetNode):
         self.stream.finalize()
 
 
-class FormattedPrinterNode(base.TargetNode):
+class FormattedPrinterNode(TargetNode):
     """Target node that will print output based on format.
 
     Refer to the python formatting guide:
-    
+
         http://docs.python.org/library/string.html
 
     Example:
-    
+
     Consider we have a data with information about donations. We want to pretty print two fields:
     `project` and `requested_amount` in the form::
-    
+
         Hlavicka - makovicka                                            27550.0
         Obecna kniznica - symbol moderneho vzdelavania                 132000.0
         Vzdelavanie na europskej urovni                                 60000.0
-    
+
     Node for given format is created by:
-    
+
     .. code-block:: python
-    
+
         node = FormattedPrinterNode(format = u"{project:<50.50} {requested_amount:>20}")
 
     Following format can be used to print output from an audit node:
@@ -239,11 +240,11 @@ class FormattedPrinterNode(base.TargetNode):
             }
         ]
     }
-    def __init__(self, format=None, target=sys.stdout, delimiter=None, 
+    def __init__(self, format=None, target=sys.stdout, delimiter=None,
                  header=None, footer=None):
         super(FormattedPrinterNode, self).__init__()
         self.format = format
-        
+
         self.target = target
         self.header = header
         self.footer = footer
@@ -252,7 +253,7 @@ class FormattedPrinterNode(base.TargetNode):
             self.delimiter = delimiter
         else:
             self.delimiter = '\n'
-            
+
         self.handle = None
         self.close_handle = False
 
@@ -265,7 +266,7 @@ class FormattedPrinterNode(base.TargetNode):
             self.close_handle = False
 
     def run(self):
-        
+
         names = self.input_fields.names()
 
         if self.format:
@@ -274,7 +275,7 @@ class FormattedPrinterNode(base.TargetNode):
             fields = []
             for name in names:
                 fields.append(u"{" + name + u"}")
-                
+
             format_string = u"" + u"\t".join(fields)
 
         if self.header is not None:
@@ -286,10 +287,10 @@ class FormattedPrinterNode(base.TargetNode):
             self.handle.write(header_string)
             if self.delimiter:
                 self.handle.write(self.delimiter)
-            
+
         for record in self.input.records():
             self.handle.write(format_string.format(**record).encode("utf-8"))
-            
+
             if self.delimiter:
                 self.handle.write(self.delimiter)
 
@@ -299,14 +300,14 @@ class FormattedPrinterNode(base.TargetNode):
                 self.handle.write(self.delimiter)
 
         self.handle.flush()
-        
+
     def finalize(self):
         if self.handle:
             self.handle.flush()
             if self.close_handle:
                 self.handle.close()
 
-class PrettyPrinterNode(base.TargetNode):
+class PrettyPrinterNode(TargetNode):
     """Target node that will pretty print output as a table.
     """
 
@@ -335,7 +336,7 @@ class PrettyPrinterNode(base.TargetNode):
             #             },
         ]
     }
-    def __init__(self, target=sys.stdout, max_column_width=None, 
+    def __init__(self, target=sys.stdout, max_column_width=None,
                  min_column_width=0, sample=None,
                  print_names=True, print_labels=False):
 
@@ -358,7 +359,7 @@ class PrettyPrinterNode(base.TargetNode):
         else:
             self.handle = self.target
             self.close_handle = False
-            
+
         self.widths = [0] * len(self.input.fields)
         self.names = self.input.fields.names()
 
@@ -386,7 +387,7 @@ class PrettyPrinterNode(base.TargetNode):
         #
         # Create template
         #
-        
+
         if self.max_column_width:
             self.widths = [min(w, self.max_column_width) for w in self.widths]
         self.widths = [max(w, self.min_column_width) for w in self.widths]
@@ -404,7 +405,7 @@ class PrettyPrinterNode(base.TargetNode):
 
         if self.print_names or self.print_labels:
             self.handle.write(self.border)
-        
+
         for row in rows:
             self.handle.write(template.format(*row))
 
@@ -418,7 +419,7 @@ class PrettyPrinterNode(base.TargetNode):
             if self.close_handle:
                 self.handle.close()
 
-class SQLTableTargetNode(base.TargetNode):
+class SQLTableTargetNode(TargetNode):
     """Feed data rows into a relational database table.
     """
     node_info = {
@@ -466,7 +467,7 @@ class SQLTableTargetNode(base.TargetNode):
         ]
     }
 
-    def __init__(self, url=None, table=None, truncate=False, create=False, 
+    def __init__(self, url=None, table=None, truncate=False, create=False,
                  replace=False, **kwargs):
         super(SQLTableTargetNode, self).__init__()
         self.url = url
@@ -474,7 +475,7 @@ class SQLTableTargetNode(base.TargetNode):
         self.truncate = truncate
         self.create = create
         self.replace = replace
-        
+
         self.kwargs = kwargs
         self.stream = None
 
@@ -482,7 +483,7 @@ class SQLTableTargetNode(base.TargetNode):
         self.concrete_type_map = None
 
     def initialize(self):
-        self.stream = ds.SQLDataTarget(url=self.url,
+        self.stream = SQLDataTarget(url=self.url,
                                 table=self.table,
                                 truncate=self.truncate,
                                 create=self.create,

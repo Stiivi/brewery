@@ -33,7 +33,7 @@ class PipeTestCase(unittest.TestCase):
         self.send_sample_limit_watch(1000)
         self.pipe.done_sending()
 
-    
+
     def target_function(self):
         self.processed_count = 0
         for value in self.pipe.rows():
@@ -111,7 +111,7 @@ class Pipe2TestCase(unittest.TestCase):
         while counter < count:
             self.pipe.put(counter)
             _sleep(_random() * 0.00001)
-            counter = counter + 1
+            counter += 1
         self.pipe.done_sending()
 
     def consumer(self, count = None):

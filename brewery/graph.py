@@ -17,7 +17,7 @@ class Graph(object):
         self.connections = set()
 
         self.logger = get_logger()
-        
+
         self._name_sequence = 1
 
         if nodes:
@@ -53,12 +53,12 @@ class Graph(object):
             raise KeyError("Node with name %s already exists" % name)
 
         self.nodes[name] = node
-        
+
         return name
 
     def node_name(self, node):
-        """Returns name of `node`."""        
-        # There should not be more 
+        """Returns name of `node`."""
+        # There should not be more
         if not node:
             raise ValueError("No node provided")
 
@@ -70,11 +70,11 @@ class Graph(object):
             raise Exception("There are more references to the same node")
         else: # if len(names) == 0
             raise Exception("Can not find node '%s'" % node)
-        
+
     def node(self, name):
         """Return node with name `name`."""
         return self.nodes[name]
-        
+
     def rename_node(self, node, name):
         """Sets a name for `node`. Raises an exception if the `node` is not
         part of the stream, if `name` is empty or there is already node with
@@ -85,8 +85,8 @@ class Graph(object):
         if name in self.nodes():
             raise ValueError("Node with name '%s' already exists" % name)
 
-        old_name = node_name(node)
-            
+        old_name = self.node_name(node)
+
         del self.nodes[old_name]
         self.nodes[name] = node
 
@@ -100,7 +100,7 @@ class Graph(object):
             return reference
         else:
             raise ValueError("Unable to find node '%s'" % reference)
-        
+
     def remove(self, node):
         """Remove a `node` from the stream. Also all connections will be
         removed."""
@@ -114,7 +114,6 @@ class Graph(object):
 
         del self.nodes[name]
 
-        to_be_removed = set()
         remove = [c for c in self.connections if c[0] == node or c[1] == node]
 
         for connection in remove:
@@ -135,9 +134,9 @@ class Graph(object):
     def sorted_nodes(self):
         """
         Return topologically sorted nodes.
-        
+
         Algorithm::
-        
+
             L = Empty list that will contain the sorted elements
             S = Set of all nodes with no incoming edges
             while S is non-empty do
@@ -149,7 +148,7 @@ class Graph(object):
                         insert m into S
             if graph has edges then
                 raise exception: graph has at least one cycle
-            else 
+            else
                 return proposed topologically sorted order: L
         """
         def is_source(node, connections):
@@ -192,7 +191,7 @@ class Graph(object):
 
         # if graph has edges then
         #     output error message (graph has at least one cycle)
-        # else 
+        # else
         #     output message (proposed topologically sorted order: L)
 
         if connections:

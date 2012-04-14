@@ -17,14 +17,14 @@ __all__ = [
 ]
 
 """Abstracted field storage types"""
-storage_types = ("unknown", "string", "text", "integer", "float", 
+storage_types = ("unknown", "string", "text", "integer", "float",
                  "boolean", "date", "array")
 
 """Analytical types used by analytical nodes"""
-analytical_types = ("default", "typeless", "flag", "discrete", "range", 
+analytical_types = ("default", "typeless", "flag", "discrete", "range",
                     "set", "ordered_set")
 
-"""Mapping between storage types and their respective default analytical 
+"""Mapping between storage types and their respective default analytical
 types"""
 # NOTE: For the time being, this is private
 default_analytical_types = {
@@ -37,8 +37,8 @@ default_analytical_types = {
                 "array": "typeless"
             }
 
-_valid_retype_attributes = ("storage_type", 
-                     "analytical_type", 
+_valid_retype_attributes = ("storage_type",
+                     "analytical_type",
                      "concrete_storage_type",
                      "missing_values")
 
@@ -52,7 +52,7 @@ def expand_record(record, separator = '.'):
     """Expand record represented as dict object by treating keys as key paths separated by
     `separator`, which is by default ``.``. For example: ``{ "product.code": 10 }`` will become
     ``{ "product" = { "code": 10 } }``
-    
+
     See :func:`brewery.collapse_record` for reverse operation.
     """
     result = {}
@@ -76,7 +76,7 @@ def collapse_record(record, separator = '.', root = None):
             collapsed_key = root + separator + key
         else:
             collapsed_key = key
-        
+
         if type(value) == dict:
             collapsed = collapse_record(value, separator, collapsed_key)
             result.update(collapsed)
@@ -85,24 +85,24 @@ def collapse_record(record, separator = '.', root = None):
     return result
 
 def to_field(obj):
-    """Converts `obj` to a field object. `obj` can be ``str``, ``tuple`` 
-    (``list``), ``dict`` object or :class:`Field` object. If it is `Field` 
+    """Converts `obj` to a field object. `obj` can be ``str``, ``tuple``
+    (``list``), ``dict`` object or :class:`Field` object. If it is `Field`
     instance, then same object is passed.
-    
+
     If field is not a `Field` instance, then construction of new field is as follows:
 
     ``str``:
-        `field name` is set 
+        `field name` is set
 
     ``tuple``:
-        (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is 
+        (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
         obligatory, rest is optional
 
     ``dict``
         contains key-value pairs for initializing a :class:`Field` object
 
-    Attributes of a field that are not specified in the `obj` are filled as: 
-    `storage_type` is set to ``unknown``, `analytical_type` is set to 
+    Attributes of a field that are not specified in the `obj` are filled as:
+    `storage_type` is set to ``unknown``, `analytical_type` is set to
     ``typeless``
     """
 
@@ -148,14 +148,14 @@ class Field(object):
     :Attributes:
         * `name` - field name
         * `label` - optional human readable field label
-        * `storage_type` - Normalized data storage type. The data storage type 
+        * `storage_type` - Normalized data storage type. The data storage type
           is abstracted
-        * `concrete_storage_type` (optional, recommended) - Data store/database 
-          dependent storage type - this is the real name of data type as used 
-          in a database where the field comes from or where the field is going 
+        * `concrete_storage_type` (optional, recommended) - Data store/database
+          dependent storage type - this is the real name of data type as used
+          in a database where the field comes from or where the field is going
           to be created (this might be null if unknown)
         * `analytical_type` - data type used in data mining algorithms
-        * `missing_values` (optional) - Array of values that represent missing 
+        * `missing_values` (optional) - Array of values that represent missing
           values in the dataset for given field
     """
 
@@ -183,7 +183,7 @@ class Field(object):
 
     def __str__(self):
         """Return field name as field string representation."""
-        
+
         return self.name
 
     def __repr__(self):
@@ -202,7 +202,7 @@ class Field(object):
             return False
         else:
             return True
-            
+
     def __ne__(self,other):
         return not self.__eq__(other)
 
@@ -214,7 +214,7 @@ class FieldList(object):
 
         How fields are consutrcuted:
 
-        * string: `field name` is set 
+        * string: `field name` is set
         * tuple: (`field_name`, `storaget_type`, `analytical_type`), the `field_name` is
           obligatory, rest is optional
         * dict: contains key-value pairs for initializing a :class:`Field` object
@@ -238,16 +238,16 @@ class FieldList(object):
 
             for field in fields:
                 self.append(field)
-        
+
     def append(self, field):
-        """Appends a field to the list. This method requires `field` to be 
+        """Appends a field to the list. This method requires `field` to be
         instance of `Field`"""
-    
+
         field = to_field(field)
         self._fields.append(field)
         self._field_dict[field.name] = field
         self._field_names.append(field.name)
-        
+
     def names(self, indexes = None):
         """Return names of fields in the list.
 
@@ -255,7 +255,7 @@ class FieldList(object):
             * `indexes` - list of indexes for which field names should be collected. If set to
               ``None`` then all field names are collected - this is default behaviour.
         """
-        
+
         if indexes:
             names = [self._field_names[i] for i in indexes]
             return names
@@ -265,7 +265,7 @@ class FieldList(object):
     def indexes(self, fields):
         """Return a tuple with indexes of fields from ``fields`` in a data row. Fields
         should be a list of ``Field`` objects or strings.
-        
+
         This method is useful when it is more desirable to process data as rows (arrays), not as
         dictionaries, for example for performance purposes.
         """
@@ -277,15 +277,15 @@ class FieldList(object):
     def selectors(self, fields = None):
         """Return a list representing field selector - which fields are
         selected from a row."""
-        
+
         sel_names = [str(field) for field in fields]
 
         selectors = [unicode(name) in sel_names for name in self.names()]
         return selectors
-        
+
     def index(self, field):
         """Return index of a field"""
-        
+
         try:
             index = self._field_names.index(unicode(field))
         except ValueError:
@@ -311,33 +311,33 @@ class FieldList(object):
         if name in self._field_dict:
             return self._field_dict[name]
         raise KeyError("Field list has no field with name '%s'" % name)
-    
+
     def __len__(self):
         return len(self._fields)
-        
+
     def __getitem__(self, index):
         return self._fields[index]
-        
+
     def __setitem__(self, index, new_field):
         field = self._fields[index]
         del self._field_dict[field.name]
         self._fields[index] = new_field
         self._field_names[index] = new_field.name
         self._field_dict[new_field.name] = new_field
-        
+
     def __delitem__(self, index):
         field = self._fields[index]
         del self._field_dict[field.name]
         del self._fields[index]
         del self._field_names[index]
-        
+
     def __iter__(self):
         return self._fields.__iter__()
-        
+
     def __contains__(self, field):
         if type(field) == str or type(field) == unicode:
             return field in self._field_names
-            
+
         return field in self._fields
 
     def __iconcat__(self, array):
@@ -348,13 +348,13 @@ class FieldList(object):
         fields = self.copy()
         fields += array
         return fields
-        
+
     def __str__(self):
         return "[" + ", ".join(self.names()) + "]"
-    
+
     def copy(self, fields = None):
         """Return a shallow copy of the list.
-        
+
         :Parameters:
             * `fields` - list of fields to be copied.
         """
@@ -363,11 +363,11 @@ class FieldList(object):
             return FieldList(copy_fields)
         else:
             return FieldList(self._fields)
-                
+
     def retype(self, dictionary):
         """Retype fields according to the dictionary. Dictionary contains
         field names as keys and field attribute dictionary as values."""
-        
+
         for name, retype in dictionary.items():
             field = self._field_dict[name]
             for key, value in retype.items():
@@ -375,12 +375,12 @@ class FieldList(object):
                     field.__setattr__(key, value)
                 else:
                     raise Exception("Should not use retype to change field attribute '%s'", key)
-            
+
 class FieldMap(object):
     """Filters fields in a stream"""
     def __init__(self, rename = None, drop = None, keep=None):
         """Creates a field map. `rename` is a dictionary where keys are input
-        field names and values are output field names. `drop` is list of 
+        field names and values are output field names. `drop` is list of
         field names that will be dropped from the stream. If `keep` is used,
         then all fields are dropped except those specified in `keep` list."""
         if drop and keep:
@@ -394,12 +394,12 @@ class FieldMap(object):
 
         self.drop = drop or []
         self.keep = keep or []
-        
+
     def map(self, fields):
         """Map `fields` according to the FieldMap: rename or drop fields as specified. Returns
         a FieldList object."""
         output_fields = FieldList()
-        
+
         for field in fields:
             if field.name in self.rename:
                 # Create a copy and rename field if it is mapped
@@ -412,7 +412,7 @@ class FieldMap(object):
                 (self.keep and field.name in self.keep) or \
                 not (self.keep or self.drop):
                 output_fields.append(new_field)
-            
+
         return output_fields
 
 
@@ -421,22 +421,22 @@ class FieldMap(object):
         use the object to filter fields from a row (list, array) according to this map.
         """
         return RowFieldFilter(self.field_selectors(fields))
-        
+
     def field_selectors(self, fields):
-        """Returns selectors of fields to be used by `itertools.compress()`. 
+        """Returns selectors of fields to be used by `itertools.compress()`.
         This is the preferred way of field filtering.
         """
 
         selectors = []
-        
+
         for field in fields:
             flag = (self.drop and field.name not in self.drop) \
                     or (self.keep and field.name in self.keep) \
                     or not (self.keep or self.drop)
             selectors.append(flag)
-                
+
         return selectors
-        
+
 
 class RowFieldFilter(object):
     """Class for filtering fields in array"""
@@ -446,18 +446,20 @@ class RowFieldFilter(object):
         to output."""
         super(RowFieldFilter, self).__init__()
         self.selectors = selectors or []
-        
+
     def __call__(self, row):
         return self.filter(row)
-        
+
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
         return list(itertools.compress(row, self.selectors))
 
-def coalesce_value(value, storage_type, empty_values={}, strip=False):
+def coalesce_value(value, storage_type, empty_values=None, strip=False):
     """Coalesces `value` to given storage `type`. `empty_values` is a dictionary
     where keys are storage type names and values are values to be used
     as empty value replacements."""
+    if empty_values is None:
+        empty_values={}
     if storage_type in ["string", "text"]:
         if strip:
             value = value.strip()
@@ -473,7 +475,7 @@ def coalesce_value(value, storage_type, empty_values={}, strip=False):
 
         try:
             value = int(value)
-        except:
+        except ValueError:
             value = empty_values.get("integer")
     elif storage_type == "float":
         # FIXME: use configurable thousands separator (now uses space)
@@ -482,10 +484,10 @@ def coalesce_value(value, storage_type, empty_values={}, strip=False):
 
         try:
             value = float(value)
-        except:
+        except ValueError:
             value = empty_values.get("float")
     elif storage_type == "list":
         # FIXME: undocumented type
         value = value.split(",")
-        
+
     return value
