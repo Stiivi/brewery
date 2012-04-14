@@ -29,12 +29,15 @@ __all__ = [
     "FunctionSelectNode",
     "AuditNode",
     
+    # Source nodes
     "RowListSourceNode",
     "RecordListSourceNode",
     "StreamSourceNode",
     "CSVSourceNode",
     "YamlDirectorySourceNode",
+    "ESSourceNode",
     
+    # Target nodes    
     "RowListTargetNode",
     "RecordListTargetNode",
     "StreamTargetNode",

@@ -525,24 +525,37 @@ class SQLSourceNode(SourceNode):
 
 class ESSourceNode(SourceNode):
     """Source node that reads from an ElasticSearch index.
+    
+    See ElasticSearch home page for more information:
+    http://www.elasticsearch.org/
     """
+
     node_info = {
-        "label" : "SQL Source",
-        "icon": "sql_source_node",
-        "description" : "Read data from a sql table.",
+        "label" : "ElasticSearch Source",
+        "icon": "generic_node",
+        "description" : "Read data from ElasticSearch engine",
         "attributes" : [
-                {
-                "name": "uri",
-                "description": "ElasticSearch URL"
+            {
+                "name": "document_type",
+                "description": "ElasticSearch document type name"
             },
-                {
-                "name": "index",
-                "description": "index name",
-                },
-                {
-                "name": "type",
-                "description": "type name",
-                }
+            {
+                "name": "expand",
+                "description": "expand dictionary values and treat children as "\
+                " top-level keys with dot '.' separated key path to the child"
+            },
+            {
+                "name": "database",
+                "description": "database name"
+            },
+            {
+                "name": "host",
+                "description": "database server host, default is localhost"
+            },
+            {
+                "name": "port",
+                "description": "database server port, default is 27017"
+            }
         ]
     }
     def __init__(self, *args, **kwargs):

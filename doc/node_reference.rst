@@ -44,6 +44,41 @@ read from the file header if specified by `read_header` flag. Field storage type
    * - quotechar
      - character used for quoting string values, default is double quote
 
+.. _ESSourceNode:
+
+ElasticSearch Source
+--------------------
+
+.. image:: nodes/generic_node.png
+   :align: right
+
+**Synopsis:** *Read data from ElasticSearch engine*
+
+**Identifier:** es_source (class: :class:`brewery.nodes.ESSourceNode`)
+
+Source node that reads from an ElasticSearch index.
+
+See ElasticSearch home page for more information:
+http://www.elasticsearch.org/
+
+
+.. list-table:: Attributes
+   :header-rows: 1
+   :widths: 40 80
+
+   * - attribute
+     - description
+   * - document_type
+     - ElasticSearch document type name
+   * - expand
+     - expand dictionary values and treat children as  top-level keys with dot '.' separated key path to the child
+   * - database
+     - database name
+   * - host
+     - database server host, default is localhost
+   * - port
+     - database server port, default is 27017
+
 .. _GeneratorFunctionSourceNode:
 
 Callable Generator Source
@@ -213,7 +248,7 @@ Data Stream Source
 
 **Identifier:** stream_source (class: :class:`brewery.nodes.StreamSourceNode`)
 
-Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the 
+Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the
 output.
 
 The source data stream should configure fields on initialize().
@@ -417,9 +452,9 @@ You can use ``**record`` to catch all or rest of the fields as dictionary:
 
     def get_half(**record):
         return record["i"] / 2
-        
+
     node.formula = get_half
-    
+
 
 The formula can be also a string with python expression where local variables are record field
 values:
@@ -539,7 +574,7 @@ Merge Node
 
 Merge two or more streams (join).
 
-Inputs are joined in a star-like fashion: one input is considered master and others are 
+Inputs are joined in a star-like fashion: one input is considered master and others are
 details adding information to the master. By default master is the first input.
 Joins are specified as list of tuples: (`input_tag`, `master_input_key`, `other_input_key`).
 
@@ -547,7 +582,7 @@ Following configuration code shows how to add region and category details:
 
 .. code-block:: python
 
-    node.keys = [ [1, "region_code", "code"], 
+    node.keys = [ [1, "region_code", "code"],
                   [2, "category_code", "code"] ]
 
 Master input should have fields `region_code` and `category_code`, other inputs should have
@@ -555,7 +590,7 @@ Master input should have fields `region_code` and `category_code`, other inputs 
 
 .. code-block:: python
 
-    node.keys = [ [1, "region_code", "code"], 
+    node.keys = [ [1, "region_code", "code"],
                   [2, ("category_code", "year"), ("code", "year")] ]
 
 As a key you might use either name of a sigle field or list of fields for compound keys. If
@@ -566,7 +601,7 @@ The detail key might be omitted if it the same as in master input:
 
 .. code-block:: python
 
-    node.keys = [ [1, "region_code"], 
+    node.keys = [ [1, "region_code"],
                   [2, "category_code"] ]
 
 Master input should have fields `region_code` and `category_code`, input #1 should have
@@ -574,7 +609,7 @@ Master input should have fields `region_code` and `category_code`, input #1 shou
 
 To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
 should be a dictionary where keys are input tags and values are either
-:class:`brewery.FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+:class:`FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
 
 Following example renames ``source_region_name`` field in input 0 and drops field `id` in
 input 1:
@@ -582,8 +617,8 @@ input 1:
 .. code-block:: python
 
     node.maps = {
-                    0: brewery.FieldMap(rename = {"source_region_name":"region_name"}),
-                    1: brewery.FieldMap(drop = ["id"])
+                    0: FieldMap(rename = {"source_region_name":"region_name"}),
+                    1: FieldMap(drop = ["id"])
                 }
 
 It is the same as:
@@ -656,7 +691,7 @@ and rest is discarded. When it is true, then sample is discarded and rest is pas
 
    * - attribute
      - description
-   * - sample_size
+   * - size
      - Size of the sample to be passed to the output
    * - discard
      - flag whether the sample is discarded or included
@@ -690,9 +725,9 @@ You can use ``**record`` to catch all or rest of the fields as dictionary:
 
     def is_big_enough(**record):
         return record["i"] > 1000000
-        
+
     node.condition = is_big_enough
-    
+
 
 The condition can be also a string with python expression where local variables are record field
 values:
@@ -773,8 +808,6 @@ Binning modes:
 * fixed number of fixed-width bins
 * n-tiles by count or by sum
 * record rank
-
-    
 
 
 .. _CoalesceValueToTypeNode:
@@ -924,15 +957,14 @@ For example:
 Generated field will be `amount_threshold` and will contain one of three possible values:
 `low`, `medium`, `hight`
 
-Another possible use case might be for binning after data audit: we want to measure null 
+Another possible use case might be for binning after data audit: we want to measure null
 record count and we set thresholds:
-    
+
     * ratio < 5% is ok
     * 5% <= ratio <= 15% is fair
     * ratio > 15% is bad
-    
+
 We set thresholds as ``(0.05, 0.15)`` and values to ``("ok", "fair", "bad")``
-    
 
 
 .. list-table:: Attributes
@@ -971,7 +1003,6 @@ Node that writes rows into a comma separated values (CSV) file.
     * resource: target object - might be a filename or file-like object
     * write_headers: write field names as headers into output file
     * truncate: remove data from file before writing, default: True
-    
 
 
 .. list-table:: Attributes
@@ -1232,7 +1263,7 @@ Data Stream Target
 
 **Identifier:** stream_target (class: :class:`brewery.nodes.StreamTargetNode`)
 
-Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the 
+Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the
 input to the target stream.
 
 The data target should match stream fields.

@@ -42,21 +42,21 @@ information see :mod:`metadata` where you can find more information.
 Data Sources
 ------------
 
-============= ========================================== ============================
-Data source   Description                                Dataset reference
-============= ========================================== ============================
-csv           Comma separated values (CSV) file/URI      file path, file-like object,
-              resource                                   URL
+============== ========================================== ============================
+Data source    Description                                Dataset reference
+============== ========================================== ============================
+csv            Comma separated values (CSV) file/URI      file path, file-like object,
+               resource                                   URL
               
-xls           MS Excel spreadsheet                       file path, URL
-gdoc          Google Spreadsheet                         spreadsheet key or name
-sql           Relational database table                  connection + table name
-mongodb       MongoDB database collection                connection + table name
-yamldir       Directory containing yaml files            directory
-              - one file per record
-jsondir       Directory containing json files            directory
-              - one file per record (not yet)
-============= ========================================== ============================
+xls            MS Excel spreadsheet                       file path, URL
+gdoc           Google Spreadsheet                         spreadsheet key or name
+sql            Relational database table                  connection + table name
+mongodb        MongoDB database collection                connection + table name
+yamldir        Directory containing yaml files            directory
+               - one file per record
+elasticsearch  Elastic Search – Open Source, Distributed,
+               RESTful, Search Engine
+============== ========================================== ============================
 
 Data sources should implement:
 
@@ -79,6 +79,8 @@ yamldir              Directory containing yaml files - one file per record
 jsondir              Directory containing json files - one file per record
                      (not yet)
 html                 HTML file or a string target
+elasticsearch        Elastic Search – Open Source, Distributed,
+                     RESTful, Search Engine
 ==================== ======================================================
 
 Data targets should implement:
