@@ -189,6 +189,8 @@ class SQLDataSource(base.DataSource):
         if not self.fields:
             self.read_fields()
 
+        self.field_names = self.fields.names()
+
     def finalize(self):
         self.context.close()
 
