@@ -197,12 +197,12 @@ class SQLDataSource(base.DataSource):
         return self.fields
 
     def rows(self):
-        if not self.dataset:
+        if not self.context:
             raise RuntimeError("Stream is not initialized")
         return self.context.table.select().execute()
 
     def records(self):
-        if not self.dataset:
+        if not self.context:
             raise RuntimeError("Stream is not initialized")
         fields = self.field_names
         for row in self.rows():
