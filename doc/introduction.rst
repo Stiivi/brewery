@@ -9,11 +9,11 @@ processing nodes.
 Priorities of the framework are:
 
 * understandability of the analysis process
-* auditability of the data being analysed (frequent use of metadata)
+* auditability of the data being analyzed (frequent use of metadata)
 * usability
 * versatility
 
-Speed is currently minor priority of the framework.If you are concerned about
+Speed is currently a minor priority of the framework. If you are concerned about
 performance, you can still use the framework in your thinking and designing
 process, to experience the data you are about to process. Brewery provides
 several ways how to get just small samples the data. However, if you know how
@@ -31,7 +31,7 @@ When you might consider using brewery?
 * feed auditing and analysis results back to data stores
 * streaming data in heterogenous environment - between different stores
 
-Even that Data Brewery is not a full-featured ETL framework it is possible to
+Even though Data Brewery is not a full-featured ETL framework it is possible to
 use it for simple operations, for playing around with data, piping data from
 one store to another.
 

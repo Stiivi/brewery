@@ -4,16 +4,16 @@
 .. module:: streams
    :synopsis: data analysis and processing streams
 
-Data processing stream is a network of data processing nodes connected by data
+The data processing stream is a network of data processing nodes connected by data
 pipes. There are several data processing node types:
 
 * *source nodes* - provide data from data sources such as CSV files or
   database tables
 * *target nodes* - nodes for consuming data and storing them or creating data
-  visualisations
+  visualizations
 * *record nodes* - perform operations on whole records, such as merging,
   joining, aggregations
-* *field nodes* - perform operations on particuliar fields, such as text
+* *field nodes* - perform operations on particular fields, such as text
   substitution, field renaming, deriving new fields, restructuring
 
 Data Processing Streams
@@ -22,20 +22,20 @@ Data Processing Streams
 .. figure:: stream_example.png
 
     Example of a processing stream:
-    
-    * load YAML fiels from a directory - each file represents one record
-    * Strip all string fields. 
+
+    * load YAML fields from a directory - each file represents one record
+    * Strip all string fields.
     * Remove duplicates and store unique records in a SQL database table
-    * Perform data audit and pretty-print it using formatted text printer
+    * Perform a data audit and pretty-print output using a formatted text printer
 
 Constructing a stream the "object way":
 
 .. code-block:: python
-    
+
     from brewery.nodes import *
     from brewery.streams import *
     import brewery.metadata as metadata
-    
+
     # Prepare nodes
 
     nodes = {
@@ -49,7 +49,7 @@ Constructing a stream the "object way":
 
     # Configure nodes
 
-    nodes["source"].fields = metadata.FieldList([ 
+    nodes["source"].fields = metadata.FieldList([
                                             ("year", "integer"),
                                             ("receiver", "string"),
                                             ("project", "string"),
@@ -127,7 +127,7 @@ process your data. In fact the function call is interpreted as step in processin
     trunk.aggregate(keys = ["year"])
     trunk.formatted_printer(...)
 
-Executing the functions as written might be be very expensive from time and memory perspective. What is
+Executing the functions as written might be very expensive in terms of time and memory. What is
 in fact happening is that instead of executing the data processing functions a stream network is being
 constructed and the construction is being done by using forked branches. To start, an empty stream
 and first fork has to be created:
@@ -140,8 +140,8 @@ and first fork has to be created:
     main = stream.fork()
     ...
 
-Now we have fork main. Each function call on main will append new processing node to the fork and the
-new node will be connected to the previous node of the fork.
+Now we have fork ``main``. Each function call on ``main`` will append a new processing node to the fork and the new
+node will be connected to the previous node of the fork.
 
 .. image:: fork_construction01.png
     :align: center
@@ -150,7 +150,7 @@ Function names are based on node names in most of the cases. There might be cust
 some nodes in the future, but now there is just simple rule:
 
 
-#. decamelize node name: CSVSourceNode to csv source node
+#. de-camelize node name: CSVSourceNode to csv source node
 #. replace spaces with underscores: csv_source_node
 #. remove ‘node’ suffix: csv_source
 
@@ -160,7 +160,7 @@ configuration you can access current node with node attribute of the fork:
 .. code-block:: python
 
     main.node.keys = ["country"]
-    
+
 Run the stream as if it was constructed manually from nodes and connections:
 
 .. code-block:: python
@@ -168,7 +168,7 @@ Run the stream as if it was constructed manually from nodes and connections:
     stream.run()
 
 There are plenty of situations where linear processing is not sufficient and we will need to have
-branches. To create another branch, we fork() a fork. For example, to attach data audit to the stream
+branches. To create another branch, we fork() a fork. For example, to attach a data audit to the stream
 insert following code right after the node we want to audit:
 
 .. code-block:: python
@@ -216,14 +216,14 @@ Example
 Output will be::
 
     {'i': 1, 'name': 'apple', 'new_field': 105}
-    {'i': 2, 'name': 'bananna', 'new_field': 207}
+    {'i': 2, 'name': 'banana', 'new_field': 207}
     {'i': 3, 'name': 'orange', 'new_field': 306}
 
 The newly created `test_stream.csv` file will contain::
 
     i,name,new_field
     1,apple,105
-    2,bananna,207
+    2,banana,207
     3,orange,306
 
 Custom nodes
