@@ -109,7 +109,7 @@ Configure printer node (:ref:`FormattedPrinterNode`) to create nicely aligned te
                              "{empty_string_count:>10} {distinct_count:>10}"
 
 
-Crate :class:`brewery.streams.Steram` and run it:
+Create :class:`brewery.streams.Stream` and run it:
 
 .. code-block:: python
 
