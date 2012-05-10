@@ -80,7 +80,7 @@ class SimpleHTMLDataTarget(base.DataTarget):
     def append(self, obj):
         if type(obj) == dict:
             row = []
-            for field in self.field_names:
+            for field in self.fields.names():
                 row.append(obj.get(field))
         else:
             row = obj

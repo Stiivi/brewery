@@ -67,13 +67,13 @@ class YamlDirectoryDataSource(base.DataSource):
             yield record
 
     def rows(self):
-        if not self.field_names:
-            raise Exception("Field names not initialized, can not generate rows")
+        if not self.fields:
+            raise Exception("Fields are not initialized, can not generate rows")
+            
+        field_names = self.fields.names()
 
         for record in self.records():
-            row = []
-            for field in self.field_names:
-                row.append(record.get(field))
+            row = [record.get(field) for field in field_names]
             yield row
 
 
@@ -124,7 +124,7 @@ class YamlDirectoryDataTarget(base.DataTarget):
         if type(obj) == dict:
             record = obj
         else:
-            record = dict(zip(self.field_names, obj))
+            record = dict(zip(self.fields.names(), obj))
 
         base_name = self.template.substitute(__index=self.index, **record)
         path = os.path.join(self.path, base_name)

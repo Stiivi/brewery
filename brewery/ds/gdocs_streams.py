@@ -83,13 +83,13 @@ class GoogleSpreadsheetDataSource(base.DataSource):
         if not self.worksheet:
             raise RuntimeError("Stream is not initialized (no worksheet)")
         iterator = self.worksheet.FindRecords(self.query_string).__iter__()
-        return GDocRowIterator(self.field_names, iterator)
+        return GDocRowIterator(self.fields.names(), iterator)
 
     def records(self):
         if not self.worksheet:
             raise RuntimeError("Stream is not initialized (no worksheet)")
         iterator = self.worksheet.FindRecords(self.query_string).__iter__()
-        return GDocRecordIterator(self.field_names, iterator)
+        return GDocRecordIterator(self.fields.names(), iterator)
 
 class GDocRowIterator(object):
     """

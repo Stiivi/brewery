@@ -95,14 +95,14 @@ class ESDataSource(base.DataSource):
 
             fields.append(field)
 
-        self._fields = list(fields)
-        return self._fields
+        self.fields = list(fields)
+        return self.fields
 
     def rows(self):
         if not self.connection:
             raise RuntimeError("Stream is not initialized")
         from pyes.query import MatchAllQuery
-        fields = self.field_names
+        fields = self.fields.names()
         results = self.connection.search(MatchAllQuery(), search_type="scan", timeout="5m", size="200")
         return ESRowIterator(results, fields)
 
@@ -232,7 +232,7 @@ class ESDataTarget(base.DataTarget):
     def append(self, obj):
         record = obj
         if not isinstance(obj, dict):
-            record = dict(zip(self.field_names, obj))
+            record = dict(zip(self.fields.names(), obj))
 
         if self.expand:
             record = expand_record(record)

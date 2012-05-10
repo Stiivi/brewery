@@ -70,7 +70,7 @@ class XLSDataSource(base.DataSource):
         return XLSRowIterator(self.workbook, self.sheet, self.skip_rows)
 
     def records(self):
-        fields = self.field_names
+        fields = self.fields.names()
         for row in self.rows():
             yield dict(zip(fields, row))
 
