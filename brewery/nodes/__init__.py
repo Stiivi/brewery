@@ -41,7 +41,8 @@ __all__ = [
     "RowListTargetNode",
     "RecordListTargetNode",
     "StreamTargetNode",
-    "FormattedPrinterNode"
+    "FormattedPrinterNode",
+    "SQLTableTargetNode"
 ]
 
 __all__ += base.__all__
