@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import base
@@ -55,7 +54,7 @@ def split_table_schema(table_name):
 class SQLContext(object):
     """Holds context of SQL store operations."""
 
-    def __init__(self, url = None, connection = None, schema = None):
+    def __init__(self, url=None, connection=None, schema=None):
         """Creates a SQL context"""
 
         if not url and not connection:
@@ -184,11 +183,10 @@ class SQLDataSource(base.DataSource):
         """
         if not self.context:
             self.context = SQLContext(self.url, self.connection, self.schema)
-        if not self.table:
+        if self.table is None:
             self.table = self.context.table(self.table_name)
         if not self.fields:
             self.read_fields()
-
         self.field_names = self.fields.names()
 
     def finalize(self):
@@ -201,7 +199,7 @@ class SQLDataSource(base.DataSource):
     def rows(self):
         if not self.context:
             raise RuntimeError("Stream is not initialized")
-        return self.context.table.select().execute()
+        return self.table.select().execute()
 
     def records(self):
         if not self.context:
@@ -308,7 +306,7 @@ class SQLDataTarget(base.DataTarget):
             else:
                 raise ValueError("Table '%s' already exists" % self.table_name)
 
-        table = sqlalchemy.Table(self.table_name, self.context.metadata)
+        table = sqlalchemy.Table(self.table_name, self.context.metadata, schema=self.schema)
 
         if self.add_id_key:
             id_key_name = self.id_key_name or 'id'
