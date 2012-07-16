@@ -224,6 +224,11 @@ class CSVDataSource(base.DataSource):
                 fields = [ (name, "string", "default") for name in field_names]
                 self.fields = brewery.metadata.FieldList(fields)
             
+        if not self.fields:
+            raise RuntimeError("Fields are not initialized. "
+                               "Either read fields from CSV header or "
+                               "set them manually")
+
         self.reader.set_fields(self.fields)
         
     def finalize(self):
