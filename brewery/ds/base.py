@@ -26,7 +26,8 @@
 import urllib2
 import urlparse
 import brewery.dq
-from brewery.metadata import collapse_record, Field
+from brewery.metadata import Field
+from brewery.common import collapse_record
 
 def open_resource(resource, mode = None):
     """Get file-like handle for a resource. Conversion:

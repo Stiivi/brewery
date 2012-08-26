@@ -4,7 +4,7 @@
 import base
 from brewery import dq
 import time
-from brewery.metadata import expand_record
+from brewery.common import expand_record
 
 try:
     from pyes.es import ES

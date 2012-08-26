@@ -102,11 +102,8 @@ def fields_from_table(table):
                 field.analytical_type = conv[2]
                 break
 
-        if not field.storage_type:
-            field.storaget_tpye = "unknown"
-
-        if not field.analytical_type:
-            field.analytical_type = "unknown"
+        field.storage_type = field.storage_type or "unknown"
+        field.analytical_type = field.analytical_type or "unknown"
 
         fields.append(field)
 

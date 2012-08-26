@@ -76,7 +76,7 @@ class DataQualityTestCase(unittest.TestCase):
         
         distinct = list(probe.values)
         distinct.sort()
-        print "DISTINCT: %s" % distinct
+
         self.assertEqual(4, len(distinct))
         self.assertEqual(["five", "seven", "three", "unknown"], distinct)
         

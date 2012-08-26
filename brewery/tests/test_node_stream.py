@@ -11,6 +11,7 @@ import StringIO
 from brewery.streams import *
 from brewery.nodes import *
 from brewery.common import *
+from brewery.errors import *
 
 logging.basicConfig(level=logging.WARN)
 

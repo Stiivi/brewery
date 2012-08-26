@@ -1,117 +1,84 @@
-import StringIO
-import traceback
-import sys
+import re
 
 __all__ = [
-    "FieldError",
-    "StreamError",
-    "StreamRuntimeError"
+    "coalesce_value",
+    "collapse_record",
+    "expand_record"
 ]
 
-class FieldError(Exception):
-    """Exception raised on field incompatibility or missing fields."""
-    pass
 
-class StreamError(Exception):
-    """Exception raised on stream."""
-    pass
+def expand_record(record, separator = '.'):
+    """Expand record represented as dict object by treating keys as key paths separated by
+    `separator`, which is by default ``.``. For example: ``{ "product.code": 10 }`` will become
+    ``{ "product" = { "code": 10 } }``
 
-class StreamRuntimeError(Exception):
-    """Exception raised when a node fails during `run()` phase.
-
-    Attributes:
-        * `message`: exception message
-        * `node`: node where exception was raised
-        * `exception`: exception that was raised while running the node
-        * `traceback`: stack traceback
-        * `inputs`: array of field lists for each input
-        * `output`: output field list
+    See :func:`brewery.collapse_record` for reverse operation.
     """
-    def __init__(self, message=None, node=None, exception=None):
-        super(StreamRuntimeError, self).__init__()
-        if message:
-            self.message = message
+    result = {}
+    for key, value in record.items():
+        current = result
+        path = key.split(separator)
+        for part in path[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        current[path[-1]] = value
+    return result
+
+def collapse_record(record, separator = '.', root = None):
+    """See :func:`brewery.expand_record` for reverse operation.
+    """
+
+    result = {}
+    for key, value in record.items():
+        if root:
+            collapsed_key = root + separator + key
         else:
-            self.message = ""
+            collapsed_key = key
 
-        self.node = node
-        self.exception = exception
-        self.traceback = None
-        self.inputs = []
-        self.output = []
-        self.attributes = {}
+        if type(value) == dict:
+            collapsed = collapse_record(value, separator, collapsed_key)
+            result.update(collapsed)
+        else:
+            result[collapsed_key] = value
+    return result
 
-    def print_exception(self, output=None):
-        """Prints exception and details in human readable form. You can specify IO stream object in
-        `output` parameter. By default text is printed to standard output."""
 
-        if not output:
-            output = sys.stderr
 
-        text = u"stream failed. reason: %s\n" % self.message
-        text += u"exception: %s: \n" % self.exception.__class__.__name__
+def coalesce_value(value, storage_type, empty_values=None, strip=False):
+    """Coalesces `value` to given storage `type`. `empty_values` is a dictionary
+    where keys are storage type names and values are values to be used
+    as empty value replacements."""
+    if empty_values is None:
+        empty_values={}
+    if storage_type in ["string", "text"]:
+        if strip:
+            value = value.strip()
+        elif value:
+            value = unicode(value)
 
-        text += u"node: %s\n" % self.node
+        if value == "" or value is None:
+            value = empty_values.get("string")
+    elif storage_type == "integer":
+        # FIXME: use configurable thousands separator (now uses space)
+        if strip:
+            value = re.sub(r"\s", "", value.strip())
 
         try:
-            text += unicode(self.exception)
-        except Exception, e:
-            text += u"<unable to get exception string: %s>" % e
-
-        text += "\ntraceback\n"
+            value = int(value)
+        except ValueError:
+            value = empty_values.get("integer")
+    elif storage_type == "float":
+        # FIXME: use configurable thousands separator (now uses space)
+        if strip:
+            value = re.sub(r"\s", "", value.strip())
 
         try:
-            l = traceback.format_list(traceback.extract_tb(self.traceback))
-            text += "".join(l)
-        except Exception as e:
-            text += "<unable to get traceback string: %s>" % e
+            value = float(value)
+        except ValueError:
+            value = empty_values.get("float")
+    elif storage_type == "list":
+        # FIXME: undocumented type
+        value = value.split(",")
 
-        text += "\n"
-
-        if self.inputs:
-            for i, fields in enumerate(self.inputs):
-                text += "input %i:\n" % i
-                input_text = ""
-                for (index, field) in enumerate(fields):
-                    input_text += u"% 5d %s (storage:%s analytical:%s)\n" \
-                                % (index, field.name, field.storage_type, field.analytical_type)
-                text += unicode(input_text)
-        else:
-            text += "input: none"
-
-        text += "\n"
-
-        if self.output:
-            text += "output:\n"
-            for field in self.output:
-                text += u"    %s (storage:%s analytical:%s)\n" \
-                            % (field.name, field.storage_type, field.analytical_type)
-        else:
-            text += "ouput: none"
-
-        text += "\n"
-
-        if self.attributes:
-            text += "attributes:\n"
-            for name, attribute in self.attributes.items():
-                try:
-                    value = unicode(attribute)
-                except Exception, e:
-                    value = "unable to convert to string (exception: %s)" % e
-                text += "    %s: %s\n" % (name, value)
-        else:
-            text += "attributes: none"
-
-        output.write(text)
-
-    def __str__(self):
-        s = StringIO.StringIO()
-        try:
-            self.print_exception(s)
-            v = s.getvalue()
-        except Exception, e:
-            v = "Unable to print strem exception. Reason: %s (%s)" % (e, type(e))
-        finally:
-            s.close()
-
-        return v
+    return value

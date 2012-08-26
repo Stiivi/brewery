@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 from .base import Node
 from ..metadata import FieldMap, FieldList, Field
-from ..common import FieldError
+from ..errors import *
 
 import re
 

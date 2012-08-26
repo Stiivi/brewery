@@ -2,10 +2,11 @@
 
 import threading
 import sys
-from brewery.nodes.base import node_dictionary, TargetNode, NodeFinished
-from brewery.utils import get_logger
-from brewery.nodes import *
-from brewery.common import *
+from .nodes.base import node_dictionary, TargetNode, NodeFinished
+from .utils import get_logger
+from .nodes import *
+from .common import *
+from .errors import *
 from .graph import *
 
 __all__ = [
@@ -625,7 +626,6 @@ class _StreamForkConstructor(object):
 
     def __call__(self, *args, **kwargs):
         node = self.node_class(*args, **kwargs)
-        print "CALLING %s - %s" % (self.node_class, node)
         self.fork += node
         return self.fork
 

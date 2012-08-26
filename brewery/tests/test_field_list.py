@@ -4,6 +4,7 @@
 import unittest
 import brewery
 from brewery import ds
+from brewery.errors import *
 
 class FieldListCase(unittest.TestCase):
     def test_names(self):
@@ -42,7 +43,7 @@ class FieldListCase(unittest.TestCase):
         del fields[2]
         self.assertEqual(["b", "c"], fields.names())
         
-        self.assertRaises(KeyError, fields.field, "d")
+        self.assertRaises(NoSuchFieldError, fields.field, "d")
         self.assertEqual(2, len(fields))
         
     def test_contains(self):

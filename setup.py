@@ -8,7 +8,7 @@ try:
 except ImportError:
     # For Python < 2.6 or people using a newer version of simplejson
     install_requires.append("simplejson")
-    
+
 setup(
     name = "brewery",
     version = '0.8.0',
@@ -38,7 +38,7 @@ setup(
         'Topic :: Utilities'
     ],
 
-    test_suite="brewery.tests",
+    test_suite="tests",
 
     # metadata for upload to PyPI
     author="Stefan Urbanek",
