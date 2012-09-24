@@ -4,13 +4,14 @@ import itertools
 import functools
 import re
 from .errors import *
+import inspect
 # from collections import OrderedDict
 
 __all__ = [
     "to_field",
     "Field",
     "FieldList",
-    "FieldMap",
+    "FieldFilter",
     "storage_types",
     "analytical_types"
 ]
@@ -20,8 +21,8 @@ storage_types = ("unknown", "string", "text", "integer", "float",
                  "boolean", "date", "array")
 
 """Analytical types used by analytical nodes"""
-analytical_types = ("default", "typeless", "flag", "discrete", "range",
-                    "set", "ordered_set")
+analytical_types = ("default", "typeless", "flag", "discrete", "measure",
+                    "nominal", "ordinal") 
 
 """Mapping between storage types and their respective default analytical
 types"""
@@ -31,7 +32,7 @@ default_analytical_types = {
                 "string": "typeless",
                 "text": "typeless",
                 "integer": "discrete",
-                "float": "range",
+                "float": "measure",
                 "date": "typeless",
                 "array": "typeless"
             }
@@ -68,7 +69,7 @@ def to_field(obj):
         field = obj
     else:
         # Set defaults first
-        d = { "storage_type": "unknown" }
+        d = { }
 
         if isinstance(obj, basestring):
             d["name"] = obj
@@ -93,9 +94,6 @@ def to_field(obj):
             storage_type = d.get("storage_type")
             if storage_type:
                 deftype = default_analytical_types.get(storage_type)
-                d["analytical_type"] = deftype or "typeless"
-            else:
-                d["analytical_type"] = "typeless"
 
         field = Field(**d)
     return field
@@ -117,32 +115,53 @@ class Field(object):
           values in the dataset for given field
         * `info` – user specific field information, might contain formatting
           information for example
+        * `origin` – object that provides contents for the field (optional)
     """
 
-    def __init__(self, name, storage_type="unknown",
-                 analytical_type="typeless", concrete_storage_type=None,
-                 missing_values=None, label=None, info=None):
-        self.name = name
-        self.label = label
-        self.storage_type = storage_type
-        self.analytical_type = analytical_type
-        self.concrete_storage_type = concrete_storage_type
-        self.missing_values = missing_values
-        self.info = info
+    attributes = ["name", "storage_type", "analytical_type",
+                  "concrete_storage_type", "missing_values",
+                  "label", "info", "origin"]
+
+    attribute_defaults = {
+                "storage_type":"unknown",
+                "analytical_type": None
+            }
+
+    def __init__(self, *args, **kwargs):
+        super(Field,self).__init__()
+
+        object.__setattr__(self, "_frozen", False)
+
+        not_set = set(self.attributes)
+
+        for name, value in zip(self.attributes, args):
+            setattr(self, name, value)
+            not_set.remove(name)
+
+        for name, value in kwargs.items():
+            if name in not_set:
+                setattr(self, name, value)
+                not_set.remove(name)
+            else:
+                raise ValueError("Argument %s specified more than once" % name)
+
+        for name in not_set:
+            setattr(self, name, self.attribute_defaults.get(name, None))
+
+    def freeze(self):
+        """Freezes the field so the attributes can not be changed."""
+        self._frozen = True
 
     def to_dict(self):
         """Return dictionary representation of the field."""
-        d = {
-                "name": self.name,
-                "label": self.label,
-                "storage_type": self.storage_type,
-                "analytical_type": self.analytical_type,
-                "concrete_storage_type": self.concrete_storage_type,
-                "missing_values": self.missing_values,
-                "info": self.info
-            }
-
+        d = {}
+        for name in self.attributes:
+            d[name] = getattr(self, name)
         return d
+
+    def __copy__(self):
+        field = Field(self.to_dict())
+        return field
 
     def __str__(self):
         """Return field name as field string representation."""
@@ -155,20 +174,24 @@ class Field(object):
     def __eq__(self, other):
         if self is other:
             return True
-        if self.name != other.name or self.label != other.label:
-            return False
-        elif self.storage_type != other.storage_type \
-                or self.analytical_type != other.analytical_type:
-            return False
-        elif self.concrete_storage_type != other.concrete_storage_type:
-            return False
-        elif self.missing_values != other.missing_values:
-            return False
-        else:
-            return True
+        for name in self.attributes:
+            if getattr(self, name) != getattr(other, name):
+                print "failed on %s: %s != %s" % (name, getattr(self, name), getattr(other, name))
+                return False
+        return True
 
     def __ne__(self,other):
         return not self.__eq__(other)
+
+    def __hash__(self):
+        return self.name.hash()
+
+    def __setattr__(self, name, value):
+        if name != "_frozen" and self._frozen:
+            raise ValueError("Field attributes can not be changed (trying to "
+                             "change attribute %s)" % name)
+        else:
+            object.__setattr__(self, name, value)
 
 class FieldList(object):
     """List of fields"""
@@ -238,14 +261,14 @@ class FieldList(object):
 
         return tuple(indexes)
 
-    def selectors(self, fields=None):
+    def mask(self, fields=None):
         """Return a list representing field selector - which fields are
         selected from a row."""
 
         sel_names = [str(field) for field in fields]
 
-        selectors = [unicode(name) in sel_names for name in self.names()]
-        return selectors
+        mask = [unicode(name) in sel_names for name in self.names()]
+        return mask
 
     def index(self, field):
         """Return index of a field"""
@@ -328,19 +351,8 @@ class FieldList(object):
         else:
             return FieldList(self._fields)
 
-    def retype(self, dictionary):
-        """Retype fields according to the dictionary. Dictionary contains
-        field names as keys and field attribute dictionary as values."""
 
-        for name, retype in dictionary.items():
-            field = self._field_dict[name]
-            for key, value in retype.items():
-                if key in _valid_retype_attributes:
-                    field.__setattr__(key, value)
-                else:
-                    raise MetadataError("Should not use retype to change field attribute '%s'", key)
-
-class FieldMap(object):
+class FieldFilter(object):
     """Filters fields in a stream"""
     def __init__(self, rename=None, drop=None, keep=None):
         """Creates a field map. `rename` is a dictionary where keys are input
@@ -349,16 +361,16 @@ class FieldMap(object):
         then all fields are dropped except those specified in `keep` list."""
         if drop and keep:
             raise MetadataError("You can nott specify both 'keep' and 'drop' "
-                                "options in FieldMap.")
+                                "options in FieldFilter.")
 
-        super(FieldMap, self).__init__()
+        super(FieldFilter, self).__init__()
 
         self.rename = rename or {}
         self.drop = drop or []
         self.keep = keep or []
 
-    def map(self, fields):
-        """Map `fields` according to the FieldMap: rename or drop fields as
+    def filter(self, fields):
+        """Map `fields` according to the FieldFilter: rename or drop fields as
         specified. Returns a FieldList object."""
         output_fields = FieldList()
 
@@ -367,6 +379,7 @@ class FieldMap(object):
                 # Create a copy and rename field if it is mapped
                 new_field = copy.copy(field)
                 new_field.name = self.rename[field.name]
+                new_field.origin = field.origin
             else:
                 new_field = field
 
@@ -383,9 +396,9 @@ class FieldMap(object):
         `fields`. You can use the object to filter fields from a row (list,
         array) according to this map.
         """
-        return RowFieldFilter(self.field_selectors(fields))
+        return RowFieldFilter(self.field_mask(fields))
 
-    def field_selectors(self, fields):
+    def field_mask(self, fields):
         """Returns a list where ``True`` value is set for field that is selected
         and ``False`` for field that has to be ignored. Selectors of fields can
         be used by `itertools.compress()`. This is the preferred way of field
@@ -410,11 +423,11 @@ class RowFieldFilter(object):
         """Create an instance of RowFieldFilter. `indexes` is a list of indexes that are passed
         to output."""
         super(RowFieldFilter, self).__init__()
-        self.selectors = selectors or []
+        self.mask = mask or []
 
     def __call__(self, row):
         return self.filter(row)
 
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
-        return list(itertools.compress(row, self.selectors))
+        return list(itertools.compress(row, self.mask))
