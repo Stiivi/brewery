@@ -184,11 +184,14 @@ class Field(object):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return self.name.hash()
+        if self._frozen:
+            return self.name.__hash__()
+        else:
+            raise TypeError("Unfrozen field is not hashable")
 
     def __setattr__(self, name, value):
         if name != "_frozen" and self._frozen:
-            raise ValueError("Field attributes can not be changed (trying to "
+            raise AttributeError("Field attributes can not be changed (trying to "
                              "change attribute %s)" % name)
         else:
             object.__setattr__(self, name, value)
