@@ -115,12 +115,14 @@ class Field(object):
           values in the dataset for given field
         * `info` – user specific field information, might contain formatting
           information for example
-        * `origin` – object that provides contents for the field (optional)
+        * `origin` – object that provides contents for the field (for example
+          another field)
+        * `owner` – object owning the field (for example: a node)
     """
 
     attributes = ["name", "storage_type", "analytical_type",
                   "concrete_storage_type", "missing_values",
-                  "label", "info", "origin"]
+                  "label", "info", "origin", "owner"]
 
     attribute_defaults = {
                 "storage_type":"unknown",
@@ -151,6 +153,10 @@ class Field(object):
     def freeze(self):
         """Freezes the field so the attributes can not be changed."""
         self._frozen = True
+
+    @property
+    def is_frozen(self):
+        return self._frozen
 
     def to_dict(self):
         """Return dictionary representation of the field."""
