@@ -1,5 +1,10 @@
 from collections import OrderedDict
 from brewery.utils import get_logger
+import collections
+
+Connection = collections.namedtuple("Connection",
+                                    ["source", "target"])
+
 
 class Graph(object):
     """Data processing stream"""
@@ -52,6 +57,9 @@ class Graph(object):
         if name in self.nodes:
             raise KeyError("Node with name %s already exists" % name)
 
+        if node in self.nodes.values():
+            raise ValueError("Node %s already exists" % node)
+            
         self.nodes[name] = node
 
         return name
@@ -71,10 +79,6 @@ class Graph(object):
         else: # if len(names) == 0
             raise Exception("Can not find node '%s'" % node)
 
-    def node(self, name):
-        """Return node with name `name`."""
-        return self.nodes[name]
-
     def rename_node(self, node, name):
         """Sets a name for `node`. Raises an exception if the `node` is not
         part of the stream, if `name` is empty or there is already node with
@@ -90,16 +94,17 @@ class Graph(object):
         del self.nodes[old_name]
         self.nodes[name] = node
 
-    def coalesce_node(self, reference):
+    def node(self, reference):
         """Coalesce node reference: `reference` should be either a node name
         or a node. Returns the node object."""
 
-        if isinstance(reference, basestring):
+        try:
             return self.nodes[reference]
-        elif reference in self.nodes.values():
-            return reference
-        else:
-            raise ValueError("Unable to find node '%s'" % reference)
+        except KeyValue:
+            if reference in self.nodes.values():
+                return reference
+            else:
+                raise ValueError("Unable to find node '%s'" % reference)
 
     def remove(self, node):
         """Remove a `node` from the stream. Also all connections will be
@@ -122,7 +127,7 @@ class Graph(object):
     def connect(self, source, target):
         """Connects source node and target node. Nodes can be provided as
         objects or names."""
-        connection = (self.coalesce_node(source), self.coalesce_node(target))
+        connection = Connection(self.coalesce_node(source), self.coalesce_node(target))
         self.connections.add(connection)
 
     def remove_connection(self, source, target):
