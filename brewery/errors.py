@@ -12,6 +12,10 @@ class NoSuchFieldError(MetadataError):
 	"""Error raised on metadata incosistency"""
 	pass
 
+class FieldOriginError(MetadataError):
+    """Error with field origin, such as circular reference."""
+    pass
+
 class StreamRuntimeError(Exception):
     """Exception raised when a node fails during `run()` phase.
 
