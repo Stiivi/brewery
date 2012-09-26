@@ -100,7 +100,7 @@ class Graph(object):
 
         try:
             return self.nodes[reference]
-        except KeyValue:
+        except KeyError:
             if reference in self.nodes.values():
                 return reference
             else:
@@ -127,13 +127,13 @@ class Graph(object):
     def connect(self, source, target):
         """Connects source node and target node. Nodes can be provided as
         objects or names."""
-        connection = Connection(self.coalesce_node(source), self.coalesce_node(target))
+        connection = Connection(self.node(source), self.node(target))
         self.connections.add(connection)
 
     def remove_connection(self, source, target):
         """Remove connection between source and target nodes, if exists."""
 
-        connection = (self.coalesce_node(source), self.coalesce_node(target))
+        connection = (self.node(source), self.node(target))
         self.connections.discard(connection)
 
     def sorted_nodes(self):
@@ -206,12 +206,12 @@ class Graph(object):
 
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
-        node = self.coalesce_node(node)
+        node = self.node(node)
         nodes =[conn[1] for conn in self.connections if conn[0] == node]
         return nodes
 
     def node_sources(self, node):
         """Return nodes that provide data for `node`."""
-        node = self.coalesce_node(node)
+        node = self.node(node)
         nodes =[conn[0] for conn in self.connections if conn[1] == node]
         return nodes

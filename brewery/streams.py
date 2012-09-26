@@ -1,29 +1,40 @@
 from table import PythonTable
 from errors import *
 from graph import *
+from .utils import get_logger
+from .metadata import *
 
-class Stream(graph):
+__all__ = [
+        "Stream"
+        ]
+
+class Stream(Graph):
 
     def __init__(self, nodes=None, connections=None):
         super(Stream, self).__init__(nodes, connections)
 
         # FIXME: use factory
         self.field_arrays = {}
+        self.logger = get_logger()
 
 
-	def initialize(self, nodes):
-		"""Initializes the `nodes`. If any node fails in initialization, then
-		finalization is called for each already initialized node and exception is
-		raised."""
 
+    def initialize(self, nodes):
+        """Initializes the `nodes`. If any node fails in initialization, then
+        finalization is called for each already initialized node and exception is
+        raised."""
+        # FIXME: check for repeating fields (each node should generate its own)
         # FIXME: handle exception during node initialization (finalize)
+
         for node in nodes:
             self.logger.debug("creating pipes for node %s" % node)
 
-            sources = self.sources(node)
+            sources = self.node_sources(node)
             fieldlists = [source.output_fields for source in sources]
             self.logger.debug("initializing node of type %s" % node.__class__)
             node.initalize_fields(fieldlists)
+            node.initialize()
+            # FIXME: remove ^^
 
 			# raise exception with failed finalizations and failed initializations
 
@@ -33,7 +44,7 @@ class Stream(graph):
 			try:
 				if hasattr(node, finalize):
 					node.finalize()
-			except Exception e:
+			except Exception as e:
 				failed.append( (node, e) )
 		# FIXME: raise exception with list of all failed nodes
 
@@ -45,12 +56,12 @@ class Stream(graph):
         last_field = field
 
         while field:
-            if not issubclass(field.origin, Field):
+            if not isinstance(field.origin, Field):
                 return field
 
-            if field.storage_type != field.origin.storage_type or
-                field.concrete_storage_type !=
-                    field.origin.concrete_storage_type
+            if field.storage_type != field.origin.storage_type or \
+                    field.concrete_storage_type != \
+                        field.origin.concrete_storage_type:
                 return field
 
             field = field.origin
@@ -70,7 +81,7 @@ class Stream(graph):
         if not origin.is_frozen:
             raise MetadataError("Field %s is not frozen" % field)
 
-        array = self.field_arrays.get(origin):
+        array = self.field_arrays.get(origin)
         if array:
             return array
 
@@ -85,21 +96,19 @@ class Stream(graph):
         return array
 
     def run(self):
-		nodes = self.ordered_nodes()
-
+        nodes = self.sorted_nodes()
+        print "NODES: %s" % nodes
         self.initialize(nodes)
 
-        self.initialize_arrays(self, nodes)
-
         for node in nodes:
-            self.log.info("Running node %s" % node)
-            
+            self.logger.info("Running node %s" % node)
+
             fields = node.output_fields
 
-            arrays = [get_array(field) for field in fields]
+            arrays = [self.get_array(field) for field in fields]
             table = self.create_table(arrays, fields)
-            
-            node.run()
+
+            node.run(table)
 
         self.finalize(nodes)
 

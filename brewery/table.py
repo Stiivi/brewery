@@ -21,4 +21,8 @@ class PythonTable(object):
         for row in zip(*cols):
             yield row
 
+    def append(self, row):
+        cols = self.table.values()
+        for c, value in enumerate(row):
+            cols[c].append(value)
 

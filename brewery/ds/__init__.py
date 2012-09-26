@@ -15,7 +15,6 @@ from brewery.ds.html_target import *
 __all__ = (
     "Field",
     "FieldList",
-    "fieldlist",
 
     "DataStream",
     "DataSource",
