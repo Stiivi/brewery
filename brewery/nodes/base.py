@@ -151,32 +151,42 @@ class Node(object):
         self._retype_dictionary = {}
 
     def initialize(self):
-        """Initializes the node. Initialization is separated from creation. Put any Node subclass
-        initialization in this method. Default implementation does nothing.
+        """Initializes the node. Initialization is separated from creation.
+        Put any Node subclass initialization in this method. Default
+        implementation does nothing.
 
         .. note:
-            Why the ``initialize()`` method? Node initiaization is different action from node object
-            instance initialization in the ``__init__()`` method. Before executing node contents, the
-            node has to be initialized - files or network connections opened, temporary tables created,
-            data that are going to be used for configuration fetched, ... Initialization might require
-            node to be fully configured first: all node attributes set to desired values.
+            Why the ``initialize()`` method? Node initiaization is different
+            action from node object instance initialization in the
+            ``__init__()`` method. Before executing node contents, the node
+            has to be initialized - files or network connections opened,
+            temporary tables created, data that are going to be used for
+            configuration fetched, ... Initialization might require node to be
+            fully configured first: all node attributes set to desired values.
         """
+        pass
+        # FIXME: obsolete
+
+    def initalize_fields(self, sources):
+        """Initialize fields based on source nodes. `sources` contains a list
+           of `FieldList` objects. """
         pass
 
     def finalize(self):
         """Finalizes the node. Default implementation does nothing."""
         pass
 
-    def run(self):
-        """Main method for running the node code. Subclasses should implement this method.
-        """
+    def run(self, table=None):
+        """Main method for running the node code on top of optional (virtual)
+        table structure. Subclasses should implement this method.  """
 
         raise NotImplementedError("Subclasses of Node should implement the run() method")
 
     @property
     def input(self):
-        """Return single node imput if exists. Convenience property for nodes which process only one
-        input. Raises exception if there are no inputs or are more than one imput."""
+        """Return single node imput if exists. Convenience property for nodes
+        which process only one input. Raises exception if there are no inputs
+        or are more than one imput."""
 
         if len(self.inputs) == 1:
             return self.inputs[0]
@@ -196,64 +206,20 @@ class Node(object):
         else:
             raise Exception("Output %s already connected" % pipe)
 
-    def retype(self, name, **attributes):
-        """Retype an output field `name` to field `field`.
-
-        .. note:
-
-            This function is not set in stone and might change. Consider it to
-            be experimental feature.
-        """
-        self._retype_dictionary[name] = attributes
-
-    def reset_type(self, name):
-        """Remove all retype information for field `name`"""
-        del self._retype_dictionary[name]
-
-    def put(self, obj):
-        """Put row into all output pipes.
-
-        Raises `NodeFinished` exception when node's target nodes are not receiving data anymore.
-        In most cases this exception might be ignored, as it is handled in the node thread
-        wrapper. If you want to perform necessary clean-up in the `run()` method before exiting,
-        you should handle this exception and then re-reaise it or just simply return from `run()`.
-
-        This method can be called only from node's `run()` method. Do not call it from
-        `initialize()` or `finalize()`.
-        """
-        active_outputs = 0
-        for output in self.outputs:
-            if not output.closed():
-                output.put(obj)
-                active_outputs += 1
-
-        # This is not very safe, as run() might not expect it
-        if not active_outputs:
-            raise NodeFinished
-
-    def put_record(self, obj):
-        """Put record into all output pipes. Convenience method. Not recommended to be used.
-
-        .. warning::
-
-        Depreciated.
-
-        """
-        for output in self.outputs:
-            output.put_record(obj)
-
     @property
     def input_fields(self):
-        """Return fields from input pipe, if there is one and only one input pipe."""
+        """Return fields from input pipe, if there is one and only one input
+        pipe."""
         return self.input.fields
 
     @property
     def output_fields(self):
         """Return fields passed to the output by the node.
 
-        Subclasses should override this method. Default implementation returns same fields as
-        input has, raises exception when there are more inputs or if there is no input
-        connected."""
+        Subclasses should override this method. Default implementation returns
+        same fields as input has, raises exception when there are more inputs
+        or if there is no input connected."""
+
         if not len(self.inputs) == 1:
             raise ValueError("Can not get default list of output fields: node has more than one input"
                              " or no input is provided. Subclasses should override this method")
@@ -263,13 +229,6 @@ class Node(object):
                              "initialized")
 
         return self.input.fields
-
-    @property
-    def output_field_names(self):
-        """Convenience method for gettin names of fields generated by the node. For more information
-        see :meth:`brewery.nodes.Node.output_fields`"""
-        raise PendingDeprecationWarning
-        return self.output_fields.names()
 
     @classmethod
     def identifier(cls):
