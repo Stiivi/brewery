@@ -2,82 +2,58 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .base import Node
-from ..metadata import FieldMap, FieldList, Field
+from ..metadata import FieldFilter, FieldList, Field
 from ..errors import *
 
 import re
 
-class FieldMapNode(Node):
+class FieldFilterNode(Node):
     """Node renames input fields or drops them from the stream.
     """
     node_info = {
         "type": "field",
-        "label" : "Field Map",
+        "label" : "Field Filter",
+        "icon": "field_map",
         "description" : "Rename or drop fields from the stream.",
         "attributes" : [
             {
-                "name": "map_fields",
+                "name": "rename",
                 "label": "Map fields",
                 "description": "Dictionary of input to output field name."
             },
             {
-                "name": "drop_fields",
+                "name": "drop",
                 "label": "drop fields",
                 "description": "List of fields to be dropped from the stream - incompatible with keep_fields."
             },
             {
-                "name": "keep_fields",
+                "name": "keep",
                 "label": "keep fields",
                 "description": "List of fields to keep from the stream - incompatible with drop_fields."
             }
         ]
     }
 
-    def __init__(self, map_fields = None, drop_fields = None, keep_fields=None):
-        super(FieldMapNode, self).__init__()
+    def __init__(self, rename=None, drop=None, keep=None):
+        super(FieldFilterNode, self).__init__()
 
-        if drop_fields and keep_fields:
-            raise FieldError('Invalid configuration of FieldMapNode: you cant specify both keep_fields and drop_fields.')
+        self.ffilter = FieldFilter(rename, drop, keep)
 
-        if map_fields:
-            self.mapped_fields = map_fields
-        else:
-            self.mapped_fields = {}
-
-        if drop_fields:
-            self.dropped_fields = set(drop_fields)
-        else:
-            self.dropped_fields = set([])
-
-        if keep_fields:
-            self.kept_fields = set(keep_fields)
-        else:
-            self.kept_fields = set([])
-
-        self._output_fields = []
-
-    def rename_field(self, source, target):
-        """Change field name"""
-        self.mapped_fields[source] = target
-
-    def drop_field(self, field):
-        """Do not pass field from source to target"""
-        self.dropped_fields.add(field)
+        self._output_fields = None
 
     @property
     def output_fields(self):
         return self._output_fields
 
     def initialize(self):
-        self.map = FieldMap(rename=self.mapped_fields, drop=self.dropped_fields, keep=self.kept_fields)
-        self._output_fields = self.map.map(self.input.fields)
-        self.filter = self.map.row_filter(self.input.fields)
+        self._output_fields = self.ffilter.filter(self.input.fields)
+        self.row_filter = self.ffilter.row_filter(self.input.fields)
 
     def run(self):
         self.mapped_field_names = self.mapped_fields.keys()
 
         for row in self.input.rows():
-            row = self.filter.filter(row)
+            row = self.row_filter.filter(row)
             self.put(row)
 
 class TextSubstituteNode(Node):
@@ -91,19 +67,19 @@ class TextSubstituteNode(Node):
             {
                 "name": "field",
                 "label": "substituted field",
-                "description": "Field containing a string or text value where substition will "
+                "description": "Field containing a string or text value where substitution will "
                                "be applied"
             },
             {
                 "name": "derived_field",
                 "label": "derived field",
-                "description": "Field where substition result will be stored. If not set, then "
+                "description": "Field where substitution result will be stored. If not set, then "
                                "original field will be replaced with new value."
             },
             {
                 "name": "substitutions",
                 "label": "substitutions",
-                "description": "List of substitutions: each substition is a two-element tuple "
+                "description": "List of substitutions: each substitution is a two-element tuple "
                                "(`pattern`, `replacement`) where `pattern` is a regular expression "
                                "that will be replaced using `replacement`"
             }
@@ -113,13 +89,13 @@ class TextSubstituteNode(Node):
     def __init__(self, field, derived_field = None):
         """Creates a node for text replacement.
 
-        :Attributes:
-            * `field`: field to be used for substitution (should contain a string)
-            * `derived_field`: new field to be created after substitutions. If set to ``None`` then the
-              source field will be replaced with new substituted value. Default is ``None`` - same field
-              replacement.
+        Attributes:
 
+        * `field`: field to be used for substitution (should contain a string)
+        * `derived_field`: new field to be created after substitutions. Default
+          is ``None`` - same field replacement.
         """
+
         super(TextSubstituteNode, self).__init__()
 
         self.field = field
@@ -137,9 +113,12 @@ class TextSubstituteNode(Node):
         self.substitutions.append( (re.compile(pattern), repl) )
 
     # FIXME: implement this
-    # @property
-    # def output_fields(self):
-    #     pass
+    @property
+    def output_fields(self):
+        fields = copy.copy(self.input.fields)
+        new_field = fields(self.field).copy()
+        new_field.origin = self
+        fields += new_field
 
     def run(self):
         pipe = self.input
@@ -396,10 +375,7 @@ class ValueThresholdNode(Node):
     def initialize(self):
         field_names = [t[0] for t in self.thresholds]
 
-        self._output_fields = FieldList()
-
-        for field in self.input.fields:
-            self._output_fields.append(field)
+        self._output_fields = self.input.fields.copy()
 
         if self.prefix:
             prefix = self.prefix
@@ -415,7 +391,7 @@ class ValueThresholdNode(Node):
             field = Field(prefix + name + suffix)
             field.storage_type = "string"
             field.analytical_type = "set"
-            self._output_fields.append(field)
+            self._output_fields += appendfield
 
         # Check input fields
         for name in field_names:
@@ -463,7 +439,7 @@ class ValueThresholdNode(Node):
             self.put(row)
 
 class DeriveNode(Node):
-    """Dreive a new field from other fields using an expression or callable function.
+    """Derive a new field from other fields using an expression or callable function.
 
     The parameter names of the callable function should reflect names of the fields:
 
@@ -543,14 +519,11 @@ class DeriveNode(Node):
         else:
             self._formula_callable = self.formula
 
-        self._output_fields = FieldList()
-
-        for field in self.input.fields:
-            self._output_fields.append(field)
+        self._output_fields = self.input.fields.copy()
 
         new_field = Field(self.field_name, analytical_type = self.analytical_type,
                                   storage_type = self.storage_type)
-        self._output_fields.append(new_field)
+        self._output_fields += (new_field)
 
     def _eval_expression(self, **record):
         return eval(self._expression, None, record)

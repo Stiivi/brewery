@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 from .base import Node
 from ..dq.field_statistics import FieldStatistics
-from ..metadata import FieldMap, FieldList, Field
+from ..metadata import FieldFilter, FieldList, Field
 import logging
 import itertools
 
@@ -81,7 +81,7 @@ class AppendNode(Node):
         if not self.inputs:
             raise ValueError("Can not get list of output fields: node has no input")
 
-        return self.inputs[0].fields
+        return self.input.fields
 
     def run(self):
         """Append data objects from inputs sequentially."""
@@ -127,7 +127,7 @@ class MergeNode(Node):
 
     To filter-out fields you do not want in your output or to rename fields you can use `maps`. It
     should be a dictionary where keys are input tags and values are either
-    :class:`FieldMap` objects or dictionaries with keys ``rename`` and ``drop``.
+    :class:`FieldFilter` objects or dictionaries with keys ``rename`` and ``drop``.
 
     Following example renames ``source_region_name`` field in input 0 and drops field `id` in
     input 1:
@@ -135,8 +135,8 @@ class MergeNode(Node):
     .. code-block:: python
 
         node.maps = {
-                        0: FieldMap(rename = {"source_region_name":"region_name"}),
-                        1: FieldMap(drop = ["id"])
+                        0: FieldFilter(rename = {"source_region_name":"region_name"}),
+                        1: FieldFilter(drop = ["id"])
                     }
 
     It is the same as:
@@ -205,7 +205,7 @@ class MergeNode(Node):
 
         self.maps = maps
 
-        self._output_fields = []
+        self.output_fields = []
 
     def initialize(self):
         pass
@@ -260,15 +260,15 @@ class MergeNode(Node):
         if self.maps:
             for (tag, fmap) in self.maps.items():
                 if type(fmap) == dict:
-                    fmap = FieldMap(rename = fmap.get("rename"), drop = fmap.get("drop"), keep=fmap.get("keep"))
-                elif type(fmap) != FieldMap:
+                    fmap = FieldFilter(rename = fmap.get("rename"), drop = fmap.get("drop"), keep=fmap.get("keep"))
+                elif type(fmap) != FieldFilter:
                     raise Exception("Unknown field map type: %s" % type(fmap) )
                 f = fmap.row_filter(self.inputs[tag].fields)
                 self._maps[tag] = fmap
                 self._filters[tag] = f
 
         # Construct output fields
-        fields = []
+        fields = FieldList()
         for (tag, pipe) in enumerate(self.inputs):
             fmap = self._maps.get(tag, None)
             if fmap:
@@ -276,13 +276,7 @@ class MergeNode(Node):
             else:
                 fields += pipe.fields
 
-        self._output_fields = FieldList(fields)
-
-
-
-    @property
-    def output_fields(self):
-        return self._output_fields
+        self.output_fields = fields
 
     def run(self):
         """Only inner join is implemented"""
@@ -393,7 +387,7 @@ class DistinctNode(Node):
         self.discard = discard
 
     def initialize(self):
-        field_map = FieldMap(keep=self.distinct_fields)
+        field_map = FieldFilter(keep=self.distinct_fields)
         self.row_filter = field_map.row_filter(self.input_fields)
 
     def run(self):
@@ -499,7 +493,7 @@ class AggregateNode(Node):
         fields = FieldList()
 
         if self.key_fields:
-            for field in  self.input_fields.fields(self.key_fields):
+            for field in self.input_fields.fields(self.key_fields):
                 fields.append(field)
 
         for field in self.measures:
