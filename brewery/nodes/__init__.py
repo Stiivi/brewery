@@ -8,9 +8,9 @@ from source_nodes import *
 from target_nodes import *
 
 __all__ = [
-    
+
     # Field nodes
-    "FieldMapNode",
+    "FieldFilterNode",
     "TextSubstituteNode",
     "ValueThresholdNode",
     "BinningNode",
