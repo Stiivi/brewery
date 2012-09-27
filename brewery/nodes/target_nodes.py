@@ -352,6 +352,21 @@ class PrettyPrinterNode(TargetNode):
         self.handle = None
         self.close_handle = False
 
+    def initialize_fields(self, sources):
+
+        self.widths = [0] * len(sources[0])
+        self.names = sources[0].names()
+        if self.print_names:
+            self.labels = [f.label for f in sources[0]]
+        else:
+            self.labels = [f.label or f.name for f in sources[0]]
+
+        self._update_widths(self.names)
+        if self.print_labels:
+            self._update_widths(self.labels)
+
+        print "INITIALIZING FIELDS: %s" % sources
+
     def initialize(self):
         if type(self.target) == str or type(self.target) == unicode:
             self.handle = open(self.target, "w")
@@ -360,28 +375,15 @@ class PrettyPrinterNode(TargetNode):
             self.handle = self.target
             self.close_handle = False
 
-        self.widths = [0] * len(self.input.fields)
-        self.names = self.input.fields.names()
-
-        if self.print_names:
-            self.labels = [f.label for f in self.input.fields]
-        else:
-            self.labels = [f.label or f.name for f in self.input.fields]
-
-        self._update_widths(self.names)
-        if self.print_labels:
-            self._update_widths(self.labels)
-
     def _update_widths(self, row):
         for i, value in enumerate(row):
             self.widths[i] = max(self.widths[i], len(unicode(value)))
 
-    def run(self):
+    def run(self, sources, target):
 
-        rows = []
+        rows = sources[0]
 
-        for row in self.input.rows():
-            rows.append(row)
+        for row in rows:
             self._update_widths(row)
 
         #
