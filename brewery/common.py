@@ -1,10 +1,37 @@
 import re
+import sys
 
 __all__ = [
+    "get_backend",
     "coalesce_value",
     "collapse_record",
     "expand_record"
 ]
+
+backend_aliases = {
+            "default":"python_array",
+            "python":"python_array",
+            "carray":"carray_backend"
+        }
+
+def get_backend(backend_name):
+    """Finds the backend with name `backend_name`. First try to find backend
+    relative to the brewery.backends.* then search full path. """
+
+    backend_name = backend_aliases.get(backend_name, backend_name)
+    backend = sys.modules.get("brewery.backends."+backend_name)
+
+    if not backend:
+        # Then try to find a module with full module path name
+        try:
+            backend = sys.modules[backend_name]
+        except KeyError as e:
+            raise Exception("Unable to find backend module %s (%s)" % (backend_name, e))
+
+    if not hasattr(backend, "create_array"):
+        raise NotImplementedError("Backend %s does not implement create_array" % backend_name)
+
+    return backend
 
 
 def expand_record(record, separator = '.'):
