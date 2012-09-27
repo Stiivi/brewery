@@ -75,9 +75,9 @@ class Graph(object):
         if len(names) == 1:
             return names[0]
         elif len(names) > 1:
-            raise Exception("There are more references to the same node")
+            raise StreamError("There are more references to the same node")
         else: # if len(names) == 0
-            raise Exception("Can not find node '%s'" % node)
+            raise StreamError("Can not find node '%s'" % node)
 
     def rename_node(self, node, name):
         """Sets a name for `node`. Raises an exception if the `node` is not
@@ -136,9 +136,10 @@ class Graph(object):
         connection = (self.node(source), self.node(target))
         self.connections.discard(connection)
 
-    def sorted_nodes(self):
+    def sorted_nodes(self, nodes=None):
         """
-        Return topologically sorted nodes.
+        Return topologically sorted nodes. If `nodes` is not provided,
+        then all nodes are used.
 
         Algorithm::
 
@@ -156,6 +157,9 @@ class Graph(object):
             else
                 return proposed topologically sorted order: L
         """
+        # FIXME: check that the nodes specified as argument are in the
+        # receiver
+
         def is_source(node, connections):
             for connection in connections:
                 if node == connection[1]:
@@ -169,7 +173,9 @@ class Graph(object):
                     conns.add(connection)
             return conns
 
-        nodes = set(self.nodes.values())
+        if not nodes:
+            nodes = set(self.nodes.values())
+
         connections = self.connections.copy()
         sorted_nodes = []
 
