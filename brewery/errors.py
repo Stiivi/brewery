@@ -16,7 +16,11 @@ class FieldOriginError(MetadataError):
     """Error with field origin, such as circular reference."""
     pass
 
-class StreamRuntimeError(Exception):
+class StreamError(BreweryError):
+    """Generic error raised on stream inconsistency"""
+    pass
+
+class StreamRuntimeError(BreweryError):
     """Exception raised when a node fails during `run()` phase.
 
     Attributes:
