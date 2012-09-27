@@ -141,11 +141,7 @@ class Node(object):
         """
 
         super(Node, self).__init__()
-        self.inputs = []
-        self.outputs = []
-        self._active_outputs = []
-        self.description = None
-
+        self.output_fields = None
         # Experimental: dictionary to be used to retype output fields
         # Currently used only in CSV source node.
         self._retype_dictionary = {}
@@ -167,7 +163,7 @@ class Node(object):
         pass
         # FIXME: obsolete
 
-    def initalize_fields(self, sources):
+    def initialize_fields(self, sources):
         """Initialize fields based on source nodes. `sources` contains a list
            of `FieldList` objects. """
         pass
@@ -194,26 +190,7 @@ class Node(object):
             raise Exception("Single input requested. Node has none or more than one input (%d)."
                                     % len(self.inputs))
 
-    def add_input(self, pipe):
-        if pipe not in self.inputs:
-            self.inputs.append(pipe)
-        else:
-            raise Exception("Input %s already connected" % pipe)
-
-    def add_output(self, pipe):
-        if pipe not in self.outputs:
-            self.outputs.append(pipe)
-        else:
-            raise Exception("Output %s already connected" % pipe)
-
-    @property
-    def input_fields(self):
-        """Return fields from input pipe, if there is one and only one input
-        pipe."""
-        return self.input.fields
-
-    @property
-    def output_fields(self):
+    def get_output_fields(self):
         """Return fields passed to the output by the node.
 
         Subclasses should override this method. Default implementation returns
@@ -301,12 +278,6 @@ class SourceNode(Node):
     def __init__(self):
         super(SourceNode, self).__init__()
 
-    @property
-    def output_fields(self):
-        raise NotImplementedError("SourceNode subclasses should implement output_fields")
-
-    def add_input(self, pipe):
-        raise Exception("Should not add input pipe to a source node")
 
 class TargetNode(Node):
     """Abstract class for all target nodes
@@ -318,9 +289,3 @@ class TargetNode(Node):
         super(TargetNode, self).__init__()
         self.fields = None
 
-    @property
-    def output_fields(self):
-        raise RuntimeError("Output fields asked from a target object.")
-
-    def add_output(self, pipe):
-        raise RuntimeError("Should not add output pipe to a target node")
