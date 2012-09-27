@@ -186,17 +186,7 @@ class CSVSourceNode(SourceNode):
         self.kwargs = kwargs
         self.stream = None
         self.fields = None
-        self._output_fields = None
-
-    @property
-    def output_fields(self):
-        if not self.stream:
-            raise ValueError("Stream is not initialized")
-
-        if not self._output_fields:
-            raise ValueError("Fields are not initialized")
-
-        return self._output_fields
+        self.output_fields = None
 
     def initialize(self):
         self.stream = CSVDataSource(self.resource, *self.args, **self.kwargs)
@@ -206,13 +196,15 @@ class CSVSourceNode(SourceNode):
 
         self.stream.initialize()
 
-        # FIXME: this is experimental form of usage
-        self._output_fields = self.stream.fields.copy()
-        self._output_fields.retype(self._retype_dictionary)
+        self.output_fields = self.stream.fields.copy()
+        # self._output_fields.retype(self._retype_dictionary)
+        for field in self.output_fields:
+            field.origin = self
+            field.freeze()
 
-    def run(self):
+    def run(self, sources, target):
         for row in self.stream.rows():
-            self.put(row)
+            target.append(row)
 
     def finalize(self):
         self.stream.finalize()
@@ -638,7 +630,7 @@ class GeneratorFunctionSourceNode(SourceNode):
             raise ValueError("Fields are not initialized")
         return self.fields
 
-    def run(self):
+    def run(self, sources, target):
         for row in self.function(*self.args, **self.kwargs):
-            self.put(row)
+            target.append(row)
 
