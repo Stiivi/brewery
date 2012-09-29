@@ -1,6 +1,7 @@
 from .metadata import *
 from .common import *
 from .streams import *
+import brewery.backends
 
 __version__ = "0.11"
 

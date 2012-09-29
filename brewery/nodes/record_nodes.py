@@ -53,6 +53,13 @@ class SampleNode(Node):
         self.size = size
         self.discard_sample = discard_sample
 
+    def initialize_fields(self,sources):
+        fields = sources[0].fields.copy()
+        for field in fields:
+            field.origin = self
+            field.freeze()
+        self.output_fields = fields
+
     def run(self):
         pipe = self.input
         count = 0
@@ -75,19 +82,17 @@ class AppendNode(Node):
     def __init__(self):
         """Creates a node that concatenates records from inputs. Order of input pipes matter."""
         super(AppendNode, self).__init__()
+        self.output_fields = None
 
-    @property
-    def output_fields(self):
-        if not self.inputs:
-            raise ValueError("Can not get list of output fields: node has no input")
+    def initialize_fields(self, sources):
+        self.output_fields = sources[0].fields.copy()
 
-        return self.input.fields
-
-    def run(self):
+    def run(self, sources, target):
         """Append data objects from inputs sequentially."""
-        for pipe in self.inputs:
-            for row in pipe.rows():
-                self.put(row)
+        # FIXME: make this an array operation
+        for source in sources:
+            for row in source:
+                target.append(row)
 
 class MergeNode(Node):
     """Merge two or more streams (join).

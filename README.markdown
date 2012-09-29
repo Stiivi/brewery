@@ -1,14 +1,16 @@
 Brewery
 =======
 
-Understandable data streaming, auditing and mining framework for Python.
+Framework and set of tools for data streaming, auditing and mining workflows.
 
 Project page: http://databrewery.org
+
+Blog: http://blog.databrewery.org
 
 About
 -----
 
-Brewery is a python framework for:
+Brewery is a Python framework for:
 
 * data streams - streaming structured data from various sources into various targets. Example of 
   existing streams: CSV, XLS, Google Spreadsheet, relational SQL database, MongoDB, directory with YAML

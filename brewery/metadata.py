@@ -22,7 +22,7 @@ storage_types = ("unknown", "string", "text", "integer", "float",
 
 """Analytical types used by analytical nodes"""
 analytical_types = ("default", "typeless", "flag", "discrete", "measure",
-                    "nominal", "ordinal") 
+                    "nominal", "ordinal")
 
 """Mapping between storage types and their respective default analytical
 types"""
@@ -166,7 +166,7 @@ class Field(object):
         return d
 
     def __copy__(self):
-        field = Field(self.to_dict())
+        field = Field(**self.to_dict())
         return field
 
     def __str__(self):
@@ -289,7 +289,7 @@ class FieldList(object):
 
         return index
 
-    def fields(self, names = None):
+    def fields(self, names=None):
         """Return a tuple with fields. `names` specifies which fields are returned. When names is
         ``None`` all fields are returned.
         """
@@ -348,18 +348,32 @@ class FieldList(object):
     def __str__(self):
         return "[" + ", ".join(self.names()) + "]"
 
-    def copy(self, fields = None):
+    def copy(self, fields=None):
         """Return a shallow copy of the list.
 
         :Parameters:
             * `fields` - list of fields to be copied.
         """
+        # FIXME: depreciated
         if fields is not None:
             copy_fields = self.fields(fields)
             return FieldList(copy_fields)
         else:
             return FieldList(self._fields)
 
+    def clone(self, fields=None, origin=None):
+        """Creates a copy of the list and copy of the fields. Copied fields
+        are unfrozen and origin is set to the cloned field, if not
+        specified otherwise."""
+
+        fields = self.fields(fields)
+
+        cloned_fields = FieldList()
+        for field in fields:
+            new_field = copy.copy(field)
+            new_field.origin = origin or new_field.origin
+            cloned_fields.append(new_field)
+        return cloned_fields
 
 class FieldFilter(object):
     """Filters fields in a stream"""

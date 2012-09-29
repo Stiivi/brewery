@@ -59,6 +59,14 @@ class FieldListTestCase(unittest.TestCase):
         mask = fields.mask(["b", "d"])
         self.assertEqual([False, True, False, True], mask)
 
+    def test_copy(self):
+        fields = brewery.FieldList(["a", "b", "c"])
+        for field in fields:
+            field.freeze()
+
+        cfields = fields.clone()
+        self.assertFalse(all(f.is_frozen for f in fields))
+
 class MetadataTestCase(unittest.TestCase):
     def test_names(self):
         field = brewery.Field("bar")
@@ -78,7 +86,7 @@ class MetadataTestCase(unittest.TestCase):
         self.assertEqual("flag", field.analytical_type)
 
         desc = {
-                "name":"baz", 
+                "name":"baz",
                 "storage_type":"integer",
                 "analytical_type": "flag"
             }
@@ -89,7 +97,7 @@ class MetadataTestCase(unittest.TestCase):
 
     def test_field_to_dict(self):
         desc = {
-                "name":"baz", 
+                "name":"baz",
                 "storage_type":"integer",
                 "analytical_type": "flag"
             }
