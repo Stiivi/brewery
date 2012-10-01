@@ -180,9 +180,15 @@ class Field(object):
     def __eq__(self, other):
         if self is other:
             return True
+        if not isinstance(other, Field):
+            return False
+
         for name in self.attributes:
+            # FIXME: this is temporary hack
+            if name == "origin":
+                continue
             if getattr(self, name) != getattr(other, name):
-                print "failed on %s: %s != %s" % (name, getattr(self, name), getattr(other, name))
+                print "failed comparison on %s" % name
                 return False
         return True
 
@@ -191,7 +197,10 @@ class Field(object):
 
     def __hash__(self):
         if self._frozen:
-            return self.name.__hash__()
+            if isinstance(self.origin, Field):
+                return hash(self.origin)
+            else:
+                return self.name.__hash__()
         else:
             raise TypeError("Unfrozen field is not hashable")
 
@@ -361,18 +370,22 @@ class FieldList(object):
         else:
             return FieldList(self._fields)
 
-    def clone(self, fields=None, origin=None):
+    def clone(self, fields=None, origin=None, freeze=False):
         """Creates a copy of the list and copy of the fields. Copied fields
         are unfrozen and origin is set to the cloned field, if not
-        specified otherwise."""
+        specified otherwise. If `freeze` is true, then newly created
+        fields are immediately frozen, disallowing any changes to them."""
 
         fields = self.fields(fields)
 
         cloned_fields = FieldList()
         for field in fields:
             new_field = copy.copy(field)
-            new_field.origin = origin or new_field.origin
+            new_field.origin = origin or field
             cloned_fields.append(new_field)
+
+            if freeze:
+                new_field.freeze()
         return cloned_fields
 
 class FieldFilter(object):
@@ -394,7 +407,14 @@ class FieldFilter(object):
 
     def filter(self, fields):
         """Map `fields` according to the FieldFilter: rename or drop fields as
-        specified. Returns a FieldList object."""
+        specified. Returns a new FieldList object.
+
+        .. note::
+
+            For each renamed field a new copy is created. Not renamed fields
+            are the same as in `fields`. To use filtered fields in a node
+            you have to clone the field list.
+        """
         output_fields = FieldList()
 
         for field in fields:
@@ -402,7 +422,6 @@ class FieldFilter(object):
                 # Create a copy and rename field if it is mapped
                 new_field = copy.copy(field)
                 new_field.name = self.rename[field.name]
-                new_field.origin = field.origin
             else:
                 new_field = field
 
@@ -412,7 +431,6 @@ class FieldFilter(object):
                 output_fields.append(new_field)
 
         return output_fields
-
 
     def row_filter(self, fields):
         """Returns an object that will convert rows with structure specified in
