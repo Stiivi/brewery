@@ -41,20 +41,13 @@ class FieldFilterNode(Node):
 
         self._output_fields = None
 
-    @property
-    def output_fields(self):
-        return self._output_fields
+    def initialize_fields(self, sources):
+        fields = self.ffilter.filter(sources[0])
+        self.output_fields = fields.clone(freeze=True)
 
-    def initialize(self):
-        self._output_fields = self.ffilter.filter(self.input.fields)
-        self.row_filter = self.ffilter.row_filter(self.input.fields)
-
-    def run(self):
-        self.mapped_field_names = self.mapped_fields.keys()
-
-        for row in self.input.rows():
-            row = self.row_filter.filter(row)
-            self.put(row)
+    def run(self, sources, target):
+        """Nothing to do here, it is just metadata operation"""
+        pass
 
 class TextSubstituteNode(Node):
     """Substitute text in a field using regular expression."""
