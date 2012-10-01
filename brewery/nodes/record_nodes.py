@@ -54,16 +54,13 @@ class SampleNode(Node):
         self.discard_sample = discard_sample
 
     def initialize_fields(self,sources):
-        fields = sources[0].fields.copy()
-        for field in fields:
-            field.origin = self
-            field.freeze()
+        fields = sources[0].fields.clone(origin=self, freeze=True)
         self.output_fields = fields
 
     def run(self):
         pipe = self.input
         count = 0
-
+        # FIXME: this is slow version, should be array optimized (masks?)
         for row in pipe.rows():
             logging.debug("sampling row %d" % count)
             self.put(row)
@@ -76,7 +73,8 @@ class AppendNode(Node):
     input streams should have same set of fields."""
     node_info = {
         "label" : "Append",
-        "description" : "Concatenate input streams."
+        "description" : "Concatenate input streams.",
+        "_array_status": "ported"
     }
 
     def __init__(self):
@@ -85,11 +83,12 @@ class AppendNode(Node):
         self.output_fields = None
 
     def initialize_fields(self, sources):
-        self.output_fields = sources[0].fields.copy()
+        self.output_fields = sources[0].fields.clone(origin=self, freeze=true)
 
     def run(self, sources, target):
         """Append data objects from inputs sequentially."""
         # FIXME: make this an array operation
+        # Check that source and target are of the same type (just in case)
         for source in sources:
             for row in source:
                 target.append(row)
@@ -193,7 +192,8 @@ class MergeNode(Node):
                                "types of join for the stream. Default is 'inner'. "
                                "-- **Not implemented**"
             }
-        ]
+        ],
+        "_array_status": "unported"
     }
 
     def __init__(self, joins = None, master = None, maps = None):
@@ -362,7 +362,8 @@ class DistinctNode(Node):
                 "description": "Field where substition result will be stored. If not set, then "
                                "original field will be replaced with new value."
             }
-        ]
+        ],
+        "_array_status": "unported"
     }
 
     def __init__(self, distinct_fields = None, discard = False):
@@ -390,6 +391,9 @@ class DistinctNode(Node):
             self.distinct_fields = []
 
         self.discard = discard
+
+    def initialize_fields(self, sources):
+        fields = sources[0].clone(origin=self, freeze=True)
 
     def initialize(self):
         field_map = FieldFilter(keep=self.distinct_fields)
