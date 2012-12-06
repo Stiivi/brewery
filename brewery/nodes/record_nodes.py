@@ -40,7 +40,7 @@ class SampleNode(Node):
     }
 
 
-    def __init__(self, size = 1000, discard_sample = False, mode = 'first'):
+    def __init__(self, size = 1000, discard_sample = False, method = 'first'):
         """Creates and initializes sample node
 
         :Parameters:
@@ -53,9 +53,9 @@ class SampleNode(Node):
         super(SampleNode, self).__init__()
         self.size = size
         self.discard_sample = discard_sample
-        self.mode = mode
+        self.method = method
         # random nodes need a stack to hold intermediate records
-        if mode == "random":
+        if method == "random":
             self.stack = Stack(size)
         else:
             self.stack = None
@@ -66,7 +66,7 @@ class SampleNode(Node):
 
         for row in pipe.rows():
             logging.debug("sampling row %d" % count)
-            if self.mode == "random":
+            if self.method == "random":
                 uniform = random.random()
                 self.stack.push(key = uniform, value = row)
             else:

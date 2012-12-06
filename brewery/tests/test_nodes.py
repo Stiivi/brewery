@@ -79,7 +79,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertNotIn("aggregate_node", d)
 
     def test_sample_node_first_n(self):
-        node = brewery.nodes.SampleNode(size = 5, discard_sample = False, mode = 'first')
+        node = brewery.nodes.SampleNode(size = 5, discard_sample = False, method = 'first')
         self.setup_node(node)
         self.create_sample()
         self.initialize_node(node)
@@ -90,7 +90,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertAllRows()
 
     def test_sample_node_random_n_returns_n_valid_rows(self):
-        node = brewery.nodes.SampleNode(size = 5, discard_sample = False, mode = 'random')
+        node = brewery.nodes.SampleNode(size = 5, discard_sample = False, method = 'random')
         self.setup_node(node)
         self.create_sample()
         self.initialize_node(node)
@@ -111,7 +111,7 @@ class NodesTestCase(unittest.TestCase):
         for i in range(5):
             random.seed(1517)
             # create a new output pipe for each replication
-            node = brewery.nodes.SampleNode(size = 1, discard_sample = False, mode = 'random')
+            node = brewery.nodes.SampleNode(size = 1, discard_sample = False, method = 'random')
             self.setup_node(node)
             node.outputs.append(brewery.streams.SimpleDataPipe())
             self.initialize_node(node)
@@ -133,7 +133,7 @@ class NodesTestCase(unittest.TestCase):
         for i in range(5):
             random.seed(i)
             # create a new output pipe for each replication
-            node = brewery.nodes.SampleNode(size = 1, discard_sample = False, mode = 'random')
+            node = brewery.nodes.SampleNode(size = 1, discard_sample = False, method = 'random')
             self.setup_node(node)
             node.outputs.append(brewery.streams.SimpleDataPipe())
             self.initialize_node(node)

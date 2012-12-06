@@ -677,6 +677,7 @@ Sample Node
 Create a data sample from input stream. There are more sampling possibilities:
 
 * fixed number of records
+* number of records, random
 * % of records, random *(not yet implemented)*
 * get each n-th record *(not yet implemented)*
 
@@ -684,6 +685,7 @@ Node can work in two modes: pass sample to the output or discard sample and pass
 The mode is controlled through the `discard` flag. When it is false, then sample is passed
 and rest is discarded. When it is true, then sample is discarded and rest is passed.
 
+There are currently two sampling methods: `method = "first"` takes the first `size` records, whereas `method = "random"` selects `size` records at random from the entire pipe.
 
 .. list-table:: Attributes
    :header-rows: 1
@@ -695,6 +697,8 @@ and rest is discarded. When it is true, then sample is discarded and rest is pas
      - Size of the sample to be passed to the output
    * - discard
      - flag whether the sample is discarded or included
+   * - method
+     - `"first"` (default): take first `size` records, `"random"`: take `size` records at random 
 
 .. _SelectNode:
 
