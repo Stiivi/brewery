@@ -11,7 +11,8 @@ __all__ = (
     "NodeFinished",
     "Node",
     "SourceNode",
-    "TargetNode"
+    "TargetNode",
+    "Stack"
 )
 
 # FIXME: temporary dictionary to record displayed warnings about __node_info__
@@ -120,6 +121,49 @@ def get_node_info(cls):
         return cls.__node_info__
     else:
         return cls.node_info
+
+class Stack(object):
+    """A stack holding records from a pipe. Each record has a key. 
+    At most `k` records are stored based on their key order.
+    """
+
+    def __init__(self, depth):
+        self.depth = depth
+        self.elements = {}
+        self._highest_key = None
+
+    def push(self, key, value):
+        """Push a `value` into rank `key` in the stack.
+        If stack is full, remove the highest-key element. """
+        if not key in self.elements:
+            if len(self.elements) < self.depth:
+                self.elements[key] = value
+                if key > self._highest_key:
+                    self._highest_key = key
+            else:
+                # no more space
+                if key < self._highest_key:
+                    self.elements[key] = value
+                    del self.elements[self._highest_key]
+                    self._highest_key = max(self.elements.keys())
+                else:
+                    # key not low enough, do nothing
+                    pass
+        else:
+            # key is the same, just replace value
+            self.elements[key] = value
+
+    def pop(self):
+        """Pop an arbitrary element from the stack."""
+        try:
+            return self.elements.popitem()[1]
+        except KeyError:
+            raise StopIteration
+
+    def items(self):
+        """An iterator of all elements."""
+        return self.elements.values()
+
 
 class NodeFinished(Exception):
     """Exception raised when node has no active outputs - each output node signalised that it

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from .base import Node
+from .base import Node, Stack
 from ..dq.field_statistics import FieldStatistics
 from ..metadata import FieldMap, FieldList, Field
 import logging
 import itertools
+import random
 
 class SampleNode(Node):
     """Create a data sample from input stream. There are more sampling possibilities:
@@ -47,12 +48,17 @@ class SampleNode(Node):
             * `discard_sample` - flag whether the sample is discarded or included. By default `False` -
               sample is included.
             * `mode` - sampling mode - ``first`` (default) - get first N items, ``nth`` - get one in n, ``random``
-              - get random %. Note: mode is not yet implemented.
+              - get random number - ``percent`` - get random percent. Note: mode is not yet implemented.
             """
         super(SampleNode, self).__init__()
         self.size = size
         self.discard_sample = discard_sample
         self.mode = mode
+        # random nodes need a stack to hold intermediate records
+        if mode == "random":
+            self.stack = Stack(size)
+        else:
+            self.stack = None
 
     def run(self):
         pipe = self.input
@@ -60,10 +66,18 @@ class SampleNode(Node):
 
         for row in pipe.rows():
             logging.debug("sampling row %d" % count)
-            self.put(row)
-            count += 1
-            if count >= self.size:
-                break
+            if self.mode == "random":
+                uniform = random.random()
+                self.stack.push(key = uniform, value = row)
+            else:
+                self.put(row)
+                count += 1
+                if count >= self.size:
+                    break
+        # output items remaining in stack
+        if self.stack:
+            for row in self.stack.items():
+                self.put(row)
 
 class AppendNode(Node):
     """Sequentialy append input streams. Concatenation order reflects input stream order. The

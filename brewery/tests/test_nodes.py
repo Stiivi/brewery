@@ -5,6 +5,46 @@ import unittest
 import brewery
 from brewery import ds
 import brewery.nodes
+import random
+
+class StackTestCase(unittest.TestCase):
+
+    def test_pop_returns_single_element(self):
+        stack = brewery.nodes.Stack(5)
+        stack.push(key = 1, value = "testing")
+        self.assertEqual(stack.pop(), "testing")
+
+    def test_pop_fails_on_empty_stack(self):
+        stack = brewery.nodes.Stack(5)
+        self.assertRaises(StopIteration, stack.pop)
+
+    def test_highest_key(self):
+        k = 5
+        stack = brewery.nodes.Stack(k)
+        for i in range(k):
+            stack.push(key = float(i)/10., value = i)
+        self.assertEqual(stack._highest_key, 0.4)
+
+    def test_lowest_keys_saved(self):
+        stack = brewery.nodes.Stack(2)
+        for i in range(5):
+            stack.push(key = 1-float(i)/10., value = i)
+        results = list(stack.items())
+        self.assertSetEqual(set(results), set([3, 4]))
+
+    def test_at_most_k_items(self):
+        k = 5
+        stack = brewery.nodes.Stack(k)
+        for i in range(2*k):
+            stack.push(key = float(i)/10., value = i)
+        self.assertEqual(len(stack.items()), k)
+
+    def test_same_key_gracefully_overwritten(self):
+        stack = brewery.nodes.Stack(5)
+        stack.push(key = 1, value = "testing1")
+        stack.push(key = 1, value = "testing2")
+        self.assertEqual(stack.pop(), "testing2")
+
 
 class NodesTestCase(unittest.TestCase):
     def setUp(self):
@@ -48,6 +88,63 @@ class NodesTestCase(unittest.TestCase):
         
         self.assertEqual(len(self.output.buffer), 5)
         self.assertAllRows()
+
+    def test_sample_node_random_n_returns_n_valid_rows(self):
+        node = brewery.nodes.SampleNode(size = 5, discard_sample = False, mode = 'random')
+        self.setup_node(node)
+        self.create_sample()
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        
+        self.assertEqual(len(self.output.buffer), 5)
+        self.assertAllRows()
+
+    def test_sample_node_random_same_seed(self):
+        ''' Instead of testing for true randomness as in http://www.johndcook.com/Beautiful_Testing_ch10.pdf
+        we test for know properties of the PRNG.
+            - returns the same for same seed 
+            - returns different for different seed '''
+        self.create_sample()
+
+        results = []
+        for i in range(5):
+            random.seed(1517)
+            # create a new output pipe for each replication
+            node = brewery.nodes.SampleNode(size = 1, discard_sample = False, mode = 'random')
+            self.setup_node(node)
+            node.outputs.append(brewery.streams.SimpleDataPipe())
+            self.initialize_node(node)
+            node.run()
+            node.finalize()
+            results.append(node.outputs[1].buffer)
+        
+        for result in results:
+            self.assertListEqual(result, results[0])
+
+    def test_sample_node_random_different_seed(self):
+        ''' Instead of testing for true randomness as in http://www.johndcook.com/Beautiful_Testing_ch10.pdf
+        we test for know properties of the PRNG.
+            - returns the same for same seed 
+            - returns different for different seed '''
+        self.create_sample()
+
+        results = []
+        for i in range(5):
+            random.seed(i)
+            # create a new output pipe for each replication
+            node = brewery.nodes.SampleNode(size = 1, discard_sample = False, mode = 'random')
+            self.setup_node(node)
+            node.outputs.append(brewery.streams.SimpleDataPipe())
+            self.initialize_node(node)
+            node.run()
+            node.finalize()
+            results.append(node.outputs[1].buffer)
+
+        # no pair of results should be equal
+        for i in range(5):
+            for j in range(i+1,5):
+                self.assertNotEqual(results[i], results[j])
 
     def test_replace_node(self):
         node = brewery.nodes.TextSubstituteNode("str")
