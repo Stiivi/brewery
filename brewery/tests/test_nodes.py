@@ -38,11 +38,10 @@ class NodesTestCase(unittest.TestCase):
         self.assertNotIn("source", d)
         self.assertNotIn("aggregate_node", d)
 
-    def test_sample_node(self):
-        node = brewery.nodes.SampleNode()
+    def test_sample_node_first_n(self):
+        node = brewery.nodes.SampleNode(size = 5, discard_sample = False, mode = 'first')
         self.setup_node(node)
         self.create_sample()
-        node.size = 5
         self.initialize_node(node)
         node.run()
         node.finalize()

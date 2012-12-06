@@ -39,19 +39,20 @@ class SampleNode(Node):
     }
 
 
-    def __init__(self, size = 1000, discard_sample = False, mode = None):
+    def __init__(self, size = 1000, discard_sample = False, mode = 'first'):
         """Creates and initializes sample node
 
         :Parameters:
             * `size` - number of records to be sampled
             * `discard_sample` - flag whether the sample is discarded or included. By default `False` -
               sample is included.
-            * `mode` - sampling mode - ``first`` - get first N items, ``nth`` - get one in n, ``random``
+            * `mode` - sampling mode - ``first`` (default) - get first N items, ``nth`` - get one in n, ``random``
               - get random %. Note: mode is not yet implemented.
             """
         super(SampleNode, self).__init__()
         self.size = size
         self.discard_sample = discard_sample
+        self.mode = mode
 
     def run(self):
         pipe = self.input
