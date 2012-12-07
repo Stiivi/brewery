@@ -59,6 +59,9 @@ class SampleNode(Node):
             self.stack = Stack(size)
         else:
             self.stack = None
+        if method == "percent" and ((size>100) or (size<0)):
+            raise ValueError, "Sample size must be between 0 and 100 with 'percent' method."
+
 
     def run(self):
         pipe = self.input
@@ -69,6 +72,10 @@ class SampleNode(Node):
             if self.method == "random":
                 uniform = random.random()
                 self.stack.push(key = uniform, value = row)
+            elif self.method == "percent":
+                if random.random() < float(self.size)/100.:
+                    self.put(row)
+                    count += 1
             else:
                 self.put(row)
                 count += 1

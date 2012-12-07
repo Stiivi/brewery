@@ -86,6 +86,53 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(len(self.output.buffer), 5)
         self.assertAllRows()
 
+    def test_percent_cannot_be_more_than_100(self):
+        def callable():
+            node = brewery.nodes.SampleNode(size = 101, discard_sample = False, method = 'percent')
+        self.assertRaises(ValueError, callable)
+
+    def test_100_percent_returns_all(self):
+        node = brewery.nodes.SampleNode(size = 100, discard_sample = False, method = 'percent')
+        self.setup_node(node)
+        self.create_sample()
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        
+        self.assertListEqual(self.output.buffer, self.input.buffer)
+
+    def test_0_percent_returns_none(self):
+        node = brewery.nodes.SampleNode(size = 0, discard_sample = False, method = 'percent')
+        self.setup_node(node)
+        self.create_sample()
+        self.initialize_node(node)
+        node.run()
+        node.finalize()
+        
+        self.assertEqual(len(self.output.buffer), 0)
+
+    def test_sample_node_percent_same_seed(self):
+        # Instead of testing for true randomness as in http://www.johndcook.com/Beautiful_Testing_ch10.pdf
+        #we test for know properties of the PRNG.
+        #    - returns the same for same seed 
+        #    - returns different for different seed
+        self.create_sample()
+
+        results = []
+        for i in range(5):
+            random.seed(1517)
+            # create a new output pipe for each replication
+            node = brewery.nodes.SampleNode(size = 10, discard_sample = False, method = 'percent')
+            self.setup_node(node)
+            node.outputs.append(brewery.streams.SimpleDataPipe())
+            self.initialize_node(node)
+            node.run()
+            node.finalize()
+            results.append(node.outputs[1].buffer)
+        
+        for result in results:
+            self.assertListEqual(result, results[0])
+
     def test_sample_node_random_same_seed(self):
         self.create_sample()
 
@@ -103,6 +150,26 @@ class NodesTestCase(unittest.TestCase):
         
         for result in results:
             self.assertListEqual(result, results[0])
+
+    def test_sample_node_percent_different_seed(self):
+        self.create_sample()
+
+        results = []
+        for i in range(5):
+            random.seed(i)
+            # create a new output pipe for each replication
+            node = brewery.nodes.SampleNode(size = 10, discard_sample = False, method = 'percent')
+            self.setup_node(node)
+            node.outputs.append(brewery.streams.SimpleDataPipe())
+            self.initialize_node(node)
+            node.run()
+            node.finalize()
+            results.append(node.outputs[1].buffer)
+
+        # no pair of results should be equal
+        for i in range(5):
+            for j in range(i+1,5):
+                self.assertNotEqual(results[i], results[j])
 
     def test_sample_node_random_different_seed(self):
         self.create_sample()
