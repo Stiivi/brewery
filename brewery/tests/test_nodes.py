@@ -18,19 +18,12 @@ class StackTestCase(unittest.TestCase):
         stack = brewery.nodes.Stack(5)
         self.assertRaises(StopIteration, stack.pop)
 
-    def test_highest_key(self):
-        k = 5
-        stack = brewery.nodes.Stack(k)
-        for i in range(k):
-            stack.push(key = float(i)/10., value = i)
-        self.assertEqual(stack._highest_key, 0.4)
-
     def test_lowest_keys_saved(self):
         stack = brewery.nodes.Stack(2)
         for i in range(5):
             stack.push(key = 1-float(i)/10., value = i)
         results = list(stack.items())
-        self.assertSetEqual(set(results), set([3, 4]))
+        self.assertSetEqual(set(results), set([0, 1]))
 
     def test_at_most_k_items(self):
         k = 5
@@ -38,13 +31,6 @@ class StackTestCase(unittest.TestCase):
         for i in range(2*k):
             stack.push(key = float(i)/10., value = i)
         self.assertEqual(len(stack.items()), k)
-
-    def test_same_key_gracefully_overwritten(self):
-        stack = brewery.nodes.Stack(5)
-        stack.push(key = 1, value = "testing1")
-        stack.push(key = 1, value = "testing2")
-        self.assertEqual(stack.pop(), "testing2")
-
 
 class NodesTestCase(unittest.TestCase):
     def setUp(self):
@@ -101,10 +87,6 @@ class NodesTestCase(unittest.TestCase):
         self.assertAllRows()
 
     def test_sample_node_random_same_seed(self):
-        ''' Instead of testing for true randomness as in http://www.johndcook.com/Beautiful_Testing_ch10.pdf
-        we test for know properties of the PRNG.
-            - returns the same for same seed 
-            - returns different for different seed '''
         self.create_sample()
 
         results = []
@@ -123,10 +105,6 @@ class NodesTestCase(unittest.TestCase):
             self.assertListEqual(result, results[0])
 
     def test_sample_node_random_different_seed(self):
-        ''' Instead of testing for true randomness as in http://www.johndcook.com/Beautiful_Testing_ch10.pdf
-        we test for know properties of the PRNG.
-            - returns the same for same seed 
-            - returns different for different seed '''
         self.create_sample()
 
         results = []
