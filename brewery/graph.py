@@ -59,7 +59,7 @@ class Graph(object):
 
         if node in self.nodes.values():
             raise ValueError("Node %s already exists" % node)
-            
+
         self.nodes[name] = node
 
         return name

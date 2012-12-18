@@ -144,6 +144,13 @@ class Stream(Graph):
         return array
 
     def run(self, nodes=None):
+        """Runs the stream"""
+
+        """Notes:
+            * run should take context as argument, where context is:
+                * backend used
+                * source tables
+        """
         nodes = self.sorted_nodes(nodes)
 
         self.initialize(nodes)
