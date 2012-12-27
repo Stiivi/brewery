@@ -1,0 +1,17 @@
+{
+    "test_psql" : {
+        "adapter": "postgres",
+        "host": "localhost",
+        "database": "test",
+        "port": 5432
+    },
+    "test_sqlite3" : {
+        "adapter": "sqlite3",
+        "database": "/foo/bar"
+    },
+    "test_mysql" : {
+        "adapter": "mysql",
+        "host": "localhost",
+        "database": "test"
+    }
+}
