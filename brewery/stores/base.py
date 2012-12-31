@@ -2,8 +2,10 @@
 
 __all__ = [
         "DataStore",
-        "DataObject"
+        "DataObject",
+        "IterableDataSource"
         ]
+
 _data_stores = {
             "sql":"sql.SQLDataStore",
             "csv_directory": "text.CSVDirectoryDataStore",
@@ -90,10 +92,23 @@ class DataObject(object):
 
     def __iter__(self):
         return self.rows()
-        # return DataObjectRowsIterator(self)
 
     def __len__(self):
         raise NotImplementedError
+
+class IterableDataSource(DataObject):
+    def __init__(self, iterable, fields):
+        """Create a data object that wraps an iterable."""
+        self.fields = fields
+        self.iterable = iterable
+
+    def representations(self):
+        """Returns the only representation of iterable object, which is
+        `rows`"""
+        return ["rows"]
+
+    def rows(self):
+        return iter(self.iterable)
 
 class TargetDataObject(DataObject):
     def append(self, row):
@@ -110,16 +125,5 @@ class SourceDataObject(DataObject):
     # Should define:
     # __len__
 
-class DataObjectRowsIterator(object):
-    """Default iterator for data objects with "rows" representation that do
-    not provide their own iterator"""
 
-    def __init__(self, data_object):
-        self.iterator = data_object.rows()
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        return next(self.iterator)
 

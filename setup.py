@@ -17,9 +17,8 @@ setup(
     # installed or upgraded on the target machine
     install_requires=install_requires,
 
-    packages=find_packages(exclude=['ez_setup']),
-    # packages = ['brewery'],
-	# package_dir = { 'brewery': 'brewery'},
+    packages = find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+
     package_data={
         # If any package contains *.txt or *.rst files, include them:
         '': ['*.txt', '*.rst'],
@@ -43,7 +42,7 @@ setup(
     # metadata for upload to PyPI
     author="Stefan Urbanek",
     author_email="stefan.urbanek@gmail.com",
-    description="Framework for analysing data and measuring quality of data using structured data streams",
+    description="Data processing (ETL), quality monitoring and analysis framework",
     license="MIT",
     keywords="data analysis quality datamining",
     url="http://www.databrewery.org"

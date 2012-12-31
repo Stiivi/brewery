@@ -399,6 +399,34 @@ class DistinctNode(Node):
         field_map = FieldFilter(keep=self.distinct_fields)
         self.row_filter = field_map.row_filter(self.input_fields)
 
+    def evaluate(self, inputs, outputs):
+        op = brewery.operation("distinct", inputs)
+        return op(inputs, fields)
+
+    def run(self, discard=False):
+        pipe = self.input
+        self.distinct_values = set()
+
+        # Just copy input to output if there are no distinct keys
+        # FIXME: should issue a warning?
+        if not self.distinct_fields:
+            for row in pipe.rows():
+                self.put(row)
+            return
+
+        for row in pipe.rows():
+            # Construct key tuple from distinct fields
+            key_tuple = tuple(self.row_filter(row))
+
+            if key_tuple not in self.distinct_values:
+                self.distinct_values.add(key_tuple)
+                if not self.discard:
+                    self.put(row)
+            else:
+                if self.discard:
+                    # We already have one found record, which was discarded (because discard is true),
+                    # now we pass duplicates
+                    self.put(row)
     def run(self):
         pipe = self.input
         self.distinct_values = set()

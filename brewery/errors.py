@@ -20,6 +20,40 @@ class StreamError(BreweryError):
     """Generic error raised on stream inconsistency"""
     pass
 
+class ArgumentError(BreweryError):
+    """Raised when whong argument is passed to a function"""
+    pass
+
+#
+# DataObject and DataStore errors
+#
+
+class DataObjectError(BreweryError):
+    """Generic error in a data object."""
+
+class ObjectExistsError(DataObjectError):
+    """Raised when attempting to create and object that already exists"""
+    pass
+
+class IsNotTargetError(DataObjectError):
+    """Raised when trying to use data object as target - appending data,
+    truncating or any other target-only operation."""
+    pass
+
+class IsNotSourceError(DataObjectError):
+    """Raised when trying to use data object as source, for example reading
+    data"""
+    pass
+
+class RepresentationError(DataObjectError):
+    """Raised when requested unknown, invalid or not available
+    representation"""
+    pass
+
+#
+# Other errors
+#
+
 class StreamRuntimeError(BreweryError):
     """Exception raised when a node fails during `run()` phase.
 

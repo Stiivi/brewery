@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 import sys
+import urllib2
+import urlparse
 
 __all__ = [
     "logger_name",
@@ -10,7 +12,7 @@ __all__ = [
     "MissingPackage",
     "decamelize",
     "to_identifier",
-    "collect_subclasses",
+    "subclass_iterator",
     "get_backend",
     # FIXME: move these
     "coalesce_value",
@@ -18,11 +20,14 @@ __all__ = [
     "expand_record"
 ]
 
+# FIXME: this is for array orientation
 backend_aliases = {
             "default":"python_array",
             "python":"python_array",
             "carray":"carray_backend"
         }
+
+_backends = { }
 
 logger_name = "brewery"
 logger = None
@@ -128,9 +133,21 @@ def decamelize(name):
 def to_identifier(name):
     return re.sub(r' ', r'_', name).lower()
 
+def register_backend(backend_name, backend):
+    """Registers `backend` under `backend_name`.
+
+    In the future this version will do backend validation and will register
+    other objects provided by the backend.
+    """
+
+    _backends[backend_name] = backend
+
 def get_backend(backend_name):
     """Finds the backend with name `backend_name`. First try to find backend
     relative to the brewery.backends.* then search full path. """
+
+    if backend_name in _backends:
+        return _backends[backend_name]
 
     backend_name = backend_aliases.get(backend_name, backend_name)
     backend = sys.modules.get("brewery.backends."+backend_name)
@@ -147,6 +164,40 @@ def get_backend(backend_name):
 
     return backend
 
+def get_backend_object(reference):
+    """Get object from a backend. `reference` is a string which valid Python
+    reference to a module object. First relative to `brewery.backends` module
+    is checked, then `reference` is considered as absolute reference."""
+
+    raise NotImplemented
+
+def open_resource(resource, mode = None):
+    """Get file-like handle for a resource. Conversion:
+
+    * if resource is a string and it is not URL or it is file:// URL, then opens a file
+    * if resource is URL then opens urllib2 handle
+    * otherwise assume that resource is a file-like handle
+
+    Returns tuple: (handle, should_close) where `handle` is file-like object and `should_close` is
+        a flag whether returned handle should be closed or not. Closed should be resources which
+        where opened by this method, that is resources referenced by a string or URL.
+    """
+
+    if type(resource) == str or type(resource) == unicode:
+        should_close = True
+        parts = urlparse.urlparse(resource)
+        if parts.scheme == '' or parts.scheme == 'file':
+            if mode:
+                handle = open(resource, mode=mode)
+            else:
+                handle = open(resource)
+        else:
+            handle = urllib2.urlopen(resource)
+    else:
+        should_close = False
+        handle = resource
+
+    return handle, should_close
 
 def expand_record(record, separator = '.'):
     """Expand record represented as dict object by treating keys as key paths separated by

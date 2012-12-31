@@ -29,33 +29,6 @@ import brewery.dq
 from brewery.metadata import Field
 from brewery.common import collapse_record
 
-def open_resource(resource, mode = None):
-    """Get file-like handle for a resource. Conversion:
-
-    * if resource is a string and it is not URL or it is file:// URL, then opens a file
-    * if resource is URL then opens urllib2 handle
-    * otherwise assume that resource is a file-like handle
-
-    Returns tuple: (handle, should_close) where `handle` is file-like object and `should_close` is
-        a flag whether returned handle should be closed or not. Closed should be resources which
-        where opened by this method, that is resources referenced by a string or URL.
-    """
-
-    if type(resource) == str or type(resource) == unicode:
-        should_close = True
-        parts = urlparse.urlparse(resource)
-        if parts.scheme == '' or parts.scheme == 'file':
-            if mode:
-                handle = open(resource, mode=mode)
-            else:
-                handle = open(resource)
-        else:
-            handle = urllib2.urlopen(resource)
-    else:
-        should_close = False
-        handle = resource
-
-    return handle, should_close
 
 class DataStream(object):
     """Shared methods for data targets and data sources"""

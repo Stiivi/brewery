@@ -8,7 +8,7 @@ import brewery
 
 TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
-@unittest.skip("demonstrating skipping")
+@unittest.skip("obsolete")
 class DataSourceUtilsTestCase(unittest.TestCase):
     def test_expand_collapse(self):
         record = { "name": "foo",
@@ -42,7 +42,7 @@ class DataSourceUtilsTestCase(unittest.TestCase):
 #         ds = brewery.ds.datastore(desc)
 #       self.assertEqual("sqlalchemy", ds.adapter_name)
 
-@unittest.skip("demonstrating skipping")
+@unittest.skip("obsolete")
 class DataSourceTestCase(unittest.TestCase):
     output_dir = None
     @classmethod

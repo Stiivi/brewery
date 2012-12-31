@@ -1,7 +1,8 @@
 Brewery
 =======
 
-Framework and set of tools for data streaming, auditing and mining workflows.
+Framework and set of tools for data processing (ETL), auditing and mining
+workflows.
 
 Project page: http://databrewery.org
 
@@ -12,11 +13,11 @@ About
 
 Brewery is a Python framework for:
 
-* data streams - streaming structured data from various sources into various targets. Example of 
-  existing streams: CSV, XLS, Google Spreadsheet, relational SQL database, MongoDB, directory with YAML
-  files, HTML, ...
+* data streams - streaming structured data from various sources into various
+  targets. Example of existing streams: CSV, XLS, Google Spreadsheet,
+  relational SQL database, MongoDB, directory with YAML files, HTML, ...
+* extraction, transformation and loading
 * data quality monitoring
-* data mining (in the future)
 
 Focus is on understandability and transparency of the process.
 
@@ -44,7 +45,8 @@ Documentation can be found at: http://packages.python.org/brewery
 Sources
 -------
 
-Main project source repository is being hosted at Github: https://github.com/Stiivi/brewery
+Project source repository is being hosted at Github:
+https://github.com/Stiivi/brewery
 
     git clone git://github.com/Stiivi/brewery.git
 

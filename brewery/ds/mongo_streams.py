@@ -7,7 +7,7 @@ import brewery.dq
 try:
     import pymongo
 except ImportError:
-    from brewery.utils import MissingPackage
+    from brewery.common import MissingPackage
     pymongo = MissingPackage("pymongo", "MongoDB streams", "http://www.mongodb.org/downloads/")
 
 class MongoDBDataSource(base.DataSource):

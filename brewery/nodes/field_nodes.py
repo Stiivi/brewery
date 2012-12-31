@@ -47,7 +47,23 @@ class FieldFilterNode(Node):
 
     def run(self, sources, target):
         """Nothing to do here, it is just metadata operation"""
-        pass
+
+    def apply(self, sources, outputs):
+        source = sources[0]
+        if "sql_statement" in source.representations():
+            statement = source.sql_statement()
+            statement = statement.select(output_fields.names())
+            obj = SQLDataSource(store=source.store, statement=statement)
+            self.outputs[0] = obj
+        else:
+            rfilter = self.ffilter.row_filter(source.fields)
+            self.output = itertools.imap(rfilter, source)
+
+    def representations(self):
+        reprs = ["rows"]
+        if self.sql_statement is not None:
+            reprs.append("sql_statement")
+        return reprs
 
 class TextSubstituteNode(Node):
     """Substitute text in a field using regular expression."""

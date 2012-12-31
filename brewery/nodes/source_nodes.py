@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .base import SourceNode
-from ..ds.csv_streams import CSVDataSource
+# from ..ds.csv_streams import CSVDataSource
 from ..ds.elasticsearch_streams import ESDataSource
 from ..ds.gdocs_streams import GoogleSpreadsheetDataSource
-from ..ds.sql_streams import SQLDataSource
+# from ..ds.sql_streams import SQLDataSource
 from ..ds.xls_streams import XLSDataSource
 from ..ds.yaml_dir_streams import YamlDirectoryDataSource
 

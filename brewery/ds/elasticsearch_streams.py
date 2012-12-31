@@ -9,7 +9,7 @@ from brewery.common import expand_record
 try:
     from pyes.es import ES
 except ImportError:
-    from brewery.utils import MissingPackage
+    from brewery.common import MissingPackage
     pyes = MissingPackage("pyes", "ElasticSearch streams", "http://www.elasticsearch.org/")
 
 class ESDataSource(base.DataSource):

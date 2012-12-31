@@ -8,7 +8,7 @@ import brewery.metadata
 from sqlalchemy import Table, Column, Integer, String, Text
 from sqlalchemy import create_engine, MetaData
 
-@unittest.skip
+@unittest.skip("obsolete test")
 class SQLStreamsTestCase(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite://")

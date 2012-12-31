@@ -6,7 +6,7 @@ import brewery.metadata as metadata
 try:
     import gdata.spreadsheet.text_db
 except:
-    from brewery.utils import MissingPackage
+    from brewery.common import MissingPackage
     gdata = MissingPackage("gdata", "Google data (spreadsheet) source/target")
 
 # Documentation:

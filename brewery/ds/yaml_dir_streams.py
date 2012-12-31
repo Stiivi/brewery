@@ -9,7 +9,7 @@ import shutil
 try:
     import yaml
 except:
-    from brewery.utils import MissingPackage
+    from brewery.common import MissingPackage
     yaml = MissingPackage("PyYAML", "YAML directory data source/target", "http://pyyaml.org/")
 
 class YamlDirectoryDataSource(base.DataSource):

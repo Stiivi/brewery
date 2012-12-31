@@ -17,8 +17,18 @@ __all__ = [
 ]
 
 """Abstracted field storage types"""
-storage_types = ("unknown", "string", "text", "integer", "float",
-                 "boolean", "date", "array")
+storage_types = (
+        "unknown",  # Unspecified storage type, processing behavior is undefined
+        "string",   # names, labels, up to hundreds of hundreds of chars
+        "text",     # bigger text storage
+        "integer",  # integer numeric types
+        "float",    # floating point types
+        "boolean",
+        "date",
+        "array"     # ordered collection type
+    )
+
+
 
 """Analytical types used by analytical nodes"""
 analytical_types = ("default", "typeless", "flag", "discrete", "measure",
@@ -175,7 +185,7 @@ class Field(object):
         return self.name
 
     def __repr__(self):
-        return "<%s(%s)>" % (self.__class__, self.to_dict())
+        return "%s(%s)" % (self.__class__.__name__, self.to_dict())
 
     def __eq__(self, other):
         if self is other:
@@ -279,6 +289,10 @@ class FieldList(object):
 
         return tuple(indexes)
 
+    def index_map(self):
+        """Returns a map of field name to field index"""
+        return dict( (f, i) for f, i in enumerate(self._field_names))
+
     def mask(self, fields=None):
         """Return a list representing field selector - which fields are
         selected from a row."""
@@ -356,6 +370,10 @@ class FieldList(object):
 
     def __str__(self):
         return "[" + ", ".join(self.names()) + "]"
+
+    def __repr__(self):
+        frepr = [repr(field) for field in self._fields]
+        return "%s([%s])" % (self.__class__.__name__, ",".join(frepr))
 
     def copy(self, fields=None):
         """Return a shallow copy of the list.
@@ -460,9 +478,9 @@ class FieldFilter(object):
 class RowFieldFilter(object):
     """Class for filtering fields in array"""
 
-    def __init__(self, selectors = None):
-        """Create an instance of RowFieldFilter. `indexes` is a list of indexes that are passed
-        to output."""
+    def __init__(self, mask=None):
+        """Create an instance of RowFieldFilter. `mask` is a list of indexes
+        that are passed to output."""
         super(RowFieldFilter, self).__init__()
         self.mask = mask or []
 
@@ -472,3 +490,4 @@ class RowFieldFilter(object):
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
         return list(itertools.compress(row, self.mask))
+

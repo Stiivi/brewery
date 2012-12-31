@@ -2,10 +2,9 @@
 
 from errors import *
 from graph import *
-from .utils import get_logger
+from .common import get_backend, get_logger
 from .metadata import *
 from collections import namedtuple
-from .common import get_backend
 from .nodes.base import node_dictionary
 import logging
 
@@ -83,10 +82,6 @@ class Stream(Graph):
             fieldlists = [source.output_fields for source in sources]
 
             node.initialize_fields(fieldlists)
-            node.initialize()
-            # FIXME: remove ^^
-
-			# raise exception with failed finalizations and failed initializations
 
     def finalize(self, nodes):
 		failed = []
@@ -144,6 +139,18 @@ class Stream(Graph):
         return array
 
     def run(self, nodes=None):
+        """Runs the stream"""
+
+        nodes = self.sorted_nodes(nodes)
+
+        for node in nodes:
+            sources = node.inputs()
+            node.initialize(sources)
+
+        for node in nodes:
+            node.run()
+
+    def run_arrayed(self, nodes=None):
         """Runs the stream"""
 
         """Notes:

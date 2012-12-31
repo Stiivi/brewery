@@ -2,7 +2,7 @@ import unittest
 import os
 import brewery
 
-@unittest.skip("demonstrating skipping")
+@unittest.skip("obsolete test")
 class ForksTestCase(unittest.TestCase):
     def test_basic(self):
         main = brewery.create_builder()

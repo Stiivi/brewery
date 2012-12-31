@@ -6,7 +6,7 @@ import brewery
 from brewery import ds
 from brewery.errors import *
 
-@unittest.skip("demonstrating skipping")
+@unittest.skip("obsolete test")
 class FieldListCase(unittest.TestCase):
     def test_names(self):
         field = brewery.Field("bar")

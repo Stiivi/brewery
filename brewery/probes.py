@@ -1,16 +1,62 @@
 """Data probes"""
 
-import utils
+import common
 import re
+import datetime
 
 __all__ = [
+    "Probe",
     "MissingValuesProbe",
     "StatisticsProbe",
     "DistinctProbe",
     "StorageTypeProbe",
     "MultiProbe",
-    "CompletenessProbe"
+    "CompletenessProbe",
+    "probe_types"
 ]
+
+def probe_type(string, date_format="%Y-%m-%dT%H:%M:%S.Z"):
+    """Guess one of basic types that the `string` might contain. Returns a
+    string with basic type name. If `date_format` is ``None`` then string is
+    not tested for date type. Default is ISO date format."""
+
+    if string is None:
+        return None
+
+    try:
+        int(string)
+        return "integer"
+    except ValueError:
+        pass
+
+    try:
+        float(string)
+        return "float"
+    except ValueError:
+        pass
+
+    if date_format:
+        try:
+            datetime.datetime.strptime(string, date_format)
+            return "date"
+        except ValueError:
+            pass
+
+    return "string"
+
+
+class Probe(object):
+    def probe(self, value):
+        """Probes single value"""
+        raise NotImplementedError
+
+    def probe_many(self, iterable):
+        """Probes all values from `iterable`. Probes might implement more
+        efficiet versions of this method. Default implementation iterates
+        through `iterable` items and calls `probe()` on every value."""
+
+        for value in iterable:
+            self.probe(value)
 
 class MultiProbe(object):
     """Probe with multiple probes"""
@@ -28,7 +74,7 @@ class MultiProbe(object):
     def to_dict(self):
         d = {}
         for probe in self.probes:
-            name = utils.to_identifier(utils.decamelize(probe.__class__.__name__))
+            name = common.to_identifier(common.decamelize(probe.__class__.__name__))
             re.sub('_probe$', name, '')
             d[name] = probe.to_dict()
 

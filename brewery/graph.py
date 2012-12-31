@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from brewery.utils import get_logger
+from brewery.common import get_logger
 import collections
 
 Connection = collections.namedtuple("Connection",

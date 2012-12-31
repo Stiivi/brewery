@@ -8,7 +8,7 @@ from brewery.metadata import FieldList
 try:
     import xlrd
 except:
-    from brewery.utils import MissingPackage
+    from brewery.common import MissingPackage
     xlrd = MissingPackage("xlrd", "Reading MS Excel XLS Files", "http://pypi.python.org/pypi/xlrd")
 
 class XLSDataSource(base.DataSource):

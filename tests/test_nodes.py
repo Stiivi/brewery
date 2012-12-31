@@ -6,7 +6,7 @@ import brewery
 from brewery import ds
 import brewery.nodes
 
-@unittest.skip("demonstrating skipping")
+@unittest.skip("obsolete test")
 class NodesTestCase(unittest.TestCase):
     def setUp(self):
         self.input = brewery.streams.SimpleDataPipe()

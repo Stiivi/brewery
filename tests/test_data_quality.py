@@ -3,6 +3,7 @@ import brewery
 import brewery.nodes
 import brewery.probes as probes
 
+@unittest.skip("obsolete")
 class DataQualityTestCase(unittest.TestCase):
     def setUp(self):
         self.records = []

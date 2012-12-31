@@ -15,7 +15,7 @@ from brewery.errors import *
 
 logging.basicConfig(level=logging.WARN)
 
-@unittest.skip("demonstrating skipping")
+@unittest.skip("obsolete test")
 class StreamBuildingTestCase(unittest.TestCase):
     def setUp(self):
         # Stream we have here:

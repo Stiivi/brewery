@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 from .base import *
 from ..errors import *
-
 import brewery.metadata
+
+__all__ = (
+        "SQLDataStore",
+        "SQLDataSource",
+        "SQLDataTarget"
+    )
 
 try:
     import sqlalchemy
@@ -90,6 +95,33 @@ def concrete_storage_type(field, type_map={}):
 """List of default shared stores."""
 _default_stores = {}
 
+def fields_from_table(table):
+    """Get fields from a table. Field types are normalized to the Brewery
+    data types. Analytical type is set according to a default conversion
+    dictionary."""
+
+    fields = []
+
+    for column in table.columns:
+        field = brewery.metadata.Field(name=column.name)
+        field.concrete_storage_type = column.type
+
+        for conv in _sql_to_brewery_types:
+            if issubclass(column.type.__class__, conv[0]):
+                field.storage_type = conv[1]
+                field.analytical_type = conv[2]
+                break
+
+        if not field.storage_type:
+            field.storaget_tpye = "unknown"
+
+        if not field.analytical_type:
+            field.analytical_type = "unknown"
+
+        fields.append(field)
+
+    return brewery.metadata.FieldList(fields)
+
 def default_store(connectable=None, url=None, schema=None):
     """Gets a default store for connectable or URL. If store does not exist
     one is created and added to shared default store pool."""
@@ -118,7 +150,8 @@ def default_store(connectable=None, url=None, schema=None):
 class SQLDataStore(object):
     """Holds context of SQL store operations."""
 
-    def __init__(self, url=None, connectable=None, schema=None):
+    def __init__(self, url=None, connectable=None, schema=None,
+            concrete_type_map=None):
         """Opens a SQL data store"""
 
         if not url and not connectable:
@@ -133,6 +166,8 @@ class SQLDataStore(object):
         else:
             self.connectable = sqlalchemy.create_engine(url)
             self.should_close = True
+
+        self.concrete_type_map = concrete_type_map or concrete_sql_type_map
 
         self.metadata = sqlalchemy.MetaData(bind=self.connectable)
         self.schema = schema
@@ -158,7 +193,16 @@ class SQLDataStore(object):
 
         return objects
 
-    def create(name, fields, replace=False, from_obj=None, schema=None,
+    def create(self, name, fields, replace=False, from_obj=None, schema=None,
+               id_column=None):
+        """Creates a table and returns `SQLTargetObject`. See `create_table()`
+        for more information"""
+        table = self.create_table(name, fields=fields, replace=replace,
+                                  from_obj=from_obj, schema=schema,
+                                  id_column=id_column)
+        return SQLDataTarget(store=self, table=table, schema=schema)
+
+    def create_table(self, name, fields, replace=False, from_obj=None, schema=None,
                id_column=None):
         """Creates a new table.
 
@@ -189,35 +233,32 @@ class SQLDataStore(object):
                                 "creating table from another object")
 
             return self._create_table_from(table, from_obj)
-        else:
-            if id_column:
+        elif id_column:
+            sequence_name = "seq_%s_%s" % (name, id_column)
+            sequence = sqlalchemy.schema.Sequence(sequence_name,
+                                                  optional=True)
+            col = sqlalchemy.schema.Column(id_column,
+                                           sqlalchemy.types.Integer,
+                                           sequence, primary_key=True)
+            table.append_column(col)
+
+        for field in fields:
+            concrete_type = concrete_storage_type(field, self.concrete_type_map)
+            if field.name == id_column:
                 sequence_name = "seq_%s_%s" % (name, id_column)
                 sequence = sqlalchemy.schema.Sequence(sequence_name,
                                                       optional=True)
-            else:
-
                 col = sqlalchemy.schema.Column(id_key_name,
-                                               sqlalchemy.types.Integer,
-                                               sequence, primary_key=True)
-                table.append_column(col)
+                                           concrete_type,
+                                           sequence, primary_key=True)
+            else:
+                col = sqlalchemy.schema.Column(field.name, concrete_type)
 
-            for field in self.fields:
-                concrete_type = concrete_storage_type(field, self.concrete_type_map)
-                if field.name == id_column:
-                    sequence_name = "seq_%s_%s" % (name, id_column)
-                    sequence = sqlalchemy.schema.Sequence(sequence_name,
-                                                          optional=True)
-                    col = sqlalchemy.schema.Column(id_key_name,
-                                               concrete_type,
-                                               sequence, primary_key=True)
-                else:
-                    col = sqlalchemy.schema.Column(field.name, concrete_type)
+            table.append_column(col)
 
-                table.append_column(col)
+        table.create()
 
-            table.create()
-
-            return table
+        return table
 
     def _create_table_from(table, from_obj):
         """Creates a table using ``CREATE TABLE ... AS SELECT ...``. The
@@ -226,6 +267,7 @@ class SQLDataStore(object):
         source = selectable_from_object(from_obj, self.store)
         statement = CreateTableAsSelect(table, source)
         self.connectable.execute(statement)
+        return self.table(name=table, autoload=True)
 
     def delete(self, name, schema):
         """Drops table"""
@@ -238,14 +280,22 @@ class SQLDataStore(object):
         self.metadata.drop_all(tables=[table])
         self.metadata.remove(table)
 
-    def table(self, name, schema=None, autoload=True):
+    def table(self, table, schema=None, autoload=True):
         """Returns a table with `name`. If schema is not provided, then
         store's default schema is used."""
+        if table is None:
+            raise Exception("Table name should not be None")
+        if isinstance(table, sqlalchemy.schema.Table):
+            return table
+
         schema = schema or self.schema
 
-        return sqlalchemy.Table(name, self.metadata,
+        return sqlalchemy.Table(table, self.metadata,
                                 autoload=autoload, schema=schema)
 
+    def execute(self, statement, *args, **kwargs):
+        """Executes `statement` in store's connectable"""
+        return self.connectable.execute(statement, *args, **kwargs)
 
 def selectable_from_object(obj, store):
     """Returns SQL selectable statement from object `obj` compatible with
@@ -319,7 +369,7 @@ class SQLDataSource(DataObject):
         if statement is not None:
             self.statement = statement
         else:
-            self.statement = self.table.select()
+            self.statement = self.table
 
         self.schema = schema
         self.options = options
@@ -372,16 +422,22 @@ class SQLDataSource(DataObject):
         else:
             return ["rows", "sql_statement"]
 
+    def __len__(self):
+        """Returns number of rows in a table"""
+        if self.table is not None:
+            statement = self.table.count()
+        else:
+            statement = self.statement.count()
+        result = self.store.connectable.scalar(statement)
+        return result
 
 class SQLDataTarget(object):
     """docstring for ClassName
     """
     def __init__(self, connectable=None, url=None, store=None,
                     table=None, schema=None, truncate=False,
-                    create=False, replace=False,
-                    add_id_key=False, id_key_name=None,
-                    buffer_size=None, fields=None, concrete_type_map=None,
-                    **options):
+                    create=False, replace=False, id_key_name=None,
+                    buffer_size=None, fields=None, **options):
         """Creates a relational database data target stream.
 
         :Attributes:
@@ -395,9 +451,8 @@ class SQLDataTarget(object):
               or not, otherwise initialization will fail on attempt to create
               a table which already exists.
             * `options`: other SQLAlchemy connect() options
-            * `add_id_key`: whether to add auto-increment key column or not.
-              Works only if `create` is ``True``
-            * `id_key_name`: name of the auto-increment key. Default is 'id'
+            * `id_key_name`: name of the auto-increment key. If specified,
+              then key column is created.
             * `buffer_size`: size of INSERT buffer - how many records are
               collected before they are inserted using multi-insert statement.
               Default is 1000
@@ -416,23 +471,14 @@ class SQLDataTarget(object):
         else:
             self.store = default_store(url=url, connectable=connectable,
                                         schema=schema)
-        self.table_name = table
         self.schema = schema
         self.options = options
         self.replace = replace
         self.create = create
         self.truncate = truncate
-        self.add_id_key = add_id_key
-
-        self.table = None
         self.fields = fields
 
-        self.concrete_type_map = concrete_type_map
-
-        if id_key_name:
-            self.id_key_name = id_key_name
-        else:
-            self.id_key_name = 'id'
+        self.id_key_name = id_key_name
 
         if buffer_size:
             self.buffer_size = buffer_size
@@ -440,11 +486,15 @@ class SQLDataTarget(object):
             self.buffer_size = 1000
 
         # Initialize
-
         if self.create:
-            self.table = self._create_table()
+            self.table = self.store.create_table(table, self.fields,
+                                                 replace=self.replace,
+                                                 schema=self.schema,
+                                                 id_column=self.id_key_name)
         else:
-            self.table = self.store.table(self.table_name)
+            self.table = self.store.table(table, schema=schema, autoload=True)
+
+        self.table_name = table.name
 
         if self.truncate:
             self.table.delete().execute()
@@ -455,45 +505,6 @@ class SQLDataTarget(object):
         self.field_names = self.fields.names()
 
         self.insert_command = self.table.insert()
-
-    def _create_table(self):
-        """Create a table."""
-
-        if not self.fields:
-            raise ArgumentError("Can not create a table: No fields provided")
-
-        table = self.store.table(self.table_name, autoload=False)
-
-        if table.exists():
-            if self.replace:
-                table = self.store.table(self.table_name, autoload=False)
-                table.drop(checkfirst=False)
-            else:
-                raise ObjectExistsError("Table '%s' already exists" % self.table_name)
-
-        table = sqlalchemy.Table(self.table_name, self.store.metadata, schema=self.schema)
-
-        if self.add_id_key:
-            id_key_name = self.id_key_name or 'id'
-
-            sequence_name = "seq_" + self.table_name + "_" + id_key_name
-            sequence = sqlalchemy.schema.Sequence(sequence_name, optional=True)
-
-            col = sqlalchemy.schema.Column(id_key_name,
-                                           sqlalchemy.types.Integer,
-                                           sequence, primary_key=True)
-            table.append_column(col)
-
-        # Create columns according to concrete storage type of fields
-        for field in self.fields:
-            concrete_type = concrete_storage_type(field, self.concrete_type_map)
-
-            col = sqlalchemy.schema.Column(field.name, concrete_type)
-            table.append_column(col)
-
-        table.create()
-
-        return table
 
     def as_source(self):
         """Returns source representation of the target table"""

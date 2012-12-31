@@ -403,10 +403,6 @@ class CSVDataTarget(DataObject):
         if self.file and self.close_file:
             self.file.close()
 
-    def finalize(self):
-        if self.file and self.close_file:
-            self.file.close()
-
     def append(self, row):
         self.writer.writerow(row)
 

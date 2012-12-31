@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import brewery.utils as utils
+import brewery.common as common
 
 __all__ = (
     "create_node",
@@ -95,7 +95,7 @@ def node_subclasses(root, abstract = False):
           ``False``
     """
     classes = []
-    for c in utils.subclass_iterator(root):
+    for c in common.subclass_iterator(root):
         try:
             info = get_node_info(c)
 
@@ -113,7 +113,7 @@ def get_node_info(cls):
 
     if hasattr(cls, "__node_info__") and cls not in _node_info_warnings:
 
-        utils.get_logger().warn("depreciated __node_info__ present in %s, rename to node_info" \
+        common.get_logger().warn("depreciated __node_info__ present in %s, rename to node_info" \
                     " (this warning will be shown only once)" % str(cls))
         _node_info_warnings.add(cls)
 
@@ -180,7 +180,7 @@ class Node(object):
 
     @property
     def input(self):
-        """Return single node imput if exists. Convenience property for nodes
+        """Return single node input if exists. Convenience property for nodes
         which process only one input. Raises exception if there are no inputs
         or are more than one imput."""
 
@@ -219,7 +219,7 @@ class Node(object):
         ``CSVSourceNode`` will be ``csv_source``.
         """
 
-        logger = utils.get_logger()
+        logger = common.get_logger()
 
         # FIXME: this is temporary warning
         info = get_node_info(cls)
@@ -229,7 +229,7 @@ class Node(object):
             ident = info.get("name")
 
         if not ident:
-            ident = utils.to_identifier(utils.decamelize(cls.__name__))
+            ident = common.to_identifier(common.decamelize(cls.__name__))
             if ident.endswith("_node"):
                 ident = ident[:-5]
 

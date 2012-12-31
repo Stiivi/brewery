@@ -1,9 +1,0 @@
-id,name,type,location.name,location.code,amount
-1,apple,fruit,north,n,10
-2,bananna,fruit,east,e,20
-3,carrot,vegetable,west,w,30
-4,blueberry,fruit,south,s,40
-5,potato,vegetable,north,n,50
-6,onion,vegetable,east,e,60
-7,garlic,vegetable,south,s,70
-8,orange,vegetable,west,w,80
