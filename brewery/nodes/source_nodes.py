@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .base import SourceNode
-# from ..ds.csv_streams import CSVDataSource
+from ..objects.text import CSVDataSource
 from ..ds.elasticsearch_streams import ESDataSource
 from ..ds.gdocs_streams import GoogleSpreadsheetDataSource
 # from ..ds.sql_streams import SQLDataSource
@@ -210,8 +210,8 @@ class CSVSourceNode(SourceNode):
         for row in self.stream.rows():
             target.append(row)
 
-    def evaluate(self):
-        return CSVDataObject(self.resource, *self.args, **self.kwargs)
+    def evaluate(self, inputs=None):
+        return CSVDataSource(self.resource, *self.args, **self.kwargs)
     def finalize(self):
         self.stream.finalize()
 

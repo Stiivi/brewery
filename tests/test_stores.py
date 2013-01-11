@@ -1,6 +1,6 @@
 import unittest
 import brewery
-from brewery.stores import *
+from brewery.objects import *
 from brewery.errors import *
 import os.path
 

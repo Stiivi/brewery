@@ -3,6 +3,7 @@ import re
 import sys
 import urllib2
 import urlparse
+import logging
 
 __all__ = [
     "logger_name",

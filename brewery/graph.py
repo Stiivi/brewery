@@ -3,7 +3,8 @@ from brewery.common import get_logger
 import collections
 
 Connection = collections.namedtuple("Connection",
-                                    ["source", "target", "name"])
+                                    ["source", "target",
+                                     "source_outlet", "target_outlet"])
 
 
 class Graph(object):
@@ -124,15 +125,17 @@ class Graph(object):
         for connection in remove:
             self.connections.remove(connection)
 
-    def connect(self, source, target, name=None):
+    def connect(self, source, target, source_outlet=None, target_outlet=None):
         """Connects source node and target node. Nodes can be provided as
         objects or names."""
         connection = Connection(self.node(source),
                                 self.node(target),
-                                name)
+                                source_outlet,
+                                target_outlet)
         self.connections.add(connection)
 
-    def remove_connection(self, source, target, name=None, all_=False):
+    def remove_connection(self, source, target, source_outlet=None,
+                          target_outlet=None, all_=False):
         """Remove connection with `name` between source and target nodes, if exists.
         if `all_` is true, then all connections between the two nodes are
         removed"""
@@ -142,7 +145,8 @@ class Graph(object):
                 if conn.source == source and conn.target == target:
                     self.connections.discard(conn)
         else:
-            connection = (self.node(source), self.node(target), name)
+            connection = (self.node(source), self.node(target),
+                            source_outlet, target_outlet)
             self.connections.discard(connection)
 
     def sorted_nodes(self, nodes=None):
@@ -222,24 +226,24 @@ class Graph(object):
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
         node = self.node(node)
-        nodes =[conn.target for conn in self.connections if conn[0] == node]
+        nodes =[conn.target for conn in self.connections if conn.source == node]
         return nodes
 
     def node_sources(self, node):
         """Return nodes that provide data for `node`."""
         node = self.node(node)
-        nodes =[conn.source for conn in self.connections if conn[1] == node]
+        nodes =[conn.source for conn in self.connections if conn.target == node]
         return nodes
 
     def connections_with_source(self, node):
         """Returns connectios that have `node` as source."""
         node = self.node(node)
         connections =[conn for conn in self.connections if conn.source == node]
-        return nodes
+        return connections
 
     def connections_with_target(self, node):
         """Returns connectios that have `node` as target."""
         node = self.node(node)
         connections =[c for c in self.connections if c.target == node]
-        return nodes
+        return connections
 

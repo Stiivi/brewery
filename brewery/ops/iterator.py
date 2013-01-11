@@ -48,17 +48,6 @@ def field_filter(iterator, fields, field_filter):
     row_filter = field_filter.row_filter(fields)
     return itertools.imap(row_filter, iterator)
 
-    for row in iterator:
-        value = row[index]
-        for (pattern, repl) in self.substitutions:
-            value = re.sub(pattern, repl, value)
-        if append:
-            row.append(value)
-        else:
-            row[index] = value
-
-        yield row
-
 def text_substitute(iterator, fields, field, substitutions):
     """Substitute field using text substitutions"""
     # Compile patterns
@@ -74,7 +63,7 @@ def text_substitute(iterator, fields, field, substitutions):
 
         yield row
 
-def string_strip(iterator, fields, strip_fields=None, chars=None)
+def string_strip(iterator, fields, strip_fields=None, chars=None):
     """Strip characters from `strip_fields` in the iterator. If no
     `strip_fields` is provided, then it strips all `string` or `text` storage
     type objects."""
@@ -99,16 +88,16 @@ def string_strip(iterator, fields, strip_fields=None, chars=None)
 #     """Returns threshold value for `value`. `bins` should be names of bins. By
 #     default it is ``['low', 'medium', 'high']``
 #     """
-# 
+#
 #     if not bins:
 #         bins = ['low', 'medium', 'high']
 #     elif len(bins) != 3:
 #         raise Exception("bins should be a list of three elements")
-# 
+#
 #     if low is None and high is None:
 #         raise Exception("low and hight threshold values should not be "
 #                         "both none at the same time.")
-# 
+#
 
 
 #####################

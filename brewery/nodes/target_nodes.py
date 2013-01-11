@@ -155,7 +155,7 @@ class CSVTargetNode(TargetNode):
         self.target = CSVDataTarget(self.resource, self.fields,
                                *self.args, **self.kwargs)
 
-    def evaluate(self, inputs)
+    def evaluate(self, inputs):
         self.target.append_from(inputs[0])
 
     def finalize(self):
@@ -375,6 +375,64 @@ class PrettyPrinterNode(TargetNode):
     def _update_widths(self, row):
         for i, value in enumerate(row):
             self.widths[i] = max(self.widths[i], len(unicode(value)))
+
+    def evaluate(self, sources):
+        source = sources[0]
+        fields = source.fields
+
+        # initialize fields
+        self.widths = [0] * len(fields)
+        self.names = fields.names()
+        if self.print_names:
+            self.labels = [f.label for f in fields]
+        else:
+            self.labels = [f.label or f.name for f in fields]
+
+        self._update_widths(self.names)
+        if self.print_labels:
+            self._update_widths(self.labels)
+
+        print "INITIALIZING FIELDS: %s" % sources
+        # initialize file
+        if type(self.target) == str or type(self.target) == unicode:
+            self.handle = open(self.target, "w")
+            self.close_handle = True
+        else:
+            self.handle = self.target
+            self.close_handle = False
+
+        rows = list(sources[0].rows())
+        for row in rows:
+            self._update_widths(row)
+
+        #
+        # Create template
+        #
+
+        if self.max_column_width:
+            self.widths = [min(w, self.max_column_width) for w in self.widths]
+        self.widths = [max(w, self.min_column_width) for w in self.widths]
+        fields = [u"{%d:%d}" % (i, w) for i,w in enumerate(self.widths)]
+        template = u"|" + u"|".join(fields) + u"|\n"
+
+        field_borders = [u"-"*w for w in self.widths]
+        self.border = u"+" + u"+".join(field_borders) + u"+\n"
+
+        self.handle.write(self.border)
+        if self.print_names:
+            self.handle.write(template.format(*self.names))
+        if self.print_labels:
+            self.handle.write(template.format(*self.labels))
+
+        if self.print_names or self.print_labels:
+            self.handle.write(self.border)
+
+        for row in rows:
+            self.handle.write(template.format(*row))
+
+        self.handle.write(self.border)
+
+        self.handle.flush()
 
     def run(self, sources, target):
 

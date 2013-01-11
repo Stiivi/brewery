@@ -1,6 +1,6 @@
 import unittest
 import brewery
-from brewery.stores import *
+from brewery.objects import *
 from brewery.errors import *
 import os.path
 import brewery.ops as ops
@@ -26,7 +26,7 @@ class SQLOperationsTestCase(OperationsBaseTestCase):
     def setUp(self):
         super(SQLOperationsTestCase, self).setUp()
 
-        self.store = brewery.stores.SQLDataStore("sqlite:///")
+        self.store = brewery.objects.SQLDataStore("sqlite:///")
         obj = self.store.create("data", self.fields)
 
         for row in self.data:
@@ -66,7 +66,7 @@ class IteratorOperationsTestCase(OperationsBaseTestCase):
 
     def setUp(self):
         super(IteratorOperationsTestCase, self).setUp()
-        self.source = brewery.stores.IterableDataSource(self.data, self.fields)
+        self.source = brewery.objects.IterableDataSource(self.data, self.fields)
 
     def test_distinct(self):
         iterator = self.source.rows()

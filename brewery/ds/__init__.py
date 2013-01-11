@@ -12,8 +12,8 @@ from brewery.ds.yaml_dir_streams import *
 from brewery.ds.html_target import *
 
 # Backward Compatibility
-from ..stores.text import CSVDataSource, CSVDataTarget
-from ..stores.sql import SQLDataSource, SQLDataTarget
+from ..objects.text import CSVDataSource, CSVDataTarget
+from ..objects.sql import SQLDataSource, SQLDataTarget
 
 __all__ = (
     "Field",
