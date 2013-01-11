@@ -3,7 +3,7 @@ from brewery.common import get_logger
 import collections
 
 Connection = collections.namedtuple("Connection",
-                                    ["source", "target"])
+                                    ["source", "target", "name"])
 
 
 class Graph(object):
@@ -18,6 +18,7 @@ class Graph(object):
         """
 
         super(Graph, self).__init__()
+        connections = connections or []
         self.nodes = OrderedDict()
         self.connections = set()
 
@@ -32,9 +33,8 @@ class Graph(object):
             except:
                 raise ValueError("Nodes should be a dictionary, is %s" % type(nodes))
 
-        if connections:
-            for connection in connections:
-                self.connect(connection[0], connection[1])
+        for connection in connections:
+            self.connect(*connection)
 
     def _generate_node_name(self):
         """Generates unique name for a node"""
@@ -119,22 +119,31 @@ class Graph(object):
 
         del self.nodes[name]
 
-        remove = [c for c in self.connections if c[0] == node or c[1] == node]
+        remove = [c for c in self.connections if c.source == node or c.target == node]
 
         for connection in remove:
             self.connections.remove(connection)
 
-    def connect(self, source, target):
+    def connect(self, source, target, name=None):
         """Connects source node and target node. Nodes can be provided as
         objects or names."""
-        connection = Connection(self.node(source), self.node(target))
+        connection = Connection(self.node(source),
+                                self.node(target),
+                                name)
         self.connections.add(connection)
 
-    def remove_connection(self, source, target):
-        """Remove connection between source and target nodes, if exists."""
+    def remove_connection(self, source, target, name=None, all_=False):
+        """Remove connection with `name` between source and target nodes, if exists.
+        if `all_` is true, then all connections between the two nodes are
+        removed"""
 
-        connection = (self.node(source), self.node(target))
-        self.connections.discard(connection)
+        if all_:
+            for conn in self.connections:
+                if conn.source == source and conn.target == target:
+                    self.connections.discard(conn)
+        else:
+            connection = (self.node(source), self.node(target), name)
+            self.connections.discard(connection)
 
     def sorted_nodes(self, nodes=None):
         """
@@ -162,14 +171,14 @@ class Graph(object):
 
         def is_source(node, connections):
             for connection in connections:
-                if node == connection[1]:
+                if node == connection.target:
                     return False
             return True
 
         def source_connections(node, connections):
             conns = set()
             for connection in connections:
-                if node == connection[0]:
+                if node == connection.source:
                     conns.add(connection)
             return conns
 
@@ -193,7 +202,7 @@ class Graph(object):
             s_connections = source_connections(node, connections)
             for connection in s_connections:
                 #     remove edge e from the graph
-                m = connection[1]
+                m = connection.target
                 connections.remove(connection)
                 #     if m has no other incoming edges then
                 #         insert m into S
@@ -213,11 +222,24 @@ class Graph(object):
     def node_targets(self, node):
         """Return nodes that `node` passes data into."""
         node = self.node(node)
-        nodes =[conn[1] for conn in self.connections if conn[0] == node]
+        nodes =[conn.target for conn in self.connections if conn[0] == node]
         return nodes
 
     def node_sources(self, node):
         """Return nodes that provide data for `node`."""
         node = self.node(node)
-        nodes =[conn[0] for conn in self.connections if conn[1] == node]
+        nodes =[conn.source for conn in self.connections if conn[1] == node]
         return nodes
+
+    def connections_with_source(self, node):
+        """Returns connectios that have `node` as source."""
+        node = self.node(node)
+        connections =[conn for conn in self.connections if conn.source == node]
+        return nodes
+
+    def connections_with_target(self, node):
+        """Returns connectios that have `node` as target."""
+        node = self.node(node)
+        connections =[c for c in self.connections if c.target == node]
+        return nodes
+

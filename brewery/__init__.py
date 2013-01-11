@@ -1,7 +1,7 @@
 from .metadata import *
 from .common import *
 import brewery.backends
-import brewery.stores
+import brewery.objects
 
 __version__ = "0.11"
 

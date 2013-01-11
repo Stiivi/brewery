@@ -18,8 +18,9 @@ def distinct(statement, keys):
     return statement
 
 def distinct_rows(statement, keys):
-    """Returns a statement that selects whole rows with distinct values for `keys`"""
-
+    """Returns a statement that selects whole rows with distinct values for
+    `keys`"""
+    raise NotImplementedError
     cols = [statement.c[str(key)] for key in keys]
     statement = statement.group_by(cols)
     return statement
@@ -57,3 +58,5 @@ def field_filter(statement, fields, field_filter):
 def unique(statement, keys):
     """Returns a statement that selects only unique rows for `keys`"""
     raise NotImplementedError
+
+

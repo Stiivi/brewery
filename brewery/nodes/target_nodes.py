@@ -149,20 +149,17 @@ class CSVTargetNode(TargetNode):
         self.resource = resource
         self.kwargs = kwargs
         self.args = args
-        self.stream = None
 
-    def initialize(self):
-        self.stream = CSVDataTarget(self.resource, *self.args, **self.kwargs)
+    def prepare(self, inputs):
+        self.fields = inputs[0].fields
+        self.target = CSVDataTarget(self.resource, self.fields,
+                               *self.args, **self.kwargs)
 
-        self.stream.fields = self.input_fields
-        self.stream.initialize()
-
-    def run(self):
-        for row in self.input.rows():
-            self.stream.append(row)
+    def evaluate(self, inputs)
+        self.target.append_from(inputs[0])
 
     def finalize(self):
-        self.stream.finalize()
+        self.target.flush()
 
 
 class FormattedPrinterNode(TargetNode):
@@ -257,7 +254,7 @@ class FormattedPrinterNode(TargetNode):
         self.handle = None
         self.close_handle = False
 
-    def initialize(self):
+    def prepare(self):
         if type(self.target) == str or type(self.target) == unicode:
             self.handle = open(self.target, "w")
             self.close_handle = True
@@ -265,7 +262,7 @@ class FormattedPrinterNode(TargetNode):
             self.handle = self.target
             self.close_handle = False
 
-    def run(self):
+    def evaluate(self, inputs):
 
         names = self.input_fields.names()
 
@@ -288,7 +285,7 @@ class FormattedPrinterNode(TargetNode):
             if self.delimiter:
                 self.handle.write(self.delimiter)
 
-        for record in self.input.records():
+        for record in self.inputs[0].records():
             self.handle.write(format_string.format(**record).encode("utf-8"))
 
             if self.delimiter:
@@ -484,21 +481,20 @@ class SQLTableTargetNode(TargetNode):
         # FIXME: document this
         self.concrete_type_map = None
 
-    def initialize(self):
-        self.stream = SQLDataTarget(url=self.url,
+    def prepare(self, inputs):
+        self.target = SQLDataTarget(url=self.url,
                                 table=self.table,
                                 truncate=self.truncate,
                                 create=self.create,
                                 replace=self.replace,
                                 **self.kwargs)
 
-        self.stream.fields = self.input_fields
-        self.stream.concrete_type_map = self.concrete_type_map
-        self.stream.initialize()
+        self.target.fields = self.inputs[0].fields
+        self.target.concrete_type_map = self.concrete_type_map
+        self.target.initialize()
 
-    def run(self):
-        for row in self.input.rows():
-            self.stream.append(row)
+    def evaluate(self, inputs):
+        self.target.append_from(inputs[0])
 
     def finalize(self):
         """Flush remaining records and close the connection if necessary"""

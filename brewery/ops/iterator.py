@@ -20,8 +20,8 @@ def distinct(iterator, fields, keys, discard=False):
                 yield row
         else:
             if discard:
-                # We already have one found record, which was discarded (because discard is true),
-                # now we pass duplicates
+                # We already have one found record, which was discarded
+                # (because discard is true), now we pass duplicates
                 yield row
 
 def append(iterators):
@@ -47,6 +47,72 @@ def field_filter(iterator, fields, field_filter):
     fields."""
     row_filter = field_filter.row_filter(fields)
     return itertools.imap(row_filter, iterator)
+
+    for row in iterator:
+        value = row[index]
+        for (pattern, repl) in self.substitutions:
+            value = re.sub(pattern, repl, value)
+        if append:
+            row.append(value)
+        else:
+            row[index] = value
+
+        yield row
+
+def text_substitute(iterator, fields, field, substitutions):
+    """Substitute field using text substitutions"""
+    # Compile patterns
+    substitutions = [(re.compile(patt), r) for (patt, r) in subsitutions]
+    index = fields.index(field)
+    for row in iterator:
+        row = list(row)
+
+        value = row[index]
+        for (pattern, repl) in substitutions:
+            value = re.sub(pattern, repl, value)
+        row[index] = value
+
+        yield row
+
+def string_strip(iterator, fields, strip_fields=None, chars=None)
+    """Strip characters from `strip_fields` in the iterator. If no
+    `strip_fields` is provided, then it strips all `string` or `text` storage
+    type objects."""
+
+    if not strip_fields:
+        strip_fields = []
+        for field in fields:
+            if field.storage_type =="string" or field.storage_type == "text":
+                strip_fields.append(field)
+
+    indexes = fields.indexes(strip_fields)
+
+    for row in iterator:
+        row = list(row)
+        for index in indexes:
+            value = row[index]
+            if value:
+                row[index] = value.strip(chars)
+        yield row
+
+# def threshold(value, low, high, bins=None):
+#     """Returns threshold value for `value`. `bins` should be names of bins. By
+#     default it is ``['low', 'medium', 'high']``
+#     """
+# 
+#     if not bins:
+#         bins = ['low', 'medium', 'high']
+#     elif len(bins) != 3:
+#         raise Exception("bins should be a list of three elements")
+# 
+#     if low is None and high is None:
+#         raise Exception("low and hight threshold values should not be "
+#                         "both none at the same time.")
+# 
+
+
+#####################
+# Transformations
 
 class CopyValueTransformation(object):
     def __init__(self, fields, source, missing_value=None):

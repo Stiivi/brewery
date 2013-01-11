@@ -57,6 +57,11 @@ class SampleNode(Node):
         fields = sources[0].fields.clone(origin=self, freeze=True)
         self.output_fields = fields
 
+    def evaluate(self, inputs):
+        source = intpus[0]
+        if "sql_statement" in source.representations():
+            target = source.sql_statement
+
     def run(self):
         pipe = self.input
         count = 0
@@ -737,6 +742,10 @@ class FunctionSelectNode(Node):
             flag = self.function(*values, **self.kwargs)
             if (flag and not self.discard) or (not flag and self.discard):
                 self.put(row)
+    def evaluate(self, inputs):
+        source = inputs[0]
+        iterator = ops.iterator.function_select()
+        return IteratorDataObject(iterator)
 
 class SetSelectNode(Node):
     """Select records where field value is from predefined set of values.
@@ -794,6 +803,25 @@ class SetSelectNode(Node):
             flag = row[self.field_index] in self.value_set
             if (flag and not self.discard) or (not flag and self.discard):
                 self.put(row)
+
+    def evaluate(self, inputs):
+        source = inputs[0]
+        if "sql_statement" in source.representations():
+            statement = source.sql_statement()
+            statement = ops.sql.set_select(statement,
+                                            self.field,
+                                            self.value_set,
+                                            discard)
+            result = source.copy()
+            result.statement = statement
+        else:
+            iterator = ops.iterator.set_select(source.rows(),
+                                                self.field,
+                                                self.value_set,
+                                                discard)
+            result = IteratorDataObject(iterator)
+
+        return result
 
 class AuditNode(Node):
     """Node chcecks stream for empty strings, not filled values, number distinct values.

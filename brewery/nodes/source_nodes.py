@@ -45,6 +45,10 @@ class RowListSourceNode(SourceNode):
         for row in self.list:
             self.put(row)
 
+    def evaluate(self):
+        return IteratorDataObject(iter(self.list))
+
+
 class RecordListSourceNode(SourceNode):
     """Source node that feeds records (dictionary objects) from a list (or any other iterable)
     object."""
@@ -206,6 +210,8 @@ class CSVSourceNode(SourceNode):
         for row in self.stream.rows():
             target.append(row)
 
+    def evaluate(self):
+        return CSVDataObject(self.resource, *self.args, **self.kwargs)
     def finalize(self):
         self.stream.finalize()
 
@@ -629,6 +635,10 @@ class GeneratorFunctionSourceNode(SourceNode):
         if not self.fields:
             raise ValueError("Fields are not initialized")
         return self.fields
+
+    def evaluate(self):
+        i = self.function(*self.args, **self.kwargs)
+        return IteratorDataObject(i)
 
     def run(self, sources, target):
         for row in self.function(*self.args, **self.kwargs):
