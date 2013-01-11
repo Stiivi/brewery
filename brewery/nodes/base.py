@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import brewery.utils as utils
+import heapq
 
 __all__ = (
     "create_node",
@@ -11,7 +12,8 @@ __all__ = (
     "NodeFinished",
     "Node",
     "SourceNode",
-    "TargetNode"
+    "TargetNode",
+    "Stack"
 )
 
 # FIXME: temporary dictionary to record displayed warnings about __node_info__
@@ -120,6 +122,39 @@ def get_node_info(cls):
         return cls.__node_info__
     else:
         return cls.node_info
+
+class Stack(object):
+    """A stack holding records from a pipe. Each record has a key. 
+    At most `depth` records are stored based on their key order.
+    """
+
+    def __init__(self, depth):
+        self.depth = depth
+        self.heap = []
+        self.elements = {}
+
+    def push(self, key, value):
+        """Push a `value` into rank `key` in the stack.
+        If stack is full, remove the highest-key element. """
+        if len(self.heap)<self.depth:
+            heapq.heappush(self.heap, key)
+            self.elements[key] = value
+        else:
+            oldkey = heapq.heappushpop(self.heap, key)
+            self.elements[key] = value
+            del self.elements[oldkey]
+
+    def pop(self):
+        """Pop an arbitrary element from the stack."""
+        try:
+            key = heapq.heappop(self.heap)
+            return self.elements[key]
+        except:
+            raise StopIteration
+
+    def items(self):
+        """An iterator of all elements."""
+        return self.elements.values()
 
 class NodeFinished(Exception):
     """Exception raised when node has no active outputs - each output node signalised that it

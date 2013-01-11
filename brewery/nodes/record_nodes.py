@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from .base import Node
+from .base import Node, Stack
 from ..dq.field_statistics import FieldStatistics
 from ..metadata import FieldMap, FieldList, Field
 import logging
 import itertools
+import random
 
 class SampleNode(Node):
     """Create a data sample from input stream. There are more sampling possibilities:
@@ -39,19 +40,28 @@ class SampleNode(Node):
     }
 
 
-    def __init__(self, size = 1000, discard_sample = False, mode = None):
+    def __init__(self, size = 1000, discard_sample = False, method = 'first'):
         """Creates and initializes sample node
 
         :Parameters:
             * `size` - number of records to be sampled
             * `discard_sample` - flag whether the sample is discarded or included. By default `False` -
               sample is included.
-            * `mode` - sampling mode - ``first`` - get first N items, ``nth`` - get one in n, ``random``
-              - get random %. Note: mode is not yet implemented.
+            * `mode` - sampling mode - ``first`` (default) - get first N items, ``nth`` - get one in n, ``random``
+              - get random number - ``percent`` - get random percent. Note: mode is not yet implemented.
             """
         super(SampleNode, self).__init__()
         self.size = size
         self.discard_sample = discard_sample
+        self.method = method
+        # random nodes need a stack to hold intermediate records
+        if method == "random":
+            self.stack = Stack(size)
+        else:
+            self.stack = None
+        if method == "percent" and ((size>100) or (size<0)):
+            raise ValueError, "Sample size must be between 0 and 100 with 'percent' method."
+
 
     def run(self):
         pipe = self.input
@@ -59,10 +69,22 @@ class SampleNode(Node):
 
         for row in pipe.rows():
             logging.debug("sampling row %d" % count)
-            self.put(row)
-            count += 1
-            if count >= self.size:
-                break
+            if self.method == "random":
+                uniform = random.random()
+                self.stack.push(key = uniform, value = row)
+            elif self.method == "percent":
+                if random.random() < float(self.size)/100.:
+                    self.put(row)
+                    count += 1
+            else:
+                self.put(row)
+                count += 1
+                if count >= self.size:
+                    break
+        # output items remaining in stack
+        if self.stack:
+            for row in self.stack.items():
+                self.put(row)
 
 class AppendNode(Node):
     """Sequentialy append input streams. Concatenation order reflects input stream order. The

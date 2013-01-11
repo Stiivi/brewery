@@ -677,13 +677,17 @@ Sample Node
 Create a data sample from input stream. There are more sampling possibilities:
 
 * fixed number of records
-* % of records, random *(not yet implemented)*
+* number of records, random
+* % of records, random 
 * get each n-th record *(not yet implemented)*
 
 Node can work in two modes: pass sample to the output or discard sample and pass the rest.
 The mode is controlled through the `discard` flag. When it is false, then sample is passed
 and rest is discarded. When it is true, then sample is discarded and rest is passed.
 
+There are currently three sampling methods: `method = "first"` takes the first `size` records, `method = "random"` selects `size` records at random from the entire pipe, whereas `method = "percent"` selects, in expectation, `size` percent of the stream. Note that `percent` selects each element with probability `p=size/100`, so the actual size of the sample will vary. If you need an exact number of elements in your sample, use the `random` method.
+
+Random sampling is important if you want to get an overview of the entire dataset. The `random` and `percent` methods ensure that the sample will be representative of the dataset. The same is not true for `first`, because the records may have been ordered in the input stream, and problematic records may be under- or overrepresented in the first batch.
 
 .. list-table:: Attributes
    :header-rows: 1
@@ -695,6 +699,8 @@ and rest is discarded. When it is true, then sample is discarded and rest is pas
      - Size of the sample to be passed to the output
    * - discard
      - flag whether the sample is discarded or included
+   * - method
+     - `"first"` (default): take first `size` records, `"random"`: take `size` records at random, `"percent"`: take each record with `size`/100 probability 
 
 .. _SelectNode:
 
