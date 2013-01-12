@@ -121,6 +121,10 @@ class Field(object):
           in a database where the field comes from or where the field is going
           to be created (this might be null if unknown)
         * `analytical_type` - data type used in data mining algorithms
+        * `size` – optional field size - interpretation of the value is
+          related to the `storage_type` and/or `concrete_storaget_type`. For
+          example it might be length of text fields or list of array
+          dimensions for array type.
         * `missing_values` (optional) - Array of values that represent missing
           values in the dataset for given field
         * `info` – user specific field information, might contain formatting
@@ -131,7 +135,7 @@ class Field(object):
     """
 
     attributes = ["name", "storage_type", "analytical_type",
-                  "concrete_storage_type", "missing_values",
+                  "concrete_storage_type", "size", "missing_values",
                   "label", "info", "origin", "owner"]
 
     attribute_defaults = {

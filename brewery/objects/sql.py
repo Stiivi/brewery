@@ -86,6 +86,10 @@ def concrete_storage_type(field, type_map={}):
         if not concrete_type:
             concrete_type = concrete_sql_type_map.get(field.storage_type)
 
+        # Account for type specific options, like "length"
+        if (concrete_type == sqlalchemy.types.Unicode):
+            concrete_type = sqlalchemy.types.Unicode(length=field.size)
+
         if not concrete_type:
             raise ValueError("unable to find concrete storage type for field '%s' "
                              "of type '%s'" % (field.name, field.storage_type))
