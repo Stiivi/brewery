@@ -141,16 +141,40 @@ class Stream(Graph):
     def run(self, nodes=None):
         """Runs the stream"""
 
+        # prepare(inputs)
+        # where inputs is list of (fields, representations)
+
         nodes = self.sorted_nodes(nodes)
 
+        # csv.0 -> meh.1
+        # in meh, for 1
+        # key: 1
+        node_outputs = {}
         for node in nodes:
-            sources = node.inputs()
-            node.initialize(sources)
+            self.logger.info("evaluating node %s" % node)
+            conns = self.connections_with_target(node)
+            self.logger.info("    number of connections: %d" % len(conns))
+            sources = {}
+            for i, c in enumerate(conns):
+                source_key = i if c.source_outlet is None else c.source_outlet
+                target_key = i if c.target_outlet is None else c.target_outlet
 
-        for node in nodes:
-            node.run()
+                try:
+                    out = node_outputs[c.source][source_key]
+                except KeyError:
+                    raise BreweryError("Unknown outlet '%s' in node %s" %
+                                            (key, c.source))
+                sources[target_key] = out
+            result = node.evaluate(sources)
+            if not isinstance(result, dict):
+                outputs = {0:result}
+            else:
+                outputs = result
 
-    def run_arrayed(self, nodes=None):
+            self.logger.info("result: %s" % (outputs, ))
+            node_outputs[node] = outputs
+
+    def _run_arrayed(self, nodes=None):
         """Runs the stream"""
 
         """Notes:
@@ -158,6 +182,8 @@ class Stream(Graph):
                 * backend used
                 * source tables
         """
+        # FIXME: temporarily depreciated
+        raise Exception("Temporarily depreciated")
         nodes = self.sorted_nodes(nodes)
 
         self.initialize(nodes)
