@@ -324,22 +324,28 @@ class FieldList(object):
         if not names:
             return self._fields
 
-        fields = [self._field_dict[name] for name in names]
+        fields = [self._field_dict[str(name)] for name in names]
 
         return fields
 
-    def field(self, name):
-        """Return a field with name `name`"""
+    def field(self, ref):
+        """Return a field with name `ref` if `ref` is a string, or if it is an
+        integer, returns a field at that index."""
 
-        if name in self._field_dict:
-            return self._field_dict[name]
-        raise NoSuchFieldError("Field list has no field with name '%s'" % name)
+        if isinstance(ref, int):
+            return self._fields[ref]
+        else:
+            try:
+                return self._field_dict[ref]
+            except KeyError:
+                raise NoSuchFieldError("Field list has no field with name "
+                                        "'%s'" % ref)
 
     def __len__(self):
         return len(self._fields)
 
-    def __getitem__(self, index):
-        return self._fields[index]
+    def __getitem__(self, reference):
+        return self.field(reference)
 
     def __setitem__(self, index, new_field):
         field = self._fields[index]
