@@ -1,5 +1,7 @@
 """Data Stores"""
 
+from ..ops.iterator import as_records
+
 __all__ = [
         "DataStore",
         "DataObject",
@@ -72,6 +74,7 @@ class DataObject(object):
 
     def __len__(self):
         raise NotImplementedError
+
     def best_representation(self, reps, required_store=None):
         """Returns best representation from list of representations `reps`. If
         store is provided, then target must be from the same store, otherwise
@@ -79,6 +82,50 @@ class DataObject(object):
         """
         pass
 
+    def records(self):
+        """Returns an iterator of records - dictionary-like objects that can
+        be acessed by field names. Default implementation returns
+        dictionaries, however other objects mith return their own structures.
+        For example the SQL object returns the same iterator as for rows, as
+        it can serve as key-value structure as well."""
+
+        names = [str(field) for field in fields]
+
+        for row in self.rows():
+            yield dict(zip(names, row))
+
+    def append(self, row):
+        """Appends `row` to the object. Subclasses should implement this."""
+        raise NotImplementedError
+
+    def append_from(self, obj):
+        """Appends data from object `obj` which might be a `DataObject`
+        instance or an iterable. Default implementation uses iterable and
+        calls `append()` for each element of the iterable.
+        """
+        for row in iter(obj):
+            self.append(row)
+
+    def initialize(self):
+        """Backward compatibility with the ds module streams. Does nothing."""
+        # FIXME: issue warning at some point
+        pass
+
+    def as_source(self):
+        """Returns version of the object that can be used as source. Subclasses
+        might return an object that will raise exception on attempt to use
+        target-only methods such as appending.
+
+        Default implementation returns the receiver."""
+        return self
+
+    def as_target(self):
+        """Returns version of the object that can be used as target. Subclasses
+        might return an object that will raise exception on attempt to use
+        source-only methods such as iterating rows.
+
+        Default implementation returns the receiver."""
+        return self
 
 class IterableDataSource(DataObject):
     def __init__(self, iterable, fields):
@@ -89,15 +136,56 @@ class IterableDataSource(DataObject):
     def representations(self):
         """Returns the only representation of iterable object, which is
         `rows`"""
-        return ["rows"]
+        return ["rows", "records"]
 
     def dup(self, copies=1):
         iterables = itertools.tee(self.iterable, copies + 1)
         self.iterable = iterables[0]
-        return iterables [1:]
+
+        dups = []
+        for i in iterables[1:]:
+            dups.append(self.__class__(iterables[1:], self.fields))
+        return dups
 
     def rows(self):
         return iter(self.iterable)
+
+    def records(self):
+        return as_records(self.iterable, self.fields)
+
+class IterableRecordsDataSource(IterableDataSource):
+    def rows(self):
+        names = [str(field) for field in self.fields]
+        for record in self.iterable:
+            yield [record[f] for f in names]
+
+    def records(self):
+        return iter(self.iterable)
+
+class RowListDataObject(DataObject):
+    def __init__(self, fields):
+        """Create a data object that wraps an iterable. The object is dumb,
+        does not perform any field checking, accepts anything passed to it."""
+        self.fields = fields
+        self.data = []
+
+    def representations(self):
+        """Returns the only representation of iterable object, which is
+        `rows`"""
+        return ["rows", "records"]
+
+    def rows(self):
+        return iter(self.data)
+
+    def records(self):
+        return as_records(self.rows(), self.fields)
+
+    def append(self, rows):
+        for row in rows:
+            self.data.append(row)
+
+    def truncate(self):
+        self.data = []
 
 class TargetDataObject(DataObject):
     def append(self, row):
@@ -110,6 +198,7 @@ class TargetDataObject(DataObject):
 class SourceDataObject(DataObject):
     def rows(self):
         raise IsNotTargetError
+
 class DataStore(object):
     def __init__(self, **options):
         pass
@@ -128,6 +217,9 @@ class DataStore(object):
     def get_object(self, name, **args):
         """Subclasses should implement this"""
         raise NotImplementedError
+
+    def __getitem__(self, name):
+        return get_object(self, name)
 
     def create(name, fields, replace=False, from_obj=None, temporary=False,
                **options):
@@ -154,8 +246,58 @@ class DataStore(object):
         raise NotImplementedError
 
 
-    # Should define:
-    # __len__
+class SimpleMemoryStore(DataStore):
+    def __init__(self):
+        """Creates simple in-memory data object store. Useful for temporarily
+        store objects. Creates list based objects with `rows` and `records`
+        representations."""
 
+        super(SimpleMemoryStore, self).__init__()
+        catalogue = {}
 
+    def objects(self):
+        return catalogue.keys()
 
+    def get_object(self, name):
+        try:
+            return catalogue[name]
+        except KeyError:
+            raise NoSuchObjectError(name)
+
+    def create(name, fields, replace=False, from_obj=None, temporary=False,
+               **options):
+        """Creates and returns a data object that wraps a Python list as a
+        data container."""
+
+        if not replace and self.exists(name):
+            raise ObjectExistsError(name)
+
+        obj = RowListDataObject(fields)
+        catalogue[name] = obj
+        return obj
+
+    def exists(name):
+        return name in catalogue
+
+def copy_object(source_store, source_name, target_store,
+                target_name=None, create=False, replace=False):
+    """Convenience method that copies object data from source store to target
+    store. `source_object` and `target_object` should be object names within
+    the respective stores. If `target_name` is not specified, then
+    `source_name` is used."""
+
+    target_name = target_name or source_name
+
+    source = source_store.get_object(source_name)
+    if create:
+        if not replace and target_store.exists(target_name):
+            raise Exception("Target object already exists. Use reaplce=True to "
+                            "delete the object object and create replacement")
+        target = target_store.create(target_name, source.fields, replace=True,
+                                     from_obj=source)
+    else:
+        target = target_store(target_name)
+        target.append_from(source)
+        target.flush()
+
+    return target
