@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .base import Node
+from ..objects import *
 from ..dq.field_statistics import FieldStatistics
 from ..metadata import FieldFilter, FieldList, Field
+import brewery.ops as ops
 import logging
 import itertools
 
@@ -39,39 +41,36 @@ class SampleNode(Node):
     }
 
 
-    def __init__(self, size = 1000, discard_sample = False, mode = None):
+    def __init__(self, size=1000, discard_sample=False, mode="first"):
         """Creates and initializes sample node
 
-        :Parameters:
-            * `size` - number of records to be sampled
-            * `discard_sample` - flag whether the sample is discarded or included. By default `False` -
-              sample is included.
-            * `mode` - sampling mode - ``first`` - get first N items, ``nth`` - get one in n, ``random``
-              - get random %. Note: mode is not yet implemented.
-            """
+        Parameters:
+
+        * `size` - number of records to be sampled
+        * `discard_sample` - flag whether the sample is discarded or included.
+          By default `False` - sample is included.
+        * `mode` - sampling mode - ``first`` - get first N items, ``nth``
+          - get one in n, ``random`` - get random %.
+
+        Note: mode is not yet implemented.
+        """
         super(SampleNode, self).__init__()
         self.size = size
         self.discard_sample = discard_sample
+        self.mode = mode
 
     def initialize_fields(self,sources):
         fields = sources[0].fields.clone(origin=self, freeze=True)
         self.output_fields = fields
 
-    def evaluate(self, inputs):
-        source = intpus[0]
-        if "sql_statement" in source.representations():
-            target = source.sql_statement
-
-    def run(self):
-        pipe = self.input
-        count = 0
-        # FIXME: this is slow version, should be array optimized (masks?)
-        for row in pipe.rows():
-            logging.debug("sampling row %d" % count)
-            self.put(row)
-            count += 1
-            if count >= self.size:
-                break
+    def evaluate(self, context, sources):
+        # FIXME: add other implementations, such as SQL
+        rows = sources[0].rows()
+        context.debug("sample %s, mode %s" % (self.size, self.mode))
+        iterator = ops.iterator.sample(rows, self.size,
+                                discard=self.discard_sample,mode=self.mode)
+        context.debug("got iterator %s" % iterator)
+        return IterableDataSource(iterator, sources[0].fields)
 
 class AppendNode(Node):
     """Sequentialy append input streams. Concatenation order reflects input stream order. The
@@ -90,13 +89,34 @@ class AppendNode(Node):
     def initialize_fields(self, sources):
         self.output_fields = sources[0].fields.clone(origin=self, freeze=true)
 
-    def run(self, sources, target):
-        """Append data objects from inputs sequentially."""
-        # FIXME: make this an array operation
-        # Check that source and target are of the same type (just in case)
-        for source in sources:
-            for row in source:
-                target.append(row)
+    def evaluate(self, context, sources):
+        # 1. order keys in sources
+        # 2. check for matching fields
+        # TODO: add field
+        result = None
+        if "sql_statement" in shared_representations(sources):
+            context.debug("trying to use SQL statement")
+            first_source = sources[0]
+            can_compose = True
+            for source in sources[1:]:
+                if not first_source.can_compose(first_source):
+                    can_compose = False
+                    break
+
+            if can_compose:
+                statements = [source.sql_statement() for source in sources]
+                statement = ops.sql.append(statements)
+                result = first_source.copy()
+                result.statement = statement
+
+        if not result:
+            context.debug("appending using iterator")
+            fields = sources[0].fields
+            iterators = [source.rows() for source in sources.values()]
+            iterator = ops.iterator.append(iterators)
+            result = IterableDataSource(iterator, fields)
+
+        return result
 
 class MergeNode(Node):
     """Merge two or more streams (join).
@@ -288,7 +308,10 @@ class MergeNode(Node):
 
         self.output_fields = fields
 
-    def run(self):
+    def evaluate():
+        pass
+
+    def join(self, details):
         """Only inner join is implemented"""
         # First, read details, then master. )
         for (tag, pipe) in self.detail_inputs:
@@ -371,11 +394,11 @@ class DistinctNode(Node):
         "_array_status": "unported"
     }
 
-    def __init__(self, distinct_fields = None, discard = False):
+    def __init__(self, keys = None, discard = False):
         """Creates a node that will pass distinct records with given distinct fields.
 
         :Parameters:
-            * `distinct_fields` - list of names of key fields
+            * `keys` - list of names of key fields
             * `discard` - whether the distinct fields are discarded or kept. By default False.
 
         If `discard` is ``False`` then first record with distinct keys is passed to the output. This is
@@ -390,72 +413,38 @@ class DistinctNode(Node):
         """
 
         super(DistinctNode, self).__init__()
-        if distinct_fields:
-            self.distinct_fields = distinct_fields
+        if keys:
+            self.keys = keys
         else:
-            self.distinct_fields = []
+            self.keys = []
 
         self.discard = discard
 
-    def initialize_fields(self, sources):
-        fields = sources[0].clone(origin=self, freeze=True)
+    def preview(self, context, sources):
+        source_fields = sources[0].fields
+        fields = source_fields.clone(origin=self, freeze=True)
+        return fields
 
-    def initialize(self):
-        field_map = FieldFilter(keep=self.distinct_fields)
-        self.row_filter = field_map.row_filter(self.input_fields)
+    def evaluate(self, context, sources):
+        source = sources[0]
+        if False and "sql_statement" in source.representations():
+            # FIXME: enable this branch once SQL row distinct is implemented
+            if self.discard:
+                raise NotImplementedError("discard in distinct SQL is not implemented")
+            statement = source.sql_statement
+            statement = ops.sql.distinct_rows(statement, keys)
+            context.debug("using SQL: %s" % str(statement))
+            result = source.copy()
+            result.statement = statement
+        else:
+            context.debug("using distinct iterator on keys %s" % (self.keys, ))
+            iterator = ops.iterator.unique(source.rows(),
+                                             fields=source.fields,
+                                             keys=self.keys,
+                                             discard=self.discard)
+            result = IterableDataSource(iterator, source.fields)
 
-    def evaluate(self, inputs, outputs):
-        op = brewery.operation("distinct", inputs)
-        return op(inputs, fields)
-
-    def run(self, discard=False):
-        pipe = self.input
-        self.distinct_values = set()
-
-        # Just copy input to output if there are no distinct keys
-        # FIXME: should issue a warning?
-        if not self.distinct_fields:
-            for row in pipe.rows():
-                self.put(row)
-            return
-
-        for row in pipe.rows():
-            # Construct key tuple from distinct fields
-            key_tuple = tuple(self.row_filter(row))
-
-            if key_tuple not in self.distinct_values:
-                self.distinct_values.add(key_tuple)
-                if not self.discard:
-                    self.put(row)
-            else:
-                if self.discard:
-                    # We already have one found record, which was discarded (because discard is true),
-                    # now we pass duplicates
-                    self.put(row)
-    def run(self):
-        pipe = self.input
-        self.distinct_values = set()
-
-        # Just copy input to output if there are no distinct keys
-        # FIXME: should issue a warning?
-        if not self.distinct_fields:
-            for row in pipe.rows():
-                self.put(row)
-            return
-
-        for row in pipe.rows():
-            # Construct key tuple from distinct fields
-            key_tuple = tuple(self.row_filter(row))
-
-            if key_tuple not in self.distinct_values:
-                self.distinct_values.add(key_tuple)
-                if not self.discard:
-                    self.put(row)
-            else:
-                if self.discard:
-                    # We already have one found record, which was discarded (because discard is true),
-                    # now we pass duplicates
-                    self.put(row)
+        return result
 
 class Aggregate(object):
     """Structure holding aggregate information (should be replaced by named tuples in Python 3)"""
@@ -477,6 +466,7 @@ class Aggregate(object):
             self.average = self.sum / self.count
         else:
             self.average = None
+
 class KeyAggregate(object):
     def __init__(self):
         self.count = 0
@@ -529,34 +519,42 @@ class AggregateNode(Node):
         self.aggregations[field] = aggregations
         self.measures.append(field)
 
-    @property
-    def output_fields(self):
+    def preview(self, sources):
         # FIXME: use storage types based on aggregated field type
+        source_fields = sources[0].fields
+
         fields = FieldList()
 
         if self.key_fields:
-            for field in self.input_fields.fields(self.key_fields):
+            for field in source_fields.fields(self.key_fields):
                 fields.append(field)
 
         for field in self.measures:
-            fields.append(Field(field + "_sum", storage_type = "float", analytical_type = "range"))
-            fields.append(Field(field + "_min", storage_type = "float", analytical_type = "range"))
-            fields.append(Field(field + "_max", storage_type = "float", analytical_type = "range"))
-            fields.append(Field(field + "_average", storage_type = "float", analytical_type = "range"))
-        fields.append(Field(self.record_count_field, storage_type = "integer", analytical_type = "range"))
+            fields.append(Field(field + "_sum", storage_type = "float",
+                                                analytical_type = "measure"))
+            fields.append(Field(field + "_min", storage_type = "float",
+                                                analytical_type = "measure"))
+            fields.append(Field(field + "_max", storage_type = "float",
+                                                analytical_type = "measure"))
+            fields.append(Field(field + "_average", storage_type = "float",
+                                                analytical_type = "measure"))
+        fields.append(Field(self.record_count_field, storage_type = "integer",
+                                                analytical_type = "measure"))
 
         return fields
 
-    def run(self):
-        pipe = self.input
+    def evaluate(self, context, sources):
+        # FIXME: add SQL version
+        source = sources[0]
+
         self.aggregates = {}
         self.keys = []
         self.counts = {}
 
-        key_selectors = self.input_fields.selectors(self.key_fields)
-        measure_indexes = self.input_fields.indexes(self.measures)
+        key_selectors = source.fields.selectors(self.key_fields)
+        measure_indexes = source_fields.indexes(self.measures)
 
-        for row in pipe.rows():
+        for row in source.rows():
             # Create aggregation key
             key = tuple(itertools.compress(row, key_selectors))
             # Create new aggregate record for key if it does not exist
@@ -648,7 +646,7 @@ class SelectNode(Node):
     }
 
 
-    def __init__(self, condition = None, discard = False):
+    def __init__(self, condition=None, discard=False):
         """Creates and initializes selection node
         """
         super(SelectNode, self).__init__()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import brewery.common as common
+from ..common import *
 
 __all__ = (
     "create_node",
@@ -95,7 +95,7 @@ def node_subclasses(root, abstract = False):
           ``False``
     """
     classes = []
-    for c in common.subclass_iterator(root):
+    for c in subclass_iterator(root):
         try:
             info = get_node_info(c)
 
@@ -113,7 +113,7 @@ def get_node_info(cls):
 
     if hasattr(cls, "__node_info__") and cls not in _node_info_warnings:
 
-        common.get_logger().warn("depreciated __node_info__ present in %s, rename to node_info" \
+        get_logger().warn("depreciated __node_info__ present in %s, rename to node_info" \
                     " (this warning will be shown only once)" % str(cls))
         _node_info_warnings.add(cls)
 
@@ -141,10 +141,8 @@ class Node(object):
         """
 
         super(Node, self).__init__()
-        self.output_fields = None
-        # Experimental: dictionary to be used to retype output fields
-        # Currently used only in CSV source node.
-        self._retype_dictionary = {}
+
+        # TODO: each node might contain an optional field filter
 
     def initialize(self):
         """Initializes the node. Initialization is separated from creation.
@@ -159,31 +157,59 @@ class Node(object):
             temporary tables created, data that are going to be used for
             configuration fetched, ... Initialization might require node to be
             fully configured first: all node attributes set to desired values.
+
+        .. note:
+
+            Obsolete.
         """
         pass
         # FIXME: obsolete
 
     def initialize_fields(self, sources):
         """Initialize fields based on source nodes. `sources` contains a list
-           of `FieldList` objects. """
+           of `FieldList` objects.
+
+        .. note:
+
+            Unused, probably obsolete.
+        """
+        # FIXME: unused
         pass
 
     def finalize(self):
         """Finalizes the node. Default implementation does nothing."""
         pass
 
+    def evaluate(self, sources=None):
+        """Main method for evaluating the node. `sources` is a dictionary of
+        node's sources. Keys might be indexes of ordered sources or names of
+        named sources. If node accepts only one source, then it can be get by
+        ``sources[0]``. The values of the dictionary are data objects
+        (instances of `DataObject`).
+
+        The `evaluate()` method should return a dictionary with result data
+        objects. If there is only one data object as a result, then it can be
+        returned.
+
+        Subclasses should implement this method.
+        """
+
+        raise NotImplementedError("Subclasses of Node should implement the run() method")
+
     def run(self, table=None):
         """Main method for running the node code on top of optional (virtual)
         table structure. Subclasses should implement this method.  """
 
-        raise NotImplementedError("Subclasses of Node should implement the run() method")
+        raise NotImplementedError("Subclasses of Node should no longer "
+                                  "implement the run() method. Implement "
+                                  "evaluate() instead")
 
     @property
     def input(self):
         """Return single node input if exists. Convenience property for nodes
         which process only one input. Raises exception if there are no inputs
         or are more than one imput."""
-
+        # FIXME: depreciated
         if len(self.inputs) == 1:
             return self.inputs[0]
         else:
@@ -196,6 +222,7 @@ class Node(object):
         Subclasses should override this method. Default implementation returns
         same fields as input has, raises exception when there are more inputs
         or if there is no input connected."""
+        # FIXME: depreciated
 
         if not len(self.inputs) == 1:
             raise ValueError("Can not get default list of output fields: node has more than one input"
@@ -219,7 +246,7 @@ class Node(object):
         ``CSVSourceNode`` will be ``csv_source``.
         """
 
-        logger = common.get_logger()
+        logger = get_logger()
 
         # FIXME: this is temporary warning
         info = get_node_info(cls)
@@ -229,7 +256,7 @@ class Node(object):
             ident = info.get("name")
 
         if not ident:
-            ident = common.to_identifier(common.decamelize(cls.__name__))
+            ident = to_identifier(decamelize(cls.__name__))
             if ident.endswith("_node"):
                 ident = ident[:-5]
 
@@ -268,9 +295,6 @@ class Node(object):
 
 class SourceNode(Node):
     """Abstract class for all source nodes
-
-    All source nodes should provide an attribute or implement a property (``@property``) called
-    ``output_fields``.
 
     .. abstract_node
 

@@ -3,6 +3,7 @@ from .metadata import *
 from .stream import *
 import brewery.backends
 import brewery.objects
+import brewery.transform
 
 __version__ = "0.11"
 

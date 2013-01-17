@@ -1,23 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+from ..objects.sql import SQLDataTarget
+from ..objects.text import CSVDataTarget
+
 from .base import TargetNode
+from ..ops.iterator import as_records
 # from ..ds.csv_streams import CSVDataTarget
-# from ..ds.sql_streams import SQLDataTarget
 import sys
 
-class StreamTargetNode(TargetNode):
-    """Generic data stream target. Wraps a :mod:`brewery.ds` data target and feeds data from the
-    input to the target stream.
+class DataObjectTarget(TargetNode):
+    """Generic data object target. Wraps existing target version of `DataObject`
+    and appends data from the source.
 
-    The data target should match stream fields.
-
-    Note that this node is only for programatically created processing streams. Not useable
-    in visual, web or other stream modelling tools.
+    Note that this node is only for programatically created processing
+    streams. Not useable in visual, web or other stream modelling tools.
     """
 
     node_info = {
-        "label" : "Data Stream Target",
+        "label" : "Data Object Target",
         "icon": "row_list_target_node",
         "description" : "Generic data stream data target node.",
         "attributes" : [
@@ -28,27 +29,21 @@ class StreamTargetNode(TargetNode):
         ]
     }
 
+    def __init__(self, target):
+        super(DataObjectTargetNode, self).__init__()
+        self.target = target
+
+    def evaluate(self, sources):
+        source = sources[0]
+        # FIXME: Check for fields compatibility
+        self.target.append_from(source)
+
+class DataStreamTarget(DataObjectTarget):
     def __init__(self, stream):
-        super(StreamTargetNode, self).__init__()
-        self.stream = stream
-
-    def initialize(self):
-        # if self.stream_type not in data_sources:
-        #     raise ValueError("No data source of type '%s'" % stream_type)
-        # stream_info = data_sources[self.stream_type]
-        # if "class" not in stream_info:
-        #     raise ValueError("No stream class specified for data source of type '%s'" % stream_type)
-
-        # self.stream = stream_class(**kwargs)
-        # self.stream.fields =
-        self.stream.initialize()
-
-    def run(self):
-        for row in self.input.rows():
-            self.stream.append(row)
-
-    def finalize(self):
-        self.stream.finalize()
+        super(DataStreamTarget, self).__init__(stream)
+        logger = get_logger()
+        logger.warn("DataStreamTarget is depreciated, use DataObjectTarget "
+                    "instead")
 
 class RowListTargetNode(TargetNode):
     """Target node that stores data from input in a list of rows (as tuples).
@@ -67,20 +62,24 @@ class RowListTargetNode(TargetNode):
         ]
     }
 
-    def __init__(self, a_list = None):
+    def __init__(self, data=None):
         super(RowListTargetNode, self).__init__()
-        if a_list:
-            self.list = a_list
+        if data is not None:
+            self.data = data
         else:
-            self.list = []
+            self.data = None
 
-    def run(self):
-        self.list = []
-        for row in self.input.rows():
-            self.list.append(row)
-    @property
-    def rows(self):
-        return self.list
+    def evaluate(self, sources):
+        source = sources[0]
+
+        if not "rows" in source.representations():
+            raise Exception("Source %s does not have rows representation" \
+                                % source)
+        if self.data is not None:
+            for row in source.rows():
+                self.data.append(row)
+        else:
+            self.data = list(source.rows())
 
 class RecordListTargetNode(TargetNode):
     """Target node that stores data from input in a list of records (dictionary objects)
@@ -100,21 +99,26 @@ class RecordListTargetNode(TargetNode):
             }
         ]
     }
-    def __init__(self, a_list = None):
+    def __init__(self, data=None):
         super(RecordListTargetNode, self).__init__()
-        if a_list:
-            self.list = a_list
+        if data is not None:
+            self.data = data
         else:
-            self.list = []
+            data = None
 
-    def run(self):
-        self.list = []
-        for record in self.input.records():
-            self.list.append(record)
+    def evaluate(self, sources):
+        source = sources[0]
 
-    @property
-    def records(self):
-        return self.list
+        if "records" in source.representations():
+            iterator = source.records()
+        else:
+            iterator = as_records(source.rows(), source.fields)
+
+        if self.data is not None:
+            for row in iterator:
+                self.data.append(row)
+        else:
+            self.data = list(iterator)
 
 class CSVTargetNode(TargetNode):
     """Node that writes rows into a comma separated values (CSV) file.
@@ -147,16 +151,15 @@ class CSVTargetNode(TargetNode):
     def __init__(self, resource = None, *args, **kwargs):
         super(CSVTargetNode, self).__init__()
         self.resource = resource
-        self.kwargs = kwargs
         self.args = args
+        self.kwargs = kwargs
 
-    def prepare(self, inputs):
-        self.fields = inputs[0].fields
-        self.target = CSVDataTarget(self.resource, self.fields,
+    def evaluate(self, sources):
+        source = sources[0]
+        self.target = CSVDataTarget(self.resource, fields=source.fields,
                                *self.args, **self.kwargs)
 
-    def evaluate(self, inputs):
-        self.target.append_from(inputs[0])
+        self.target.append_from(source)
 
     def finalize(self):
         self.target.flush()
@@ -254,17 +257,16 @@ class FormattedPrinterNode(TargetNode):
         self.handle = None
         self.close_handle = False
 
-    def prepare(self):
+    def evaluate(self, sources):
+        source = sources[0]
+        names = source.fields.names()
+
         if type(self.target) == str or type(self.target) == unicode:
             self.handle = open(self.target, "w")
             self.close_handle = True
         else:
             self.handle = self.target
             self.close_handle = False
-
-    def evaluate(self, inputs):
-
-        names = self.input_fields.names()
 
         if self.format:
             format_string = self.format
@@ -285,7 +287,12 @@ class FormattedPrinterNode(TargetNode):
             if self.delimiter:
                 self.handle.write(self.delimiter)
 
-        for record in self.inputs[0].records():
+        if "records" in source.representations():
+            iterator = source.records()
+        else:
+            iterator = as_records(source.rows(), source.fields)
+
+        for record in iterator:
             self.handle.write(format_string.format(**record).encode("utf-8"))
 
             if self.delimiter:
@@ -349,28 +356,19 @@ class PrettyPrinterNode(TargetNode):
         self.handle = None
         self.close_handle = False
 
-    def initialize_fields(self, sources):
+    # def initialize_fields(self, sources):
 
-        self.widths = [0] * len(sources[0])
-        self.names = sources[0].names()
-        if self.print_names:
-            self.labels = [f.label for f in sources[0]]
-        else:
-            self.labels = [f.label or f.name for f in sources[0]]
+    #     self.widths = [0] * len(sources[0])
+    #     self.names = sources[0].names()
+    #     if self.print_names:
+    #         self.labels = [f.label for f in sources[0]]
+    #     else:
+    #         self.labels = [f.label or f.name for f in sources[0]]
 
-        self._update_widths(self.names)
-        if self.print_labels:
-            self._update_widths(self.labels)
+    #     self._update_widths(self.names)
+    #     if self.print_labels:
+    #         self._update_widths(self.labels)
 
-        print "INITIALIZING FIELDS: %s" % sources
-
-    def initialize(self):
-        if type(self.target) == str or type(self.target) == unicode:
-            self.handle = open(self.target, "w")
-            self.close_handle = True
-        else:
-            self.handle = self.target
-            self.close_handle = False
 
     def _update_widths(self, row):
         for i, value in enumerate(row):
@@ -392,7 +390,6 @@ class PrettyPrinterNode(TargetNode):
         if self.print_labels:
             self._update_widths(self.labels)
 
-        print "INITIALIZING FIELDS: %s" % sources
         # initialize file
         if type(self.target) == str or type(self.target) == unicode:
             self.handle = open(self.target, "w")
@@ -524,39 +521,21 @@ class SQLTableTargetNode(TargetNode):
         ]
     }
 
-    def __init__(self, url=None, table=None, truncate=False, create=False,
-                 replace=False, **kwargs):
+    def __init__(self, *args, **kwargs):
+
         super(SQLTableTargetNode, self).__init__()
-        self.url = url
-        self.table = table
-        self.truncate = truncate
-        self.create = create
-        self.replace = replace
-
+        self.args = args
         self.kwargs = kwargs
-        self.stream = None
 
-        # FIXME: document this
-        self.concrete_type_map = None
+    def evaluate(self, sources=None):
+        source = sources[0]
+        target = SQLDataTarget(*self.args,
+                               fields=source.fields,
+                               **self.kwargs)
+        target.append_from(source)
+        target.flush()
 
-    def prepare(self, inputs):
-        self.target = SQLDataTarget(url=self.url,
-                                table=self.table,
-                                truncate=self.truncate,
-                                create=self.create,
-                                replace=self.replace,
-                                **self.kwargs)
 
-        self.target.fields = self.inputs[0].fields
-        self.target.concrete_type_map = self.concrete_type_map
-        self.target.initialize()
-
-    def evaluate(self, inputs):
-        self.target.append_from(inputs[0])
-
-    def finalize(self):
-        """Flush remaining records and close the connection if necessary"""
-        self.stream.finalize()
 
 # Original name is depreciated
 DatabaseTableTargetNode = SQLTableTargetNode

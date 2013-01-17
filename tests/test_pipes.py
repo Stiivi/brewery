@@ -4,7 +4,7 @@
 import unittest
 import threading
 import time
-import brewery.streams as streams
+import brewery.stream as streams
 
 @unittest.skip("obsolete - requires revision")
 class PipeTestCase(unittest.TestCase):

@@ -22,7 +22,12 @@ def distinct_rows(statement, keys):
     `keys`"""
     raise NotImplementedError
     cols = [statement.c[str(key)] for key in keys]
-    statement = statement.group_by(cols)
+    distinct = statement.select(cols).group_by(cols)
+    conditions = []
+    for key in keys:
+        key = str(key)
+        conditions += statement.c[key] == distinct.c[key]
+    full = distinct.join(statement)
     return statement
 
 def append(statements):

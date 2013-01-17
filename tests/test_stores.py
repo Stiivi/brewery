@@ -19,7 +19,7 @@ class BasicDataStoreTestCase(unittest.TestCase):
         data = [[i,1,2,3] for i in range(0, 10)]
 
         obj = IterableDataSource(data, None)
-        self.assertListEqual(["rows"], obj.representations())
+        self.assertListEqual(["rows", "records"], obj.representations())
 
         out = list(obj.rows())
         self.assertEqual(len(data), len(out))

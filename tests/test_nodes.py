@@ -3,34 +3,23 @@
 
 import unittest
 import brewery
-from brewery import ds
 import brewery.nodes
+from brewery.objects import *
+from brewery.stream import ExecutionContext
 
-@unittest.skip("obsolete test")
 class NodesTestCase(unittest.TestCase):
     def setUp(self):
-        self.input = brewery.streams.SimpleDataPipe()
-        self.output = brewery.streams.SimpleDataPipe()
-
-    def setup_node(self, node):
-        node.inputs = [self.input]
-        node.outputs = [self.output]
-
-    def create_sample(self, count = 100, custom = None, pipe = None):
-        if not pipe:
-            pipe = self.input
-        pipe.empty()
-        pipe.fields = brewery.FieldList(["i", "q", "str", "custom"])
+        self.fields = brewery.FieldList(["i", "q", "str", "custom"])
+        self.data = []
+        count = 20
         for i in range(0, count):
-            pipe.put([i, float(i)/4, "item-%s" % i, custom])
+            self.data.append([i, float(i)/4, "item-%s" % i, "a string"])
 
-    def test_node_subclasses(self):
-        nodes = brewery.nodes.node_dictionary().values()
-        self.assertIn(brewery.nodes.CSVSourceNode, nodes)
-        self.assertIn(brewery.nodes.AggregateNode, nodes)
-        self.assertIn(brewery.nodes.ValueThresholdNode, nodes)
-        self.assertNotIn(brewery.streams.Stream, nodes)
+        self.source = RowListDataObject(self.fields, self.data)
+        self.sources = {0:self.source}
+        self.context = ExecutionContext()
 
+    @unittest.skip("not yet")
     def test_node_dictionary(self):
         d = brewery.nodes.node_dictionary()
         self.assertIn("aggregate", d)
@@ -41,16 +30,21 @@ class NodesTestCase(unittest.TestCase):
 
     def test_sample_node(self):
         node = brewery.nodes.SampleNode()
-        self.setup_node(node)
-        self.create_sample()
         node.size = 5
-        self.initialize_node(node)
-        node.run()
-        node.finalize()
+        result = node.evaluate(self.context, self.sources)
+        result = list(result)
+        self.assertEqual(5, len(result))
+        items = [r[0] for r in result]
+        self.assertListEqual([0,1,2,3,4], items)
 
-        self.assertEqual(len(self.output.buffer), 5)
-        self.assertAllRows()
+        node.mode = "nth"
+        result = node.evaluate(self.context, self.sources)
+        result = list(result)
+        self.assertEqual(4, len(result))
+        items = [r[0] for r in result]
+        self.assertListEqual([0,5,10,15], items)
 
+    @unittest.skip("not yet")
     def test_replace_node(self):
         node = brewery.nodes.TextSubstituteNode("str")
         self.setup_node(node)
@@ -68,33 +62,15 @@ class NodesTestCase(unittest.TestCase):
 
     def test_append_node(self):
         node = brewery.nodes.AppendNode()
-        self.setup_node(node)
+        sources = {0:RowListDataObject(self.fields, self.data),
+                        1:RowListDataObject(self.fields, self.data)}
 
-        pipe1 = brewery.streams.SimpleDataPipe()
-        self.create_sample(4, custom = "a", pipe = pipe1)
+        result = node.evaluate(self.context, sources)
+        result = list(result)
 
-        pipe2 = brewery.streams.SimpleDataPipe()
-        self.create_sample(4, custom = "b", pipe = pipe2)
+        self.assertEqual(40, len(result))
 
-        node.inputs = [pipe1, pipe2]
-
-        self.initialize_node(node)
-        ifields = pipe1.fields
-        ofields = node.output_fields
-        self.assertEqual(ifields, ofields)
-
-        node.run()
-        node.finalize()
-
-        results = self.output.buffer
-
-        self.assertEqual(len(results), 8)
-
-        actual = [r[3] for r in results]
-        expected = ['a'] * 4 + ['b'] * 4
-        self.assertEqual(expected, actual)
-        self.assertAllRows()
-
+    @unittest.skip("not yet")
     def test_field_map(self):
         node = brewery.nodes.FieldMapNode()
 
@@ -121,86 +97,55 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(["custom", "index", "str"], keys)
         self.assertAllRows()
 
-    def create_distinct_sample(self, pipe = None):
-        if not pipe:
-            pipe = self.input
-        pipe.empty()
-        pipe.fields = brewery.FieldList(["id", "id2", "q", "type", "class"])
+    def create_distinct_sample(self):
+
+        fields = brewery.FieldList(["id", "id2", "q", "type", "class"])
+        obj = RowListDataObject(fields)
         for i in range(1, 10):
-            pipe.put([i, i, float(i)/4, "a", "x"])
-            pipe.put([i, i*10, float(i)/4, "a", "y"])
-            pipe.put([i*10, i*100, float(i)/4, "b", "x"])
-            pipe.put([i*100, i*1000, float(i)/4, "c", "y"])
+            obj.append([i, i, float(i)/4, "a", "x"])
+            obj.append([i, i*10, float(i)/4, "a", "y"])
+            obj.append([i*10, i*100, float(i)/4, "b", "x"])
+            obj.append([i*100, i*1000, float(i)/4, "c", "y"])
+        return obj
 
     def test_distinct(self):
         node = brewery.nodes.DistinctNode()
-        self.setup_node(node)
-        self.create_distinct_sample()
+        obj = self.create_distinct_sample()
+        sources = {0:obj}
+        # FIXME: check for field equality
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
 
-        self.initialize_node(node)
-        ifields = self.input.fields
-        ofields = node.output_fields
-        self.assertEqual(ifields, ofields)
-
-        node.run()
-        node.finalize()
-
-        self.assertEqual(36, len(self.output.buffer))
+        self.assertEqual(36, len(rows))
 
         # Test one field distinct
-        self.output.empty()
-        self.create_distinct_sample()
-
-        node.distinct_fields = ["type"]
-        node.initialize()
-        node.run()
-        node.finalize()
-
-        self.assertEqual(3, len(self.output.buffer))
+        node.keys = ["type"]
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
+        self.assertEqual(3, len(rows))
 
         # Test two field distinct
-        self.output.empty()
-        self.create_distinct_sample()
-
-        node.distinct_fields = ["type", "class"]
-        node.initialize()
-        node.run()
-        node.finalize()
-
-        self.assertEqual(4, len(self.output.buffer))
+        node.keys = ["type", "class"]
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
+        self.assertEqual(4, len(rows))
 
         # Test for duplicates by id
-        self.output.empty()
-        self.create_distinct_sample()
-
-        node.distinct_fields = ["id"]
+        node.keys = ["id"]
         node.discard = True
-        node.initialize()
-        node.run()
-        node.finalize()
-
-        values = []
-        for row in self.output.buffer:
-            values.append(row[0])
-
-        self.assertEqual(9, len(self.output.buffer))
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
+        self.assertEqual(9, len(rows))
 
         # Test for duplicates by id2 (should be none)
-        self.output.empty()
-        self.create_distinct_sample()
-
-        node.distinct_fields = ["id2"]
+        node.keys = ["id2"]
         node.discard = True
-        node.initialize()
-        node.run()
-        node.finalize()
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
 
-        values = []
-        for row in self.output.buffer:
-            values.append( row[1])
-
-        self.assertEqual(0, len(self.output.buffer))
-        self.assertAllRows()
+        values = [row[1] for row in rows]
+        self.assertListEqual([], values)
+        self.assertEqual(0, len(values))
 
     def record_results(self):
         return [r for r in self.output.records()]
@@ -210,6 +155,7 @@ class NodesTestCase(unittest.TestCase):
         for output in node.outputs:
             output.fields = node.output_fields
 
+    @unittest.skip("not yet")
     def test_aggregate_node(self):
         node = brewery.nodes.AggregateNode()
         self.setup_node(node)
@@ -269,14 +215,12 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual([5040], sums)
         self.assertAllRows()
 
-    def assertAllRows(self, pipe = None):
-        if not pipe:
-            pipe = self.output
-
-        for row in pipe.rows():
+    def assertAllRows(self, output):
+        for row in output.rows():
             if not (type(row) == list or type(row) == tuple):
-                self.fail('pipe should contain only rows (lists/tuples), found: %s' % type(row))
+                self.fail('output should contain only rows (lists/tuples), found: %s' % type(row))
 
+    @unittest.skip("not yet")
     def test_function_select(self):
         def select(value):
             return value < 5
@@ -326,6 +270,7 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual(8, len(self.output.buffer))
 
+    @unittest.skip("not yet")
     def test_select(self):
         def select_dict(**record):
             return record["i"] < 5
@@ -359,6 +304,7 @@ class NodesTestCase(unittest.TestCase):
         node.finalize()
         self.assertEqual(5, len(self.output.buffer))
 
+    @unittest.skip("not yet")
     def test_derive(self):
         def derive_dict(**record):
             return record["i"] * 10
@@ -396,6 +342,7 @@ class NodesTestCase(unittest.TestCase):
         val = sum([row[4] for row in self.output.buffer])
         self.assertEqual(49500, val)
 
+    @unittest.skip("not yet")
     def test_set_select(self):
         node = brewery.nodes.SetSelectNode(field = "type", value_set = ["a"])
 
@@ -409,6 +356,7 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual(18, len(self.output.buffer))
 
+    @unittest.skip("not yet")
     def test_audit(self):
         node = brewery.nodes.AuditNode()
         self.setup_node(node)
@@ -423,6 +371,7 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual(5, len(self.output.buffer))
 
+    @unittest.skip("not yet")
     def test_strip(self):
         node = brewery.nodes.StringStripNode(fields = ["custom"])
 
@@ -436,6 +385,7 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual("foo", self.output.buffer[0][3])
 
+    @unittest.skip("not yet")
     def test_strip_auto(self):
         fields = brewery.FieldList([("str1", "string"),
                                        ("x","unknown"),
@@ -457,6 +407,7 @@ class NodesTestCase(unittest.TestCase):
         row = self.output.buffer[0]
         self.assertEqual(["foo", " bar ", "baz", " moo "], row)
 
+    @unittest.skip("not yet")
     def test_consolidate_type(self):
         fields = brewery.FieldList([("s", "string"),
                                        ("i","integer"),
@@ -498,6 +449,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual([123, 123, 123, 123, None, None], integers) 
         self.assertEqual([123, 123, 123, 123, None, None], floats) 
 
+    @unittest.skip("not yet")
     def test_merge(self):
         node = brewery.nodes.MergeNode()
         self.create_distinct_sample()
@@ -524,20 +476,21 @@ class NodesTestCase(unittest.TestCase):
                     }
         self.initialize_node(node)
 
-        self.assertEqual(5, len(node.output_fields)) 
+        self.assertEqual(5, len(node.output_fields))
 
         node.run()
         node.finalize()
 
         self.assertEqual(5, len(self.output.buffer[0]))
-        self.assertEqual(input_len, len(self.output.buffer)) 
-        
+        self.assertEqual(input_len, len(self.output.buffer))
+
+    @unittest.skip("not yet")
     def test_generator_function(self):
         node = brewery.nodes.GeneratorFunctionSourceNode()
         def generator(start=0, end=10):
             for i in range(start,end):
                 yield [i]
-                
+
         node.function = generator
         node.fields = brewery.metadata.FieldList(["i"])
         node.outputs = [self.output]
@@ -555,4 +508,5 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(5, len(self.output.buffer))
         a = [row[0] for row in self.output.buffer]
         self.assertEqual([0,1,2,3,4], a)
+
 

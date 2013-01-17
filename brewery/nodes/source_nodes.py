@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .base import SourceNode
+from ..objects.base import IterableDataSource, IterableRecordsDataSource
 from ..objects.text import CSVDataSource
+from ..objects.sql import SQLDataSource
+from ..objects.xls_objects import XLSDataSource
+
+# FIXME: change this to data objects
 from ..ds.elasticsearch_streams import ESDataSource
 from ..ds.gdocs_streams import GoogleSpreadsheetDataSource
-# from ..ds.sql_streams import SQLDataSource
-from ..ds.xls_streams import XLSDataSource
 from ..ds.yaml_dir_streams import YamlDirectoryDataSource
 
 class RowListSourceNode(SourceNode):
@@ -19,7 +22,7 @@ class RowListSourceNode(SourceNode):
         "protected": True,
         "attributes" : [
             {
-                 "name": "list",
+                 "name": "data",
                  "description": "List of rows represented as lists or tuples."
             },
             {
@@ -28,25 +31,15 @@ class RowListSourceNode(SourceNode):
             }
         ]
     }
-    def __init__(self, a_list = None, fields = None):
-        if a_list:
-            self.list = a_list
+    def __init__(self, data=None, fields=None):
+        if data is not None:
+            self.data = data
         else:
-            self.list = []
+            self.data = []
         self.fields = fields
 
-    @property
-    def output_fields(self):
-        if not self.fields:
-            raise ValueError("Fields are not initialized")
-        return self.fields
-
-    def run(self):
-        for row in self.list:
-            self.put(row)
-
-    def evaluate(self):
-        return IteratorDataObject(iter(self.list))
+    def evaluate(self, sources=None):
+        return IterableDataSource(self.data, self.fields)
 
 
 class RecordListSourceNode(SourceNode):
@@ -59,7 +52,7 @@ class RecordListSourceNode(SourceNode):
         "protected": True,
         "attributes" : [
             {
-                 "name": "a_list",
+                 "name": "data",
                  "description": "List of records represented as dictionaries."
             },
             {
@@ -69,72 +62,51 @@ class RecordListSourceNode(SourceNode):
         ]
     }
 
-    def __init__(self, a_list=None, fields=None):
+    def __init__(self, data=None, fields=None):
         super(RecordListSourceNode, self).__init__()
-        if a_list:
-            self.list = a_list
+        if data is not None:
+            self.data = data
         else:
-            self.list = []
+            self.data = []
         self.fields = fields
 
-    @property
-    def output_fields(self):
-        if not self.fields:
-            raise ValueError("Fields are not initialized")
-        return self.fields
+    def evaluate(self, sources=None):
+        return IterableRecordsDataSource(self.data, self.fields)
 
-    def run(self):
-        for record in self.list:
-            self.put(record)
+class DataObjectSourceNode(SourceNode):
+    """Generic data object source. Wraps a :mod:`brewery.objects` objects,
+    output is the wrapped object.
 
-class StreamSourceNode(SourceNode):
-    """Generic data stream source. Wraps a :mod:`brewery.ds` data source and feeds data to the
-    output.
-
-    The source data stream should configure fields on initialize().
-
-    Note that this node is only for programatically created processing streams. Not useable
-    in visual, web or other stream modelling tools.
+    Note that this node is only for programatically created processing
+    streams. Not useable in visual, web or other stream modelling tools.
     """
 
     node_info = {
-        "label" : "Data Stream Source",
+        "label" : "Data Object Source",
         "icon": "row_list_source_node",
-        "description" : "Generic data stream data source node.",
+        "description" : "Generic source node for any data object.",
         "protected": True,
         "attributes" : [
             {
-                 "name": "stream",
-                 "description": "Data stream object."
+                 "name": "obj",
+                 "description": "Data object."
             }
         ]
     }
 
     def __init__(self, stream):
         super(StreamSourceNode, self).__init__()
-        self.stream = stream
+        self.obj = obj
 
-    def initialize(self):
-        # if self.stream_type not in data_sources:
-        #     raise ValueError("No data source of type '%s'" % stream_type)
-        # stream_info = data_sources[self.stream_type]
-        # if "class" not in stream_info:
-        #     raise ValueError("No stream class specified for data source of type '%s'" % stream_type)
+    def evaluate(self, sources=None):
+        return self.obj
 
-        # self.stream = stream_class(**kwargs)
-        # self.stream.fields =
-        self.stream.initialize()
-
-    @property
-    def output_fields(self):
-        return self.stream.fields
-
-    def run(self):
-        for row in self.stream.rows():
-            self.put(row)
-
-    def finalize(self):
-        self.stream.finalize()
+# FIXME: remove this
+class StreamSourceNode(DataObjectSourceNode):
+    def __init__(self, stream):
+        super(StreamSourceNode, self).__init__(stream)
+        logger = get_logger()
+        logger.warn("StreamSourceNode is depreciated, use DataObjectSourceNode")
 
 class CSVSourceNode(SourceNode):
     """Source node that reads comma separated file from a filesystem or a remote URL.
@@ -183,37 +155,28 @@ class CSVSourceNode(SourceNode):
             }
         ]
     }
-    def __init__(self, resource = None, *args, **kwargs):
+    def __init__(self, resource=None, *args, **kwargs):
         super(CSVSourceNode, self).__init__()
         self.resource = resource
         self.args = args
         self.kwargs = kwargs
-        self.stream = None
-        self.fields = None
-        self.output_fields = None
 
-    def initialize(self):
-        self.stream = CSVDataSource(self.resource, *self.args, **self.kwargs)
+    # def initialize(self):
+    #     self.stream = CSVDataSource(self.resource, *self.args, **self.kwargs)
 
-        if self.fields:
-            self.stream.fields = self.fields
+    #     if self.fields:
+    #         self.stream.fields = self.fields
 
-        self.stream.initialize()
+    #     self.stream.initialize()
 
-        self.output_fields = self.stream.fields.copy()
-        # self._output_fields.retype(self._retype_dictionary)
-        for field in self.output_fields:
-            field.origin = self
-            field.freeze()
-
-    def run(self, sources, target):
-        for row in self.stream.rows():
-            target.append(row)
+    #     self.output_fields = self.stream.fields.copy()
+    #     # self._output_fields.retype(self._retype_dictionary)
+    #     for field in self.output_fields:
+    #         field.origin = self
+    #         field.freeze()
 
     def evaluate(self, inputs=None):
         return CSVDataSource(self.resource, *self.args, **self.kwargs)
-    def finalize(self):
-        self.stream.finalize()
 
 class XLSSourceNode(SourceNode):
     """Source node that reads Excel XLS files.
@@ -259,44 +222,9 @@ class XLSSourceNode(SourceNode):
         super(XLSSourceNode, self).__init__()
         self.args = args
         self.kwargs = kwargs
-        self.stream = None
-        self._fields = None
 
-    @property
-    def output_fields(self):
-        if not self.stream:
-            raise ValueError("Stream is not initialized")
-
-        if not self.stream.fields:
-            raise ValueError("Fields are not initialized")
-
-        return self.stream.fields
-
-    def __set_fields(self, fields):
-        self._fields = fields
-        if self.stream:
-            self.stream.fields = fields
-
-    def __get_fields(self):
-        return self._fields
-
-    fields = property(__get_fields, __set_fields)
-
-    def initialize(self):
-        self.stream = XLSDataSource(*self.args, **self.kwargs)
-
-        if self._fields:
-            self.stream.fields = self._fields
-
-        self.stream.initialize()
-        self._fields = self.stream.fields
-
-    def run(self):
-        for row in self.stream.rows():
-            self.put(row)
-
-    def finalize(self):
-        self.stream.finalize()
+    def evaluate(self, sources=None):
+        return XLSDataSource(*self.args, **self.kwargs)
 
 
 class YamlDirectorySourceNode(SourceNode):
@@ -486,44 +414,15 @@ class SQLSourceNode(SourceNode):
         super(SQLSourceNode, self).__init__()
         self.args = args
         self.kwargs = kwargs
-        self.stream = None
-        self._fields = None
+        self.source = None
 
-    @property
-    def output_fields(self):
-        if not self.stream:
-            raise ValueError("Stream is not initialized")
+    def evaluate(self, inputs=None):
+         return SQLDataSource(*self.args, **self.kwargs)
 
-        if not self.stream.fields:
-            raise ValueError("Fields are not initialized")
-
-        return self.stream.fields
-
-    def __set_fields(self, fields):
-        self._fields = fields
-        if self.stream:
-            self.stream.fields = fields
-
-    def __get_fields(self):
-        return self._fields
-
-    fields = property(__get_fields, __set_fields)
-
-    def initialize(self):
-        self.stream = SQLDataSource(*self.args, **self.kwargs)
-        self.stream.initialize()
-        self._fields = self.stream.fields
-
-    def run(self):
-        for row in self.stream.rows():
-            self.put(row)
-
-    def finalize(self):
-        self.stream.finalize()
 
 class ESSourceNode(SourceNode):
     """Source node that reads from an ElasticSearch index.
-    
+
     See ElasticSearch home page for more information:
     http://www.elasticsearch.org/
     """
@@ -630,17 +529,7 @@ class GeneratorFunctionSourceNode(SourceNode):
         self.args = args
         self.kwargs = kwargs
 
-    @property
-    def output_fields(self):
-        if not self.fields:
-            raise ValueError("Fields are not initialized")
-        return self.fields
-
     def evaluate(self):
         i = self.function(*self.args, **self.kwargs)
-        return IteratorDataObject(i)
-
-    def run(self, sources, target):
-        for row in self.function(*self.args, **self.kwargs):
-            target.append(row)
+        return IteratorDataObject(i, fields)
 
