@@ -5,7 +5,46 @@ import functools
 from collections import OrderedDict
 
 # FIXME: add cheaper version for already sorted data
-def distinct(iterator, fields, keys, discard=False):
+
+def as_records(iterator, fields):
+    """Returns iterator of dictionaries where keys are defined in fields."""
+
+    names = [str(field) for field in fields]
+    for row in iterator:
+        yield dict(zip(names, row))
+
+def distinct(iterator, fields, keys, is_sorted=False):
+    """Return distinct `keys` from `iterator`. `iterator` does
+    not have to be sorted. If iterator is sorted by the keys and `is_sorted`
+    is ``True`` then more efficient version is used."""
+
+    row_filter = FieldFilter(keep=keys).row_filter(fields)
+    if is_sorted:
+        last_key = object()
+
+        # FIXME: use itertools equivalent
+        for value in iterator:
+            key_tuple = (row_filter(row))
+            if key_tuple != last_key:
+                yield row
+
+    else:
+        distinct_values = set()
+
+        for row in iterator:
+            # Construct key tuple from distinct fields
+            key_tuple = tuple(row_filter(row))
+
+            if key_tuple not in distinct_values:
+                distinct_values.add(key_tuple)
+                yield row
+
+def unique(iterator, fields, keys, discard=False):
+    """Return rows that are unique by `keys`. If `discard` is `True` then the
+    action is reversed and duplicate rows are returned."""
+
+    # FIXME: add is_sorted version
+
     row_filter = FieldFilter(keep=keys).row_filter(fields)
 
     distinct_values = set()
@@ -26,20 +65,33 @@ def distinct(iterator, fields, keys, discard=False):
 
 def append(iterators):
     """Appends iterators"""
-    return itertools.chain(*rators)
+    return itertools.chain(*iterators)
 
-def sample(iterator, value, mode="first"):
+def sample(iterator, value, discard=False, mode="first"):
     """Returns sample from the iterator. If `mode` is ``first`` (default),
     then `value` is number of first records to be returned. If `mode` is
     ``nth`` then one in `value` records is returned."""
 
     if mode == "first":
-        return itertools.islice(iterator, value)
+        if discard:
+            return itertools.islice(iterator, value, None)
+        else:
+            return itertools.islice(iterator, value)
     elif mode == "nth":
-        return itertools.islice(iterator, None, None, value)
+        if discard:
+            return discard_nth(iterator, value)
+        else:
+            return itertools.islice(iterator, None, None, value)
+    elif mode == "random":
+        raise NotImplementedError("random sampling is not yet implemented")
     else:
         raise Exception("Unknown sample mode '%s'" % mode)
 
+def discard_nth(iterator, step):
+    """Discards every step-th item from `iterator`"""
+    for i, value in enumerate(iterator):
+        if i % value != 0:
+            yield value
 
 def field_filter(iterator, fields, field_filter):
     """Filters fields in `iterator` according to the `field_filter`.
