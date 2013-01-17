@@ -4,8 +4,14 @@ from ..ops.iterator import as_records
 
 __all__ = [
         "DataStore",
+        "SimpleMemoryStore",
+
         "DataObject",
-        "IterableDataSource"
+        "IterableDataSource",
+        "RowListDataObject",
+        "IterableRecordsDataSource",
+
+        "shared_representations"
         ]
 
 _data_stores = {
@@ -33,6 +39,39 @@ class DataObject(object):
         implementation returns only `rows` as this representation should be
         implemented by all data objects. """
         return ["rows"]
+
+    def is_compatible(self, obj, required=None, ignored=None):
+        """Reeturns `True` when the receiver and the `object` share
+        representations. `required` contains list of representations that at
+        least one of them is required. If not present, then returns `False`.
+        `ignored` is a list of representations that are not relevant for the
+        comparison."""
+        required = set(required or [])
+        ignored = set(ignored or [])
+        ours = set(self.representations() or [])
+        theirs = set(obj.representations or [])
+
+        reprs = (ours - ignored) & (theirs - ignored)
+        if required:
+            reprs = reprs & required
+
+        return len(reprs) > 0
+
+    def can_compose(self, obj):
+        """Returns `True` when any of the representations can be naturally
+        (without a proxy) composed by any of the representations of `obj` to
+        form new representation.  Example of composable objects are SQL
+        statement object from the same engine. Subclasses should implement
+        this method. Default implementation returns `False`, which means that
+        the only suggested composition is to use iterators.
+
+        The method should be transient. That is, if A can be naturally
+        composed with B and B with C, then A can be naturally composed with C
+        as well. This property is for simplification of finding whether a list
+        of objects can be composed together or not.
+        """
+
+        return False
 
     def truncate(self):
         """Removes all records from the target table"""
@@ -71,9 +110,6 @@ class DataObject(object):
 
     def __iter__(self):
         return self.rows()
-
-    def __len__(self):
-        raise NotImplementedError
 
     def best_representation(self, reps, required_store=None):
         """Returns best representation from list of representations `reps`. If
@@ -127,6 +163,15 @@ class DataObject(object):
         Default implementation returns the receiver."""
         return self
 
+def shared_representations(objects):
+    """Returns representations that are shared by all `objects`"""
+    objects = objects.values()
+    reps = set(objects[0].representations())
+    for obj in objects[1:]:
+        reps &= set(obj.representations())
+
+    return reps
+
 class IterableDataSource(DataObject):
     def __init__(self, iterable, fields):
         """Create a data object that wraps an iterable."""
@@ -163,11 +208,16 @@ class IterableRecordsDataSource(IterableDataSource):
         return iter(self.iterable)
 
 class RowListDataObject(DataObject):
-    def __init__(self, fields):
+    def __init__(self, fields, data=None):
         """Create a data object that wraps an iterable. The object is dumb,
-        does not perform any field checking, accepts anything passed to it."""
+        does not perform any field checking, accepts anything passed to it.
+        `data` should be appendable list-like object, if not provided, empty
+        list is created."""
         self.fields = fields
-        self.data = []
+        if data is None:
+            self.data = []
+        else:
+            self.data = data
 
     def representations(self):
         """Returns the only representation of iterable object, which is
@@ -180,9 +230,8 @@ class RowListDataObject(DataObject):
     def records(self):
         return as_records(self.rows(), self.fields)
 
-    def append(self, rows):
-        for row in rows:
-            self.data.append(row)
+    def append(self, row):
+        self.data.append(row)
 
     def truncate(self):
         self.data = []
@@ -301,3 +350,4 @@ def copy_object(source_store, source_name, target_store,
         target.flush()
 
     return target
+
