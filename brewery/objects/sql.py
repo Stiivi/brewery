@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .base import *
 from ..errors import *
+from ..common import get_logger
 import brewery.metadata
 
 __all__ = (
@@ -53,27 +54,34 @@ try:
             compiler.process(element.select)
         )
 
-    class InsertIntoAsSelect(Executable, ClauseElement):
+    class InsertFromSelect(Executable, ClauseElement):
+        _execution_options = \
+            Executable._execution_options.union({'autocommit': True})
+
         def __init__(self, table, select):
             self.table = table
             self.select = select
 
-    @compiles(InsertIntoAsSelect)
-    def visit_insert_into_as_select(element, compiler, **kw):
-        return "INSERT INTO %s %s" % (
+    @compiles(InsertFromSelect)
+    def visit_insert_from_select(element, compiler, **kw):
+        return "INSERT INTO %s (%s)" % (
             compiler.process(element.table, asfrom=True),
             compiler.process(element.select)
         )
 
-except:
+except ImportError:
     from brewery.common import MissingPackage
     sqlalchemy = MissingPackage("sqlalchemy", "SQL streams", "http://www.sqlalchemy.org/",
                                 comment = "Recommended version is > 0.7")
     _sql_to_brewery_types = ()
     concrete_sql_type_map = {}
 
+# Length of string data types such as varchar in dialects that require length
+# to be specified. This value is used when no `Field.size` is specified.
+DEFAULT_STRING_LENGTH = 126
 
-def concrete_storage_type(field, type_map={}):
+
+def concrete_storage_type(field, type_map={}, dialect=None):
     """Derives a concrete storage type for the field based on field conversion
        dictionary"""
 
@@ -88,7 +96,13 @@ def concrete_storage_type(field, type_map={}):
 
         # Account for type specific options, like "length"
         if (concrete_type == sqlalchemy.types.Unicode):
-            concrete_type = sqlalchemy.types.Unicode(length=field.size)
+            # TODO: add all dialects that require length for strings
+            if not field.size and dialect in ("mysql", ):
+                length = DEFAULT_STRING_LENGTH
+            else:
+                length = field.size
+
+            concrete_type = sqlalchemy.types.Unicode(length=length)
 
         if not concrete_type:
             raise ValueError("unable to find concrete storage type for field '%s' "
@@ -126,7 +140,7 @@ def fields_from_table(table):
 
     return brewery.metadata.FieldList(fields)
 
-def default_store(connectable=None, url=None, schema=None):
+def default_store(url=None, connectable=None, schema=None):
     """Gets a default store for connectable or URL. If store does not exist
     one is created and added to shared default store pool."""
 
@@ -143,7 +157,7 @@ def default_store(connectable=None, url=None, schema=None):
             _default_stores[store.connectable] = store
     else:
         try:
-            store = _default_store[connectable]
+            store = _default_stores[connectable]
         except KeyError:
             store = SQLDataStore(connectable=connectable)
             _default_stores[store.connectable] = store
@@ -167,6 +181,7 @@ class SQLDataStore(object):
         if connectable:
             self.connectable = connectable
             self.should_close = False
+            print "1CONNECTABLE: %s" % self.connectable
         else:
             self.connectable = sqlalchemy.create_engine(url)
             self.should_close = True
@@ -204,7 +219,8 @@ class SQLDataStore(object):
         table = self.create_table(name, fields=fields, replace=replace,
                                   from_obj=from_obj, schema=schema,
                                   id_column=id_column)
-        return SQLDataTarget(store=self, table=table, schema=schema)
+        return SQLDataTarget(store=self, table=table, fields=fields,
+                                schema=schema)
 
     def create_table(self, name, fields, replace=False, from_obj=None, schema=None,
                id_column=None):
@@ -294,8 +310,17 @@ class SQLDataStore(object):
 
         schema = schema or self.schema
 
-        return sqlalchemy.Table(table, self.metadata,
+        try:
+            return sqlalchemy.Table(table, self.metadata,
                                 autoload=autoload, schema=schema)
+        except sqlalchemy.exc.NoSuchTableError:
+            if schema:
+                slabel = " in schema '%s'" % schema
+            else:
+                slabel = ""
+
+            raise DataObjectError("Unable to find table '%s'%s" % \
+                                    (table, slabel))
 
     def execute(self, statement, *args, **kwargs):
         """Executes `statement` in store's connectable"""
@@ -325,7 +350,7 @@ def selectable_from_object(obj, store):
 class SQLDataSource(DataObject):
     """docstring for ClassName
     """
-    def __init__(self, connectable=None, url=None,
+    def __init__(self, url=None,connectable=None,
                         table=None, statement=None, schema=None,
                         store=None, **options):
         """Creates a relational database data object.
@@ -404,8 +429,14 @@ class SQLDataSource(DataObject):
 
         self.fields = brewery.FieldList(fields)
 
+    def can_compose(self, obj):
+        return isinstance(obj, SQLDataSource) and self.store == obj.store
+
     def rows(self):
-        return iter(self.statement.execute())
+        if self.table is not None:
+            return iter(self.table.select().execute())
+        else:
+            return iter(self.statement.execute())
 
     def sql_statement(self):
         return self.statement
@@ -414,17 +445,16 @@ class SQLDataSource(DataObject):
         return self.table
 
     def records(self):
-        fields = self.fields.names()
-        for row in self.rows():
-            record = dict(zip(fields, row))
-            yield record
+        # SQLAlchemy result is dict-like object where values can be accessed
+        # by field names as well, so we just return the same iterator
+        return self.rows()
 
     def representations(self):
         """Return list of possible object representations"""
         if self.table is not None:
-            return ["rows", "sql_statement", "sql_table"]
+            return ["rows", "records", "sql_statement", "sql_table"]
         else:
-            return ["rows", "sql_statement"]
+            return ["rows", "records", "sql_statement"]
 
     def __len__(self):
         """Returns number of rows in a table"""
@@ -465,6 +495,9 @@ class SQLDataTarget(object):
         Note: avoid auto-detection when you are reading from remote URL stream.
 
         """
+        if fields is None:
+            raise ArgumentError("No fields specified for SQL target.")
+
         if not options:
             options = {}
 
@@ -481,6 +514,8 @@ class SQLDataTarget(object):
         self.create = create
         self.truncate = truncate
         self.fields = fields
+        # FIXME: make use of this
+        self.concrete_field_map = {}
 
         self.id_key_name = id_key_name
 
@@ -498,7 +533,7 @@ class SQLDataTarget(object):
         else:
             self.table = self.store.table(table, schema=schema, autoload=True)
 
-        self.table_name = table.name
+        self.table_name = self.table.name
 
         if self.truncate:
             self.table.delete().execute()
@@ -528,7 +563,6 @@ class SQLDataTarget(object):
         return self.rows()
 
     def append(self, row):
-
         # FIXME: remove this once SQLAlchemy will allow list based multi-insert
         row = dict(zip(self.fields.names(), row))
 
@@ -554,26 +588,34 @@ class SQLDataTarget(object):
         * after insert of all rows of `rows` representation
         """
 
+        print "APPEND FROM: %s" % obj
+
         try:
             reprs = obj.representations()
         except AttributeError:
             reprs = ["rows"]
 
-        if "sql_table" in reprs or "sql_statement" in reprs:
+        if obj.store == self.store and \
+                ("sql_table" in reprs or "sql_statement" in reprs):
             # Flush all data that were added through append() to preserve
             # insertion order (just in case)
             self.flush()
 
             # Preare INSERT INTO ... SELECT ... statement
             source = selectable_from_object(obj, self.store)
-            statement = InsertIntoAsSelect(self.table, source)
-
+            statement = InsertFromSelect(self.table, source)
+            # statement = statement.execution_options(autocommit=True)
+            log = get_logger()
+            print "== stmt: %s" % type(statement)
+            print "== SQL: %s" % str(statement)
+            # statement = str(statement)
             self.store.connectable.execute(statement)
+
 
         elif "rows" in reprs:
             # Assumption: all data objects with "rows" representation
             # implement Python iteraotr protocol
-            for row in obj:
+            for row in obj.rows():
                 self.append(row)
 
             # Clean-up after bulk insertion
@@ -582,6 +624,10 @@ class SQLDataTarget(object):
         else:
             raise RepresentationError(
                             "Incopatible representations '%s'", (reprs, ) )
+
+        print "ROWS:"
+        for row in self.table.select().execute():
+            print row
 
     def truncate(self):
         if not table:
