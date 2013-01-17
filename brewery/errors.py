@@ -31,6 +31,10 @@ class ArgumentError(BreweryError):
 class DataObjectError(BreweryError):
     """Generic error in a data object."""
 
+class NoSuchObjectError(DataObjectError):
+    """Raised when object does not exist."""
+    pass
+
 class ObjectExistsError(DataObjectError):
     """Raised when attempting to create and object that already exists"""
     pass
