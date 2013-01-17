@@ -31,8 +31,14 @@ storage_types = (
 
 
 """Analytical types used by analytical nodes"""
-analytical_types = ("default", "typeless", "flag", "discrete", "measure",
-                    "nominal", "ordinal")
+analytical_types = ("default",  # unspecified or based on storage type
+                    "typeless", # not relevant
+                    "flag",     # two-element set
+                    "discrete", # mostly integer with allowed arithmentic
+                    "measure",  # mostly floating point number
+                    "nominal",  # unordered set
+                    "ordinal"   # ordered set
+                    )
 
 """Mapping between storage types and their respective default analytical
 types"""
@@ -499,5 +505,8 @@ class RowFieldFilter(object):
 
     def filter(self, row):
         """Filter a `row` according to ``indexes``."""
+        return [value for value,mask in zip(row, self.mask) if mask]
         return list(itertools.compress(row, self.mask))
 
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.mask)
