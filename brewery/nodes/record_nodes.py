@@ -606,8 +606,15 @@ class SelectRecordsNode(Node):
                                 "record values if the keys and field names "
                                 "are the same.",
                 "type": "dict"
+            },
+        ],
+        "source": {
+                "representations": ["records", "rows"],
+                "preferred_rep": "records"
+            },
+        "output": {
+                "representation": "records"
             }
-        ]
     }
 
 
@@ -748,7 +755,7 @@ class SetSelectNode(Node):
         ]
     }
 
-    def __init__(self, field = None, value_set = None, discard = False):
+    def __init__(self, field=None, value_set=None, discard=False):
         """Creates a node that will select records where `field` contains value from `value_set`.
 
         :Parameters:
@@ -773,22 +780,26 @@ class SetSelectNode(Node):
             if (flag and not self.discard) or (not flag and self.discard):
                 self.put(row)
 
-    def evaluate(self, inputs):
-        source = inputs[0]
+    def evaluate(self, context, sources):
+        source = sources[0]
         if "sql_statement" in source.representations():
+            # FIXME: implement this
+            raise NotImplementedError
             statement = source.sql_statement()
-            statement = ops.sql.set_select(statement,
-                                            self.field,
-                                            self.value_set,
-                                            discard)
+            statement = ops.sql.select_from_set(statement,
+                                                source.fields,
+                                                self.field,
+                                                self.value_set,
+                                                self.discard)
             result = source.copy()
             result.statement = statement
         else:
-            iterator = ops.iterator.set_select(source.rows(),
+            iterator = ops.iterator.select_from_set(source.rows(),
+                                                source.fields,
                                                 self.field,
                                                 self.value_set,
-                                                discard)
-            result = IteratorDataObject(iterator)
+                                                self.discard)
+            result = IterableDataSource(iterator, source.fields)
 
         return result
 

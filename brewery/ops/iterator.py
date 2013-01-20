@@ -103,6 +103,22 @@ def select(iterator, fields, predicate, arg_fields, discard=False, kwargs=None):
         if (flag and not discard) or (not flag and discard):
             yield row
 
+def select_from_set(iterator, fields, field, values, discard=False):
+    """Select rows where value of `field` belongs to the set of `values`. If
+    `discard` is ``True`` then the matching rows are discarded instead
+    (operation is inverted)."""
+    index = fields.index(field)
+
+    # Convert the values to more efficient set
+    values = set(values)
+
+    if discard:
+        predicate = lambda row: row[index] not in values
+    else:
+        predicate = lambda row: row[index] in values
+
+    return itertools.ifilter(predicate, iterator)
+
 def select_records(iterator, fields, predicate, discard=False, kwargs=None):
     """Returns an interator selecting fields where `predicate` is true.
     `predicate` should be a python callable. `arg_fields` are names of fields

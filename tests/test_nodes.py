@@ -299,19 +299,16 @@ class NodesTestCase(unittest.TestCase):
         val = sum([row[4] for row in self.output.buffer])
         self.assertEqual(49500, val)
 
-    @unittest.skip("not yet")
     def test_set_select(self):
-        node = brewery.nodes.SetSelectNode(field = "type", value_set = ["a"])
+        node = brewery.nodes.SetSelectNode(field="type", value_set=["a"])
 
-        self.setup_node(node)
-        self.create_distinct_sample()
+        obj = self.create_distinct_sample()
+        sources = {0:obj}
 
-        self.initialize_node(node)
+        result = node.evaluate(self.context, sources)
+        rows = list(result.rows())
 
-        node.run()
-        node.finalize()
-
-        self.assertEqual(18, len(self.output.buffer))
+        self.assertEqual(18, len(rows))
 
     @unittest.skip("not yet")
     def test_audit(self):
