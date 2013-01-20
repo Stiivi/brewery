@@ -33,6 +33,7 @@ data_object_types = [
             "sql_table" # SQLAlchemy table object
         ]
 
+
 class DataObject(object):
     def representations(self):
         """Returns list of representation names of this data object. Default
@@ -162,6 +163,11 @@ class DataObject(object):
 
         Default implementation returns the receiver."""
         return self
+
+    def is_reusable(self):
+        """Returns `True` if the object's representations can be used more
+        than once yielding the same result. Default is `False`"""
+        return False
 
 def shared_representations(objects):
     """Returns representations that are shared by all `objects`"""

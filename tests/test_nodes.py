@@ -205,89 +205,61 @@ class NodesTestCase(unittest.TestCase):
             if not (type(row) == list or type(row) == tuple):
                 self.fail('output should contain only rows (lists/tuples), found: %s' % type(row))
 
-    @unittest.skip("not yet")
-    def test_function_select(self):
+    def test_select(self):
         def select(value):
             return value < 5
         def select_greater_than(value, threshold):
             return value > threshold
 
-        node = brewery.nodes.FunctionSelectNode(function = select, fields = ["i"])
+        node = brewery.nodes.SelectNode(function=select, fields=["i"])
 
-        self.setup_node(node)
-        self.create_sample()
-
-        self.initialize_node(node)
-
+        # FIXME: check input > output fields
         # Passed fields should be equal
-        ifields = self.input.fields
-        ofields = node.output_fields
-        self.assertEqual(ifields, ofields)
+        # ifields = self.input.fields
+        # ofields = node.output_fields
+        # self.assertEqual(ifields, ofields)
 
-        node.run()
-        node.finalize()
+        result = node.evaluate(self.context, self.sources)
+        rows = list(result.rows())
+        self.assertEqual(5, len(rows))
 
-        self.assertEqual(5, len(self.output.buffer))
+        # Try lambda
+        pred = lambda value: value < 10
+        node.function = pred
 
-        self.output.empty()
-        x = lambda value: value < 10
-        node.function = x
-        self.setup_node(node)
-        self.create_sample()
-
-        self.initialize_node(node)
-        node.run()
-        node.finalize()
-
-        self.assertEqual(10, len(self.output.buffer))
+        result = node.evaluate(self.context, self.sources)
+        rows = list(result.rows())
+        self.assertEqual(10, len(rows))
 
         # Test kwargs
-        self.output.empty()
-        self.setup_node(node)
-        self.create_sample()
         node.function = select_greater_than
         node.kwargs = {"threshold" : 7}
         node.discard = True
 
-        self.initialize_node(node)
-        node.run()
-        node.finalize()
+        result = node.evaluate(self.context, self.sources)
+        rows = list(result.rows())
+        self.assertEqual(8, len(rows))
 
-        self.assertEqual(8, len(self.output.buffer))
-
-    @unittest.skip("not yet")
-    def test_select(self):
+    def test_record_select(self):
         def select_dict(**record):
             return record["i"] < 5
         def select_local(i, **args):
             return i < 5
 
-        node = brewery.nodes.SelectNode(condition = select_dict)
+        node = brewery.nodes.SelectRecordsNode(condition=select_dict)
+        result = node.evaluate(self.context, self.sources)
+        rows = list(result.rows())
+        self.assertEqual(5, len(rows))
 
-        self.setup_node(node)
-        self.create_sample()
-        self.initialize_node(node)
-        node.run()
-        node.finalize()
-        self.assertEqual(5, len(self.output.buffer))
-
-        self.output.empty()
-        self.setup_node(node)
-        self.create_sample()
         node.condition = select_local
-        self.initialize_node(node)
-        node.run()
-        node.finalize()
-        self.assertEqual(5, len(self.output.buffer))
+        result = node.evaluate(self.context, self.sources)
+        rows = list(result.rows())
+        self.assertEqual(5, len(rows))
 
-        self.output.empty()
-        self.setup_node(node)
-        self.create_sample()
         node.condition = "i < 5"
-        self.initialize_node(node)
-        node.run()
-        node.finalize()
-        self.assertEqual(5, len(self.output.buffer))
+        result = node.evaluate(self.context, self.sources)
+        rows = list(result.rows())
+        self.assertEqual(5, len(rows))
 
     @unittest.skip("not yet")
     def test_derive(self):

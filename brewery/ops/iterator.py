@@ -89,6 +89,33 @@ def sample(iterator, value, discard=False, mode="first"):
     else:
         raise Exception("Unknown sample mode '%s'" % mode)
 
+def select(iterator, fields, predicate, arg_fields, discard=False, kwargs=None):
+    """Returns an interator selecting fields where `predicate` is true.
+    `predicate` should be a python callable. `arg_fields` are names of fields
+    to be passed to the function (in that order). `kwargs` are additional key
+    arguments to the predicate function."""
+    indexes = fields.indexes(arg_fields)
+    row_filter = FieldFilter(keep=arg_fields).row_filter(fields)
+
+    for row in iterator:
+        values = [row[index] for index in indexes]
+        flag = predicate(*values, **kwargs)
+        if (flag and not discard) or (not flag and discard):
+            yield row
+
+def select_records(iterator, fields, predicate, discard=False, kwargs=None):
+    """Returns an interator selecting fields where `predicate` is true.
+    `predicate` should be a python callable. `arg_fields` are names of fields
+    to be passed to the function (in that order). `kwargs` are additional key
+    arguments to the predicate function."""
+
+    for record in iterator:
+        if kwargs:
+            record = dict(kwargs).update(record)
+        flag = predicate(**record)
+        if (flag and not discard) or (not flag and discard):
+            yield record
+
 def discard_nth(iterator, step):
     """Discards every step-th item from `iterator`"""
     for i, value in enumerate(iterator):

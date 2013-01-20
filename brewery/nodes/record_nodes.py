@@ -8,6 +8,22 @@ from ..metadata import *
 import brewery.ops as ops
 import logging
 import itertools
+import functools
+
+__all__ = [
+            "SampleNode",
+            "AppendNode",
+            "DistinctNode",
+            "AggregateNode",
+            "AuditNode",
+            "SelectNode",
+            "SetSelectNode",
+            "SelectNode",
+            "SelectRecordsNode",
+            "AuditNode",
+            # FIXME: depreciate this name
+            "FunctionSelectNode",
+        ]
 
 class SampleNode(Node):
     """Create a data sample from input stream. There are more sampling possibilities:
@@ -536,7 +552,7 @@ class AggregateNode(Node):
                                             include_count=True)
         return IterableDataSource(iterator, source.fields)
 
-class SelectNode(Node):
+class SelectRecordsNode(Node):
     """Select or discard records from the stream according to a predicate.
 
     The parameter names of the callable function should reflect names of the fields:
@@ -574,13 +590,22 @@ class SelectNode(Node):
         "attributes" : [
             {
                  "name": "condition",
-                 "description": "Callable or a string with python expression that will evaluate to "
-                                "a boolean value"
+                 "description": "Callable that evaluates to a boolean value",
+                 "type": "function"
             },
             {
                 "name": "discard",
                  "description": "flag whether the records matching condition are discarded or included",
-                 "default": "False"
+                 "default": "False",
+                 "type":"flag"
+            },
+            {
+                "name":"kwargs",
+                "description": "Additional keywork arguments passed to the "
+                                "predicate function. They are replaced by "
+                                "record values if the keys and field names "
+                                "are the same.",
+                "type": "dict"
             }
         ]
     }
@@ -589,28 +614,35 @@ class SelectNode(Node):
     def __init__(self, condition=None, discard=False):
         """Creates and initializes selection node
         """
-        super(SelectNode, self).__init__()
+        super(SelectRecordsNode, self).__init__()
         self.condition = condition
         self.discard = discard
+        self.kwargs = None
 
-    def initialize(self):
+    def _eval_predicate(self, expression, **record):
+        return eval(expression, None, record)
+
+    def evaluate(self, context, sources):
+        source = sources[0]
         if isinstance(self.condition, basestring):
-            self._expression = compile(self.condition, "SelectNode condition", "eval")
-            self._condition_callable = self._eval_expression
+            expression = compile(self.condition, "SelectNode condition", "eval")
+            predicate = functools.partial(self._eval_predicate, expression)
         else:
-            self._condition_callable = self.condition
+            predicate = self.condition
 
-    def _eval_expression(self, **record):
-        return eval(self._expression, None, record)
+        if "records" in source.representations():
+            source_iterator = source.records()
+        else:
+            source_iterator = as_records(source.rows())
+        iterator = ops.iterator.select_records(source_iterator, source.fields,
+                                       predicate=predicate,
+                                       discard=self.discard,
+                                       kwargs=self.kwargs)
+        obj = IterableRecordsDataSource(iterator, source.fields)
+        return obj
 
-    def run(self):
-        for record in self.input.records():
-            if self._condition_callable(**record):
-                self.put_record(record)
-
-class FunctionSelectNode(Node):
+class SelectNode(Node):
     """Select records that will be selected by a predicate function.
-
 
     Example: configure a node that will select records where `amount` field is greater than 100
 
@@ -629,7 +661,7 @@ class FunctionSelectNode(Node):
     """
 
     node_info = {
-        "label" : "Function Select",
+        "label" : "Select",
         "description" : "Select records by a predicate function (python callable).",
         "output" : "same fields as input",
         "attributes" : [
@@ -639,7 +671,8 @@ class FunctionSelectNode(Node):
             },
             {
                  "name": "fields",
-                 "description": "List of field names to be passed to the function."
+                 "description": "List of field names to be passed to the "
+                                 "function (in that order)."
             },
             {
                 "name": "discard",
@@ -653,7 +686,7 @@ class FunctionSelectNode(Node):
         ]
     }
 
-    def __init__(self, function = None, fields = None, discard = False, **kwargs):
+    def __init__(self, function=None, fields=None, discard=False, **kwargs):
         """Creates a node that will select records based on condition `function`.
 
         :Parameters:
@@ -665,25 +698,23 @@ class FunctionSelectNode(Node):
             * `kwargs`: additional arguments passed to the function
 
         """
-        super(FunctionSelectNode, self).__init__()
+        super(SelectNode, self).__init__()
         self.function = function
         self.fields = fields
         self.discard = discard
         self.kwargs = kwargs
 
-    def initialize(self):
-        self.indexes = self.input_fields.indexes(self.fields)
+    def evaluate(self, context, sources):
+        source = sources[0]
+        iterator = ops.iterator.select(source.rows(), source.fields,
+                                       predicate=self.function,
+                                       arg_fields=self.fields,
+                                       discard=self.discard,
+                                       kwargs=self.kwargs)
+        obj = IterableDataSource(iterator, source.fields)
+        return obj
 
-    def run(self):
-        for row in self.input.rows():
-            values = [row[index] for index in self.indexes]
-            flag = self.function(*values, **self.kwargs)
-            if (flag and not self.discard) or (not flag and self.discard):
-                self.put(row)
-    def evaluate(self, inputs):
-        source = inputs[0]
-        iterator = ops.iterator.function_select()
-        return IteratorDataObject(iterator)
+FunctionSelectNode = SelectNode
 
 class SetSelectNode(Node):
     """Select records where field value is from predefined set of values.

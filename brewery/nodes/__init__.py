@@ -18,17 +18,6 @@ __all__ = [
     "DeriveNode",
     "CoalesceValueToTypeNode",
 
-    # Record nodes
-    "SampleNode",
-    "AppendNode",
-    "DistinctNode",
-    "AggregateNode",
-    "AuditNode",
-    "SelectNode",
-    "SetSelectNode",
-    "FunctionSelectNode",
-    "AuditNode",
-
     # Source nodes
     "RowListSourceNode",
     "RecordListSourceNode",
@@ -46,3 +35,5 @@ __all__ = [
 ]
 
 __all__ += base.__all__
+__all__ += record_nodes.__all__
+
