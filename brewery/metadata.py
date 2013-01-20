@@ -13,7 +13,8 @@ __all__ = [
     "FieldList",
     "FieldFilter",
     "storage_types",
-    "analytical_types"
+    "analytical_types",
+    "distill_aggregate_measures"
 ]
 
 """Abstracted field storage types"""
@@ -510,3 +511,38 @@ class RowFieldFilter(object):
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.mask)
+
+
+def distill_aggregate_measures(measures, default_aggregates=None):
+    """Normalizes list of measures. Element of the source can be:
+    * a string - default aggregations will be used or `sum`` if defaults are
+      not provided
+    * a field - default aggregations will be used or `sum` if defaults are not
+      provided
+    * tuple with first element as measure specification and second element
+      either aggregation string or list of aggregations
+
+    Returns list of tuples: (`measure`, `aggregate`)
+    """
+    default_aggregates = default_aggregates or []
+
+    distilled_measures = []
+    for measure_aggs in measures:
+        # Extract measure and aggregate. If no aggregate is specified,
+        # "sum" is assumed.
+
+        if isinstance(measure_aggs, list) or isinstance(measure_aggs, tuple):
+            measure = measure_aggs[0]
+            aggregates = measure_aggs[1]
+            if not (isinstance(aggregates, list) or
+                        isinstance(aggregates,tuple)):
+                aggregates = [aggregates]
+        else:
+            aggregates = default_aggregates or ["sum"]
+
+        for aggregate in aggregates:
+            distilled_measures.append( (measure, aggregate) )
+
+    return distilled_measures
+
+
