@@ -194,7 +194,8 @@ class Node(object):
         Subclasses should implement this method.
         """
 
-        raise NotImplementedError("Subclasses of Node should implement the run() method")
+        raise NotImplementedError("Subclasses of Node should implement the "
+                                    "evaluate() method")
 
     def run(self, table=None):
         """Main method for running the node code on top of optional (virtual)

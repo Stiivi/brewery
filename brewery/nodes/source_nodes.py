@@ -38,7 +38,7 @@ class RowListSourceNode(SourceNode):
             self.data = []
         self.fields = fields
 
-    def evaluate(self, sources=None):
+    def evaluate(self, context, sources=None):
         return IterableDataSource(self.data, self.fields)
 
 
@@ -70,7 +70,7 @@ class RecordListSourceNode(SourceNode):
             self.data = []
         self.fields = fields
 
-    def evaluate(self, sources=None):
+    def evaluate(self, context, sources=None):
         return IterableRecordsDataSource(self.data, self.fields)
 
 class DataObjectSourceNode(SourceNode):
@@ -98,7 +98,7 @@ class DataObjectSourceNode(SourceNode):
         super(StreamSourceNode, self).__init__()
         self.obj = obj
 
-    def evaluate(self, sources=None):
+    def evaluate(self, context, sources=None):
         return self.obj
 
 # FIXME: remove this
@@ -175,7 +175,7 @@ class CSVSourceNode(SourceNode):
     #         field.origin = self
     #         field.freeze()
 
-    def evaluate(self, inputs=None):
+    def evaluate(self, context, sources=None):
         return CSVDataSource(self.resource, *self.args, **self.kwargs)
 
 class XLSSourceNode(SourceNode):
@@ -223,7 +223,7 @@ class XLSSourceNode(SourceNode):
         self.args = args
         self.kwargs = kwargs
 
-    def evaluate(self, sources=None):
+    def evaluate(self, context, sources=None):
         return XLSDataSource(*self.args, **self.kwargs)
 
 
@@ -416,7 +416,7 @@ class SQLSourceNode(SourceNode):
         self.kwargs = kwargs
         self.source = None
 
-    def evaluate(self, inputs=None):
+    def evaluate(self, context, sources=None):
          return SQLDataSource(*self.args, **self.kwargs)
 
 
@@ -529,7 +529,7 @@ class GeneratorFunctionSourceNode(SourceNode):
         self.args = args
         self.kwargs = kwargs
 
-    def evaluate(self):
+    def evaluate(self, context, sources=None):
         i = self.function(*self.args, **self.kwargs)
         return IteratorDataObject(i, fields)
 

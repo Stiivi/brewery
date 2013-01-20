@@ -538,6 +538,7 @@ def distill_aggregate_measures(measures, default_aggregates=None):
                         isinstance(aggregates,tuple)):
                 aggregates = [aggregates]
         else:
+            measure = measure_aggs
             aggregates = default_aggregates or ["sum"]
 
         for aggregate in aggregates:

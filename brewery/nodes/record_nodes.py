@@ -544,13 +544,19 @@ class AggregateNode(Node):
         # FIXME: add SQL version
         source = sources[0]
 
+        context.debug("aggregation keys: %s" % (self.keys, ))
+        context.debug("source fields: %s" % (source.fields, ))
         distilled_measures = distill_aggregate_measures(self.measures)
+        output_fields = self.output_fields(source)
+        context.debug("aggregation result fields: %s" % (output_fields.names(), ) )
         iterator = ops.iterator.aggregate(source.rows(),
                                             fields=source.fields,
                                             key_fields=self.keys,
                                             measures=distilled_measures,
                                             include_count=True)
-        return IterableDataSource(iterator, source.fields)
+        obj = IterableDataSource(iterator, self.output_fields(source))
+
+        return obj
 
 class SelectRecordsNode(Node):
     """Select or discard records from the stream according to a predicate.
@@ -854,46 +860,28 @@ class AuditNode(Node):
         super(AuditNode, self).__init__()
         self.distinct_threshold = distinct_threshold
 
-    @property
     def output_fields(self):
 
         audit_record_fields = [
-                               ("field_name", "string", "typeless"),
-                               ("record_count", "integer", "range"),
-                               ("null_count", "float", "range"),
-                               ("null_record_ratio", "float", "range"),
-                               ("empty_string_count", "integer", "range"),
-                               ("distinct_count", "integer", "range")
+                               ("field_name", "string", "nominal"),
+                               ("record_count", "integer", "measure"),
+                               ("null_count", "float", "measure"),
+                               ("null_record_ratio", "float", "measure"),
+                               ("empty_string_count", "integer", "measure"),
+                               ("distinct_count", "integer", "measure")
                                ]
 
-        fields = FieldList(audit_record_fields)
-        return fields
+        return FieldList(audit_record_fields)
 
-    def initialize(self):
-        self.stats = []
-        for field in self.input_fields:
-            stat = FieldStatistics(field.name, distinct_threshold = self.distinct_threshold)
-            self.stats.append(stat)
+    def evaluate(self, context, sources):
+        source = sources[0]
+        fields = self.output_fields()
 
-    def run(self):
-        for row in self.input.rows():
-            for i, value in enumerate(row):
-                self.stats[i].probe(value)
+        if "sql_statement" in source.representations():
+            raise NotImplementedError
+        else:
+            stats = ops.iterator.basic_audit(iterable, fields)
+            output = IterableDataSource(stats, fields)
 
-        for stat in self.stats:
-            stat.finalize()
-            if stat.distinct_overflow:
-                dist_count = None
-            else:
-                dist_count = len(stat.distinct_values)
-
-            row = [ stat.field,
-                    stat.record_count,
-                    stat.null_count,
-                    stat.null_record_ratio,
-                    stat.empty_string_count,
-                    dist_count
-                  ]
-
-            self.put(row)
+        return output
 

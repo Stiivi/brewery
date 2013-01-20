@@ -19,7 +19,7 @@ class DataObjectTarget(TargetNode):
 
     node_info = {
         "label" : "Data Object Target",
-        "icon": "row_list_target_node",
+        "icon": "row_list_target_nede",
         "description" : "Generic data stream data target node.",
         "attributes" : [
             {
@@ -33,7 +33,7 @@ class DataObjectTarget(TargetNode):
         super(DataObjectTargetNode, self).__init__()
         self.target = target
 
-    def evaluate(self, sources):
+    def evaluate(self, context, sources):
         source = sources[0]
         # FIXME: Check for fields compatibility
         self.target.append_from(source)
@@ -69,7 +69,7 @@ class RowListTargetNode(TargetNode):
         else:
             self.data = None
 
-    def evaluate(self, sources):
+    def evaluate(self, context, sources):
         source = sources[0]
 
         if not "rows" in source.representations():
@@ -106,7 +106,7 @@ class RecordListTargetNode(TargetNode):
         else:
             data = None
 
-    def evaluate(self, sources):
+    def evaluate(self, context, sources):
         source = sources[0]
 
         if "records" in source.representations():
@@ -154,7 +154,7 @@ class CSVTargetNode(TargetNode):
         self.args = args
         self.kwargs = kwargs
 
-    def evaluate(self, sources):
+    def evaluate(self, context, sources):
         source = sources[0]
         self.target = CSVDataTarget(self.resource, fields=source.fields,
                                *self.args, **self.kwargs)
@@ -257,7 +257,7 @@ class FormattedPrinterNode(TargetNode):
         self.handle = None
         self.close_handle = False
 
-    def evaluate(self, sources):
+    def evaluate(self, context, sources):
         source = sources[0]
         names = source.fields.names()
 
@@ -374,7 +374,7 @@ class PrettyPrinterNode(TargetNode):
         for i, value in enumerate(row):
             self.widths[i] = max(self.widths[i], len(unicode(value)))
 
-    def evaluate(self, sources):
+    def evaluate(self, context, sources):
         source = sources[0]
         fields = source.fields
 
@@ -527,7 +527,7 @@ class SQLTableTargetNode(TargetNode):
         self.args = args
         self.kwargs = kwargs
 
-    def evaluate(self, sources=None):
+    def evaluate(self, context, sources=None):
         source = sources[0]
         target = SQLDataTarget(*self.args,
                                fields=source.fields,

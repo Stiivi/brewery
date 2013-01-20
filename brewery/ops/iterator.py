@@ -181,6 +181,44 @@ def string_strip(iterator, fields, strip_fields=None, chars=None):
                 row[index] = value.strip(chars)
         yield row
 
+def basic_audit(iterable, fields, distinct_threshold):
+    """Performs basic audit of fields in `iterable`. Returns a list of
+    dictionaries with keys:
+
+    * `field_name` - name of a field
+    * `record_count` - number of records
+    * `null_count` - number of records with null value for the field
+    * `null_record_ratio` - ratio of null count to number of records
+    * `empty_string_count` - number of strings that are empty (for fields of type string)
+    * `distinct_values` - number of distinct values (if less than distinct threshold). Set
+      to None if there are more distinct values than `distinct_threshold`.
+    """
+
+    stats = []
+    for field in fields:
+        stat = probes.BasicAuditProbe(field.name, distinct_threshold=distinct_threshold)
+        stats.append(stat)
+
+    for row in iterable:
+        for i, value in enumerate(row):
+            stats[i].probe(value)
+
+    for stat in stats:
+        stat.finalize()
+        if stat.distinct_overflow:
+            dist_count = None
+        else:
+            dist_count = len(stat.distinct_values)
+
+        row = [ stat.field,
+                stat.record_count,
+                stat.null_count,
+                stat.null_record_ratio,
+                stat.empty_string_count,
+                dist_count
+              ]
+
+        yield row
 # def threshold(value, low, high, bins=None):
 #     """Returns threshold value for `value`. `bins` should be names of bins. By
 #     default it is ``['low', 'medium', 'high']``

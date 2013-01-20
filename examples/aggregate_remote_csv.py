@@ -5,20 +5,21 @@ Aggregate a remote CSV file.
 """
 import brewery
 
-main = brewery.create_builder()
+main = brewery.Stream().fork()
 
-main.csv_source("https://raw.github.com/Stiivi/cubes/master/examples/hello_world/data.csv")
-main.node.fields = brewery.FieldList([
-                                "category_code",
-                                "category",
-                                "subcategory_code",
-                                "subcategory", 
-                                "line_item", 
-                                "year", 
-                                ["amount", "float"] 
-                            ])
+fields = brewery.FieldList([
+                            "category_code",
+                            "category",
+                            "subcategory_code",
+                            "subcategory",
+                            "line_item",
+                            "year",
+                            ["amount", "float"]
+                        ])
+main.csv_source("https://raw.github.com/Stiivi/cubes/master/examples/hello_world/data.csv",
+                    fields=fields)
 main.aggregate(keys=["year", "category"], measures=["amount"])
-main.field_map(keep_fields=["year", "category", "amount_sum"])
+main.field_filter(keep=["year", "category", "amount_sum"])
 main.pretty_printer()
 
 main.stream.run()

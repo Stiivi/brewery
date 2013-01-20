@@ -70,24 +70,15 @@ class NodesTestCase(unittest.TestCase):
 
         self.assertEqual(40, len(result))
 
-    @unittest.skip("not yet")
     def test_field_map(self):
-        node = brewery.nodes.FieldMapNode()
+        node = brewery.nodes.FieldFilterNode(drop=["q"], rename={"i":"index"})
 
-        self.setup_node(node)
-        self.create_sample(custom = "foo")
-
-        node.rename_field("i", "index")
-        node.drop_field("q")
-        self.initialize_node(node)
-
-        self.assertEqual(['index', 'str', 'custom'], node.output_fields.names())
-
-        node.run()
+        result = node.evaluate(self.context, self.sources)
+        self.assertEqual(['index', 'str', 'custom'], result.fields.names())
 
         keys = set([])
 
-        for result in self.output.records():
+        for result in result.records():
             for key in result.keys():
                 keys.add(key)
 
@@ -95,7 +86,6 @@ class NodesTestCase(unittest.TestCase):
         keys.sort()
 
         self.assertEqual(["custom", "index", "str"], keys)
-        self.assertAllRows()
 
     def create_distinct_sample(self):
 

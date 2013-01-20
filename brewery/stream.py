@@ -139,9 +139,9 @@ class Stream(Graph):
         context = ExecutionContext()
 
         for node in nodes:
-            self.logger.info("evaluating node %s" % node)
+            self.logger.info("evaluating %s node" % node.identifier())
             conns = self.connections_with_target(node)
-            self.logger.debug("    number of connections: %d" % len(conns))
+            self.logger.debug("    number of sources: %d" % len(conns))
             sources = {}
             for i, c in enumerate(conns):
                 source_key = i if c.source_outlet is None else c.source_outlet
@@ -161,7 +161,7 @@ class Stream(Graph):
             else:
                 outputs = result
 
-            self.logger.debug("result: %s" % (outputs, ))
+            self.logger.debug("    result: %s" % (outputs, ))
             node_outputs[node] = outputs
 
 class ExecutionContext(object):

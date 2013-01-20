@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from .base import Node
 from ..metadata import FieldFilter, FieldList, Field
 from ..errors import *
+from ..objects import *
+import brewery.ops as ops
 
 import re
 
@@ -36,34 +38,24 @@ class FieldFilterNode(Node):
 
     def __init__(self, rename=None, drop=None, keep=None):
         super(FieldFilterNode, self).__init__()
-
         self.ffilter = FieldFilter(rename, drop, keep)
 
-        self._output_fields = None
-
-    def initialize_fields(self, sources):
-        fields = self.ffilter.filter(sources[0])
-        self.output_fields = fields.clone(freeze=True)
-
-    def run(self, sources, target):
-        """Nothing to do here, it is just metadata operation"""
-
-    def apply(self, sources, outputs):
+    def evaluate(self, context, sources):
         source = sources[0]
         if "sql_statement" in source.representations():
+            raise NotImplementedError
             statement = source.sql_statement()
-            statement = statement.select(output_fields.names())
+            statement = statement.field_filter(output_fields.names())
             obj = SQLDataSource(store=source.store, statement=statement)
-            self.outputs[0] = obj
+            return obj
         else:
-            rfilter = self.ffilter.row_filter(source.fields)
-            self.output = itertools.imap(rfilter, source)
-
-    def representations(self):
-        reprs = ["rows"]
-        if self.sql_statement is not None:
-            reprs.append("sql_statement")
-        return reprs
+            # FIXME: this should be just a metadata operation on a data object
+            iterator = ops.iterator.field_filter(source.rows(),
+                                                 fields=source.fields,
+                                                 field_filter=self.ffilter)
+            fields = self.ffilter.filter(source.fields)
+            output = IterableDataSource(iterator, fields)
+            return output
 
 class TextSubstituteNode(Node):
     """Substitute text in a field using regular expression."""
