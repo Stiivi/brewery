@@ -99,7 +99,7 @@ class NodesTestCase(unittest.TestCase):
 
     def create_distinct_sample(self):
 
-        fields = brewery.FieldList(["id", "id2", "q", "type", "class"])
+        fields = brewery.FieldList(["id", "an_int", "a_float", "type", "class"])
         obj = RowListDataObject(fields)
         for i in range(1, 10):
             obj.append([i, i, float(i)/4, "a", "x"])
@@ -138,7 +138,7 @@ class NodesTestCase(unittest.TestCase):
         self.assertEqual(9, len(rows))
 
         # Test for duplicates by id2 (should be none)
-        node.keys = ["id2"]
+        node.keys = ["an_int"]
         node.discard = True
         result = node.evaluate(self.context, sources)
         rows = list(result)
@@ -155,65 +155,50 @@ class NodesTestCase(unittest.TestCase):
         for output in node.outputs:
             output.fields = node.output_fields
 
-    @unittest.skip("not yet")
     def test_aggregate_node(self):
         node = brewery.nodes.AggregateNode()
-        self.setup_node(node)
-        self.create_distinct_sample()
+        obj = self.create_distinct_sample()
+        sources = {0:obj}
+        # FIXME: check for field equality
 
-        node.key_fields = ["type"]
-        node.add_measure("id", ["sum"])
-        self.initialize_node(node)
+        node.keys = ["type"]
+        measures = [ ("an_int", ["sum", "min", "max"]) ]
+        node.measures = measures
 
-        fields = node.output_fields.names()
-        a = ['type', 'id_sum', 'id_min', 'id_max', 'id_average', 'record_count']
+        fields = node.output_fields(sources[0])
+        fields = [str(field) for field in fields]
+        a = ['type', 'an_int_sum', "an_int_min", "an_int_max", 'record_count']
 
-        self.assertEqual(a, fields)
+        self.assertListEqual(a, fields)
 
-        node.run()
-        node.finalize()
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
 
-        results = self.record_results()
-        self.assertEqual(3, len(results))
+        self.assertEqual(3, len(rows))
 
-        counts = []
-        sums = []
-        for result in results:
-            sums.append(result["id_sum"])
-            counts.append(result["record_count"])
+        counts = {}
+        sums = {}
+        for result in rows:
+            self.context.info("RESULT: %s" % (result, ) )
+            sums[result[0]] = result[1]
+            counts[result[0]] = result[-1]
 
-        self.assertEqual([90, 450, 4500], sums)
-        self.assertEqual([18,9,9], counts)
+        self.assertEqual({"a": 495, "b": 4500, "c": 45000}, sums)
+        self.assertEqual({"a": 18, "b": 9, "c": 9}, counts)
 
         # Test no keys - only counts
-        node = brewery.nodes.AggregateNode()
-        self.setup_node(node)
-        self.output.empty()
-        self.create_distinct_sample()
+        node.keys = None
+        measures = [ ("an_int", ["sum", "min", "max"]) ]
+        node.measures = measures
 
-        # Setup node
-        node.add_measure("id", ["sum"])
-        self.initialize_node(node)
+        result = node.evaluate(self.context, sources)
+        rows = list(result)
 
-        fields = node.output_fields.names()
-        a = ['id_sum', 'id_min', 'id_max', 'id_average', 'record_count']
-        self.assertEqual(a, fields)
+        self.assertEqual(1, len(rows))
+        first = rows[0]
 
-        node.run()
-        node.finalize()
-
-        # Collect results
-        results = self.record_results()
-        self.assertEqual(1, len(results))
-        counts = []
-        sums = []
-        for result in results:
-            sums.append(result["id_sum"])
-            counts.append(result["record_count"])
-
-        self.assertEqual([36], counts)
-        self.assertEqual([5040], sums)
-        self.assertAllRows()
+        self.assertEqual(49995, first[0])
+        self.assertEqual(36, first[-1])
 
     def assertAllRows(self, output):
         for row in output.rows():

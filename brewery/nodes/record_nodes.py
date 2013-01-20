@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from .base import Node
 from ..objects import *
 from ..dq.field_statistics import FieldStatistics
-from ..metadata import FieldFilter, FieldList, Field
+from ..metadata import *
 import brewery.ops as ops
 import logging
 import itertools
@@ -446,32 +446,6 @@ class DistinctNode(Node):
 
         return result
 
-class Aggregate(object):
-    """Structure holding aggregate information (should be replaced by named tuples in Python 3)"""
-    def __init__(self):
-        self.count = 0
-        self.sum = 0
-        self.min = 0
-        self.max = 0
-        self.average = None
-
-    def aggregate_value(self, value):
-        self.count += 1
-        self.sum += value
-        self.min = min(self.min, value)
-        self.max = max(self.max, value)
-
-    def finalize(self):
-        if self.count:
-            self.average = self.sum / self.count
-        else:
-            self.average = None
-
-class KeyAggregate(object):
-    def __init__(self):
-        self.count = 0
-        self.field_aggregates = {}
-
 class AggregateNode(Node):
     """Aggregate"""
 
@@ -506,95 +480,61 @@ class AggregateNode(Node):
         if default_aggregations is None:
             default_aggregations= ["sum"]
         if keys:
-            self.key_fields = keys
+            self.keys = keys
         else:
-            self.key_fields = []
+            self.keys = []
 
-        self.aggregations = {}
         self.record_count_field = record_count_field
         self.measures = measures or []
 
-    def add_measure(self, field, aggregations = None):
+    def add_measure(self, field, aggregation=None):
         """Add aggregation for `field` """
-        self.aggregations[field] = aggregations
-        self.measures.append(field)
+        # FIXME: depreciate this
+        self.measures.append( (field, aggregation) )
 
-    def preview(self, sources):
+    def output_fields(self, source):
         # FIXME: use storage types based on aggregated field type
-        source_fields = sources[0].fields
-
         fields = FieldList()
 
-        if self.key_fields:
-            for field in source_fields.fields(self.key_fields):
+        if self.keys:
+            for field in source.fields.fields(self.keys):
                 fields.append(field)
 
-        for field in self.measures:
-            fields.append(Field(field + "_sum", storage_type = "float",
-                                                analytical_type = "measure"))
-            fields.append(Field(field + "_min", storage_type = "float",
-                                                analytical_type = "measure"))
-            fields.append(Field(field + "_max", storage_type = "float",
-                                                analytical_type = "measure"))
-            fields.append(Field(field + "_average", storage_type = "float",
-                                                analytical_type = "measure"))
+        distilled_measures = distill_aggregate_measures(self.measures)
+
+        for measure, aggregate in distilled_measures:
+            if isinstance(measure, basestring):
+                name = measure
+                storage_type = "float"
+                concrete_storage_type = None
+            else:
+                name = measure.name
+                storage_type = measure.storage_type
+                concrete_storage_type = measure.concrete_storage_type
+
+            aggregate_name = "%s_%s" % (name, aggregate)
+
+            field = Field(aggregate_name, storage_type=storage_type,
+                                concrete_storage_type=concrete_storage_type,
+                                analytical_type="measure")
+
+            fields.append(field)
+
         fields.append(Field(self.record_count_field, storage_type = "integer",
                                                 analytical_type = "measure"))
-
         return fields
 
     def evaluate(self, context, sources):
         # FIXME: add SQL version
         source = sources[0]
 
-        self.aggregates = {}
-        self.keys = []
-        self.counts = {}
-
-        key_selectors = source.fields.selectors(self.key_fields)
-        measure_indexes = source_fields.indexes(self.measures)
-
-        for row in source.rows():
-            # Create aggregation key
-            key = tuple(itertools.compress(row, key_selectors))
-            # Create new aggregate record for key if it does not exist
-            #
-            if key not in self.keys:
-                self.keys.append(key)
-                key_aggregate = KeyAggregate()
-                self.aggregates[key] = key_aggregate
-            else:
-                key_aggregate = self.aggregates[key]
-
-            # Create aggregations for each field to be aggregated
-            #
-            key_aggregate.count += 1
-            for i in measure_indexes:
-                if i not in key_aggregate.field_aggregates:
-                    aggregate = Aggregate()
-                    key_aggregate.field_aggregates[i] = aggregate
-                else:
-                    aggregate = key_aggregate.field_aggregates[i]
-                value = row[i]
-
-                aggregate.aggregate_value(value)
-
-        # Pass results to output
-        for key in self.keys:
-            row = list(key[:])
-
-            key_aggregate = self.aggregates[key]
-            for i in measure_indexes:
-                aggregate = key_aggregate.field_aggregates[i]
-                aggregate.finalize()
-                row.append(aggregate.sum)
-                row.append(aggregate.min)
-                row.append(aggregate.max)
-                row.append(aggregate.average)
-
-            row.append(key_aggregate.count)
-
-            self.put(row)
+        distilled_measures = distill_aggregate_measures(self.measures)
+        iterator = ops.iterator.aggregate(source.rows(),
+                                            fields=source.fields,
+                                            key_fields=self.keys,
+                                            measures=distilled_measures,
+                                            include_count=True)
+        return IterableDataSource(iterator, source.fields)
 
 class SelectNode(Node):
     """Select or discard records from the stream according to a predicate.
