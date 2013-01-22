@@ -15,9 +15,9 @@ __all__ = [
         ]
 
 _data_stores = {
-            "sql":"sql.SQLDataStore",
-            "csv_directory": "text.CSVDirectoryDataStore",
-            "mdb":"mdb.MDBDataStore"
+            "sql":"brewery.objects.sql.SQLDataStore",
+            "csv_directory": "brewery.objects.text.CSVDirectoryDataStore",
+            "mdb":"brewery.objects.mdb.MDBDataStore"
         }
 
 def open_datastore(type_, **options):
@@ -261,11 +261,15 @@ class DataStore(object):
     def close(self):
         pass
 
-    def objects(self, names=None):
+    def objects(self, names=None, autoload=False):
         """Return list of objects, if available
 
         * `names`: only objects with given names are returned
+        * `autoload`: load object list if necessary, otherwise cached version
+          is used if store cachces object metadata.
 
+        Note that loading list of objects might be costly operation in some
+        cases.
         """
         raise NotImplementedError
 

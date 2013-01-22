@@ -181,7 +181,6 @@ class SQLDataStore(object):
         if connectable:
             self.connectable = connectable
             self.should_close = False
-            print "1CONNECTABLE: %s" % self.connectable
         else:
             self.connectable = sqlalchemy.create_engine(url)
             self.should_close = True
@@ -211,6 +210,12 @@ class SQLDataStore(object):
             objects.append(obj)
 
         return objects
+
+    def get_object(self, name):
+        # FIXME: allow creation of sources and targets based on argument
+        obj = SQLDataSource(table=name, connectable=self.connectable,
+                            schema=self.schema, store=self)
+        return obj
 
     def create(self, name, fields, replace=False, from_obj=None, schema=None,
                id_column=None):
@@ -245,12 +250,12 @@ class SQLDataStore(object):
                 table = self.table(name, schema, autoload=False)
             else:
                 schema_str = " (in schema '%s')" % schema if schema else ""
-                raise Exception("Table %s%s already exists" % (table, schema_str))
+                raise ObjectExistsError("Table %s%s already exists" % (table, schema_str))
 
         if from_obj:
             if id_column:
-                raise Exception("id_column should not be specified when "
-                                "creating table from another object")
+                raise ArgumentError("id_column should not be specified when "
+                                    "creating table from another object")
 
             return self._create_table_from(table, from_obj)
         elif id_column:
@@ -319,7 +324,7 @@ class SQLDataStore(object):
             else:
                 slabel = ""
 
-            raise DataObjectError("Unable to find table '%s'%s" % \
+            raise NoSuchObjectError("Unable to find table '%s'%s" % \
                                     (table, slabel))
 
     def execute(self, statement, *args, **kwargs):
@@ -387,7 +392,7 @@ class SQLDataSource(DataObject):
 
         if isinstance(table, basestring):
             self.table = self.store.table(table, schema=schema, autoload=True)
-        elif table is not None:
+        else:
             self.table = table
 
         if table is not None:
@@ -410,9 +415,14 @@ class SQLDataSource(DataObject):
         data types. Analytical type is set according to a default conversion
         dictionary."""
 
+        if self.table is not None:
+            selectable = self.table
+        else:
+            selectable = self.statement
+
         fields = []
 
-        for column in self.table.columns:
+        for column in selectable.columns:
             field = brewery.Field(name=column.name)
             field.concrete_storage_type = column.type
 
@@ -448,6 +458,13 @@ class SQLDataSource(DataObject):
         # SQLAlchemy result is dict-like object where values can be accessed
         # by field names as well, so we just return the same iterator
         return self.rows()
+
+    def as_target(self):
+        """Returns target representation of the source table"""
+        return SQLDataTarget(store=self.store,
+                             schema=self.schema,
+                             table=self.table,
+                             fields=self.fields)
 
     def representations(self):
         """Return list of possible object representations"""
@@ -512,7 +529,6 @@ class SQLDataTarget(object):
         self.options = options
         self.replace = replace
         self.create = create
-        self.truncate = truncate
         self.fields = fields
         # FIXME: make use of this
         self.concrete_field_map = {}
@@ -535,7 +551,7 @@ class SQLDataTarget(object):
 
         self.table_name = self.table.name
 
-        if self.truncate:
+        if truncate:
             self.table.delete().execute()
 
         if not self.fields:
@@ -588,8 +604,6 @@ class SQLDataTarget(object):
         * after insert of all rows of `rows` representation
         """
 
-        print "APPEND FROM: %s" % obj
-
         try:
             reprs = obj.representations()
         except AttributeError:
@@ -605,11 +619,8 @@ class SQLDataTarget(object):
             source = selectable_from_object(obj, self.store)
             statement = InsertFromSelect(self.table, source)
             # statement = statement.execution_options(autocommit=True)
-            log = get_logger()
-            print "== stmt: %s" % type(statement)
-            print "== SQL: %s" % str(statement)
             # statement = str(statement)
-            self.store.connectable.execute(statement)
+            self.store.execute(statement)
 
 
         elif "rows" in reprs:
@@ -625,18 +636,14 @@ class SQLDataTarget(object):
             raise RepresentationError(
                             "Incopatible representations '%s'", (reprs, ) )
 
-        print "ROWS:"
-        for row in self.table.select().execute():
-            print row
-
     def truncate(self):
-        if not table:
+        if self.table is None:
             raise RepresentationError("Can not truncate: "
                                       "SQL object is a statement not a table")
-        self.engine.execute(self.table.delete())
+        self.store.execute(self.table.delete())
 
     def flush(self):
         if self._buffer:
             insert = self.table.insert()
-            self.store.connectable.execute(insert, self._buffer)
+            self.store.execute(insert, self._buffer)
             self._buffer = []
