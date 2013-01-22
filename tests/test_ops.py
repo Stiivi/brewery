@@ -97,9 +97,8 @@ class TransformationTestCase(unittest.TestCase):
                                          ("name", "string"),
                                          ("address", "string")])
     def transform(self, row, trans):
-        trans = ops.iterator.prepare_transformation(trans, self.fields)
-        transformer = ops.iterator.create_transformer(trans)
-        return transformer(row)
+        trans = ops.iterator.compile_transformation(trans, self.fields)
+        return trans(row)
 
     def test_copy(self):
         trans = ( ("id", ), )

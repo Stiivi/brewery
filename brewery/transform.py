@@ -48,7 +48,7 @@ class TransformationTarget(object):
         if isinstance(value, TransformationSource):
             value = IdentityElement(value)
         elif not isinstance(value, TransformationElement):
-            value = ValueElement(value)
+            value = LiteralElement(value)
 
         self.output[name] = value
 
@@ -92,7 +92,10 @@ class TransformationElement(object):
         return FunctionElement(self, function, kwargs)
 
     def value(self, value):
-        return ValueElement(self, value)
+        return self.literal(value)
+
+    def literal(self, value):
+        return LiteralElement(self, value)
 
 class IdentityElement(TransformationElement):
     """Element representing identity mapping - same source field as intended
@@ -115,6 +118,8 @@ class FieldListElement(TransformationElement):
 
 class FieldElement(TransformationElement):
     def __init__(self, source, field, missing_value=None):
+        # field should be a Field instance, nothing else
+        # missing_value might be any transformation element
         self.source = source
         self.field = field
         self.missing_value = missing_value
@@ -131,48 +136,43 @@ class FieldElement(TransformationElement):
                                 (repr(self.source), str(self.field),
                                         repr(self.missing_value))
 
-class ValueElement(TransformationElement):
+class LiteralElement(TransformationElement):
     def __init__(self, value):
         self.value = value
 
     def __repr__(self):
-        return "ValueElement(%s)" % repr(self.value)
+        return "LiteralElement(%s)" % repr(self.value)
 
 class MissingValueElement(TransformationElement):
-    def __init__(self, source, value):
-        self.source = source
+    def __init__(self, value):
         self.value = value
+
     def __repr__(self):
-        return "MissingValueElement(%s, %s)" % \
-                                    (repr(self.source), repr(self.value))
+        return "MissingValueElement(%s)" % repr(self.value)
 
 class MappingElement(TransformationElement):
-    def __init__(self, source, mapping, missing_value=None):
-        self.source = source
+    def __init__(self, mapping, missing_value=None):
         self.mapping = mapping
         self.missing_value = missing_value
 
     def __repr__(self):
         if self.missing_value is None:
-            return "MappingElement(%s, %s)" % \
-                                    (repr(self.source), repr(self.mapping))
+            return "MappingElement(%s)" % \
+                                    (repr(self.mapping))
         else:
-            return "MappingElement(%s, %s, %s)" % \
-                                    (repr(self.source),
-                                     repr(self.mapping), repr(missing_value))
+            return "MappingElement(%s, %s)" % \
+                                    (repr(self.mapping), repr(missing_value))
     def missing(self, value):
         return MappingElement(self.source, self.mapping, value)
 
 class FunctionElement(TransformationElement):
-    def __init__(self, source, function, *kwargs):
-        self.source = source
+    def __init__(self, function, *kwargs):
         self.function = function
         self.kwargs = kwargs
 
     def __repr__(self):
-        return "FunctionElement(%s, %s, %s)" % \
-                                    (repr(self.source), repr(self.function),
-                                            repr(self.kwargs))
+        return "FunctionElement(%s, %s)" % \
+                                    (repr(self.function), repr(self.kwargs))
 
 class CompiledTransformation(object):
     def __init__(self, transformations):
@@ -182,6 +182,14 @@ class CompiledTransformation(object):
         out = [trans(row) for trans in self.transformations]
         return out
 
+    def foo(self, row):
+        out = []
+        for trans in self.transformations:
+            first = trans[0]
+            value = first(row, None)
+            for element in trans:
+
+
 class TransformationFunction(object):
     def __init__(self, fields, source, missing_value=None):
         self.source_index = fields.index(source)
@@ -190,27 +198,55 @@ class TransformationFunction(object):
 class CopyValueTransformation(object):
     def __init__(self, fields, source, missing_value=None):
         self.source_index = fields.index(source)
-        if issubclass(self.missing_value, TransformationFunction):
-            self.is_concrete = False
-        else:
-            self.is_concrete = True
         self.missing_value = missing_value
-    def __call__(self, row):
-        if self.is_concrete:
-            missing_value = self.missing_value
+
+    def __call__(self, row, last=None):
+        value = row[self.source_index]
+        if value is None:
+            return missing_value
         else:
-            missing_value = self.missing_value(row)
+            return value
 
-        return row[self.source_index] or missing_value
-
-class SetValueTransformation(object):
+class LiteralValueTransformation(object):
     def __init__(self, value):
         self.value = value
-    def __call__(self, row):
-        if issubclass(self.value, TransformationFunction):
-            return self.value(row)
+    def __call__(self, row, last=None):
+        return self.value
+
+class MapTransformation(object):
+    def __init__(self, mapping, missing_value=None):
+        # FIXME: make this work with multi-field keys
+        self.missing_value = missing_value
+        self.mapping = mapping
+    def __call__(self, row, value=None):
+        return self.mapping.get(value, self.missing_value)
+
+class FunctionTransformation(object):
+    def __init__(self, fields, source, function, kwargs, missing_value=None):
+        self.source_index = fields.index(source)
+        self.function = function
+        self.kwargs = kwargs
+        self.missing_value = missing_value
+
+    def __call__(self, row, last=None):
+        value = row[self.source_index]
+        result = self.function(value, **kwargs)
+        if result is not None:
+            return result
         else:
-            return self.value
+            return self.missing_value
+
+class MissingFieldValueTransformation(object):
+    def __init__(self, fields, source, missing_value):
+        self.source_index = fields.index(source)
+        self.missing_value = missing_value
+
+    def __call__(self, row):
+        value = row[self.source_index]
+        if value is not None:
+            return value
+        else:
+            return self.missing_value
 
 class TransformationCompiler(object):
     def __init__(self, target, source):
@@ -232,10 +268,24 @@ class TransformationCompiler(object):
         self.mappings = []
 
     def compile(self):
+        # How?
+        #
+        # field1 -> transformation chain
+        # field2 -> transformation chain
+        # field3 -> transformation chain
+        # ...
+        #
+        # s["id"] | 0
+        # s["id"].missing(0)
+        # s["name"] | s["label"] | "unknown"
+        # s["name"].missing(s["label"].missing())
+        # s["name"].function(to_date)
+        # s.function("")
+        # s.lookup("")
         result = OrderedDict()
 
-        for key, value in self.target.output.items():
-            result[key] = self.compile_value(key, value)
+        for key, element in self.target.output.items():
+            result[key] = self.compile_element(key, element)
 
     def compile_element(self, key, element):
             identifier = to_identifier(decamelize(element.__class__.__name__))
@@ -243,9 +293,33 @@ class TransformationCompiler(object):
             return method(key, element)
 
     def visit_field_element(self, key, element):
-        missing_value = self.compile_element(key, element)
-        return element.field
+        if isinstance(element.missing_value, TransformationElement):
+            actions = self.compile_element(key, element.missing_value)
+            missing_value = None
+        else:
+            actions = []
+            missing_value = element.missing_value
 
-    def visit_identity_element(self, key, element):
-        return self.source_fields[key]
-        
+        t = CopyValueTransformation(self.fields, element.source)
+        t.missing_value = missing_value
+        actions.append(t)
+
+        return actions
+
+    def visit_literal_element(self, key, element):
+        if isinstance(element.value, TransformationElement):
+            raise Exception("Literal value can not be transformation "
+                            "element. Is %s" % (element.value, ))
+        else:
+            t = LiteralValueTransformation(element.value)
+            actions = [t]
+
+        return actions
+
+    def visit_missing_value_element(self, key, element):
+        if isinstance(element.value, TransformationElement):
+            actions = self.compile_element(key, element.missing_value)
+        else:
+            actions = []
+
+        t = MissingValueTransformation()

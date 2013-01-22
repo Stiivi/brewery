@@ -31,8 +31,8 @@ class Stream(Graph):
             self.backend = get_backend("default")
 
     def fork(self):
-        """Creates a construction fork of the stream. Used for constructing streams in functional
-        fashion. Example::
+        """Creates a construction fork of the stream. Used for constructing
+        streams in functional fashion. Example::
 
             stream = Stream()
 
@@ -42,16 +42,17 @@ class Stream(Graph):
 
             stream.run()
 
-        Fork responds to node names as functions. The function arguments are the same as node
-        constructor (__init__ method) arguments. Each call will append new node to the fork and
-        will connect the new node to the previous node in the fork.
+        Fork responds to node names as functions. The function arguments are
+        the same as node constructor (__init__ method) arguments. Each call
+        will append new node to the fork and will connect the new node to the
+        previous node in the fork.
 
-        To configure current node you can use ``fork.node``, like::
+        To configure current node you can use `fork.node`, like::
 
             fork.csv_source("fork.csv")
             fork.node.read_header = True
 
-        To set actual node name use ``set_name()``::
+        To set actual node name use `set_name()`::
 
             fork.csv_source("fork.csv")
             fork.set_name("source")
@@ -81,51 +82,51 @@ class Stream(Graph):
                 failed.append( (node, e) )
 		# FIXME: raise exception with list of all failed nodes
 
-    def _last_compatible_origin(self, field):
-        """Returns origin that is a `Field` of compatible storage type.
-        Returns `field` if no other origin is found."""
-        # FIXME: currently unused, keeping here for future use
-        visited = set()
-        last_field = field
+    # def _last_compatible_origin(self, field):
+    #     """Returns origin that is a `Field` of compatible storage type.
+    #     Returns `field` if no other origin is found."""
+    #     # FIXME: currently unused, keeping here for future use
+    #     visited = set()
+    #     last_field = field
 
-        while field:
-            if not isinstance(field.origin, Field):
-                return field
+    #     while field:
+    #         if not isinstance(field.origin, Field):
+    #             return field
 
-            if field.storage_type != field.origin.storage_type or \
-                    field.concrete_storage_type != \
-                        field.origin.concrete_storage_type:
-                return field
+    #         if field.storage_type != field.origin.storage_type or \
+    #                 field.concrete_storage_type != \
+    #                     field.origin.concrete_storage_type:
+    #             return field
 
-            field = field.origin
+    #         field = field.origin
 
-            if field in visited:
-                raise FieldOriginError("Circular field origin %s" % field)
+    #         if field in visited:
+    #             raise FieldOriginError("Circular field origin %s" % field)
 
-            visited.add(field)
+    #         visited.add(field)
 
-        return last_field
+    #     return last_field
 
-    def get_array(self, field):
-        """Gets an array for `field`. If no array for field exists, then new
-        one is created using array backend."""
-        # FIXME: currently unused, keeping here for future use
+    # def get_array(self, field):
+    #     """Gets an array for `field`. If no array for field exists, then new
+    #     one is created using array backend."""
+    #     # FIXME: currently unused, keeping here for future use
 
-        origin = self.last_compatible_origin(field)
-        if not origin:
-            raise FieldOriginError("Unable to find origin of field %s" % field)
+    #     origin = self.last_compatible_origin(field)
+    #     if not origin:
+    #         raise FieldOriginError("Unable to find origin of field %s" % field)
 
-        if not origin.is_frozen:
-            raise MetadataError("Field %s is not frozen" % field)
+    #     if not origin.is_frozen:
+    #         raise MetadataError("Field %s is not frozen" % field)
 
-        array = self.field_arrays.get(origin)
+    #     array = self.field_arrays.get(origin)
 
-        if array is None:
-            self.log.debug("creating array for field '%s'" % (field,))
-            array = self.backend.create_array(field)
-            self.field_arrays[field] = array
+    #     if array is None:
+    #         self.log.debug("creating array for field '%s'" % (field,))
+    #         array = self.backend.create_array(field)
+    #         self.field_arrays[field] = array
 
-        return array
+    #     return array
 
     def run(self, nodes=None):
         """Runs the stream"""

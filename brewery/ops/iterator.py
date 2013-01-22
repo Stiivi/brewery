@@ -2,6 +2,7 @@
 """Iterator based operations."""
 from ..metadata import *
 from ..common import get_logger
+from .. import probes
 import itertools
 import functools
 from collections import OrderedDict, namedtuple
@@ -194,6 +195,9 @@ def basic_audit(iterable, fields, distinct_threshold):
       to None if there are more distinct values than `distinct_threshold`.
     """
 
+    if not fields:
+        raise Exception("No fields to audit")
+
     stats = []
     for field in fields:
         stat = probes.BasicAuditProbe(field.name, distinct_threshold=distinct_threshold)
@@ -243,7 +247,7 @@ class CopyValueTransformation(object):
         self.source_index = fields.index(source)
         self.missing_value = missing_value
     def __call__(self, row):
-        return row[self.source_index] or missing_value
+        return row[self.source_index] or self.missing_value
 
 class SetValueTransformation(object):
     def __init__(self, value):
@@ -281,7 +285,7 @@ class FunctionTransformation(object):
 
         return result or self.missing_value
 
-def prepare_transformation(transformation, fields):
+def compile_transformation(transformation, fields):
     """Returns an ordered dictionary of transformations where keys are target
     fields and values are transformation callables which accept a row of
     structure `fields` as an input argument."""
@@ -318,10 +322,7 @@ def prepare_transformation(transformation, fields):
         elif action == "set":
             out[target] = SetValueTransformation(desc.get("value"))
 
-    return out
-
-def create_transformer(transformation):
-    return functools.partial(transform, transformation.values())
+    return functools.partial(transform, out.values())
 
 def transform(transformations, row):
     """Transforms `row` with structure `input_fields` according to

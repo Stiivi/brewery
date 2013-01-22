@@ -1,6 +1,7 @@
 from .common import *
 from .metadata import *
 from .stream import *
+from .errors import *
 import brewery.backends
 import brewery.objects
 import brewery.transform

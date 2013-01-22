@@ -3,14 +3,14 @@ Version 0.10.0
 
 Quick summary: long planned huge refactoring and change of direction.
 
-Brewery is now general-purpose data processing (ETL) and streaming framework.
-Dropping original plans for focus purely on data mining workflows. Goal is to
-provide higher level processing functions.
+Brewery is now oriented towards more general-purpose data processing (ETL) and
+streaming framework.  Dropping original plans for focus purely on data mining
+workflows. Goal is to provide higher level processing functions.
 
 New concept of data objects and their representations is introduced.
 
-Note that Brewery is still experimental framework and API might change. I will
-try to announce changes in advance and provide depreciation perion, however it
+Note: Brewery is still experimental framework and API might change. I will try
+to announce changes in advance and provide depreciation perion, however it
 will be much shorter than after 1.0 release.
 
 News

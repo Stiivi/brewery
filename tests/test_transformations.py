@@ -46,6 +46,12 @@ class TransformTestCase(unittest.TestCase):
         self.assertEqual(self.fields["id"], t.output["id"].field)
         self.assertEqual(s, t.output["id"].source)
 
+        with self.assertRaises(BreweryError):
+            s[list]
+
+        with self.assertRaises(BreweryError):
+            s[s["foo"]]
+
         t["id"] = s["id"].missing("unknown")
         self.assertIsInstance(t.output["id"], transform.FieldElement)
         self.assertEqual("unknown", t.output["id"].missing_value)
@@ -53,6 +59,16 @@ class TransformTestCase(unittest.TestCase):
 
         t["id"] = s["id"].mapping({})
         self.assertIsInstance(t.output["id"], transform.MappingElement)
+
+    def test_nested(self):
+        s = transform.TransformationSource(None, fields=self.fields)
+        t = transform.TransformationTarget()
+
+        t["id"] = s["id"].missing(s["label"])
+        self.assertIsInstance(t.output["id"], transform.FieldElement)
+        self.assertIsInstance(t.output["id"].missing_value,
+                                        transform.FieldElement)
+        self.assertEqual("label", t.output["id"].missing_value.field.name)
 
     @unittest.skip("not yet")
     def test_context(self):
