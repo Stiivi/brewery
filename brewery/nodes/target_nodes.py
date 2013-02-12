@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from ..objects.sql import SQLDataTarget
+from ..objects.sql import SQLTable
 from ..objects.text import CSVDataTarget
 
 from .base import TargetNode
@@ -529,7 +529,7 @@ class SQLTableTargetNode(TargetNode):
 
     def evaluate(self, context, sources=None):
         source = sources[0]
-        target = SQLDataTarget(*self.args,
+        target = SQLTable(*self.args,
                                fields=source.fields,
                                **self.kwargs)
         target.append_from(source)

@@ -242,6 +242,7 @@ class RowListDataObject(DataObject):
     def truncate(self):
         self.data = []
 
+# FIXME: remove this
 class TargetDataObject(DataObject):
     def append(self, row):
         raise IsNotSourceError
@@ -355,7 +356,7 @@ def copy_object(source_store, source_name, target_store,
         target = target_store.create(target_name, source.fields, replace=True,
                                      from_obj=source)
     else:
-        target = target_store(target_name)
+        target = target_store.get_object(target_name)
         target.append_from(source)
         target.flush()
 

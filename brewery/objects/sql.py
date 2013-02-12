@@ -2,12 +2,13 @@
 from .base import *
 from ..errors import *
 from ..common import get_logger
-import brewery.metadata
+from ..metadata import Field, FieldList
 
 __all__ = (
         "SQLDataStore",
-        "SQLDataSource",
-        "SQLDataTarget"
+        "SQLTable",
+        "SQLStatement",
+        "reflect_fields"
     )
 
 try:
@@ -113,15 +114,15 @@ def concrete_storage_type(field, type_map={}, dialect=None):
 """List of default shared stores."""
 _default_stores = {}
 
-def fields_from_table(table):
+def reflect_fields(selectable):
     """Get fields from a table. Field types are normalized to the Brewery
     data types. Analytical type is set according to a default conversion
     dictionary."""
 
     fields = []
 
-    for column in table.columns:
-        field = brewery.metadata.Field(name=column.name)
+    for column in selectable.columns:
+        field = Field(name=column.name)
         field.concrete_storage_type = column.type
 
         for conv in _sql_to_brewery_types:
@@ -130,22 +131,22 @@ def fields_from_table(table):
                 field.analytical_type = conv[2]
                 break
 
-        if not field.storage_type:
+        if field.storage_type is not None:
             field.storaget_tpye = "unknown"
 
-        if not field.analytical_type:
+        if field.analytical_type is not None:
             field.analytical_type = "unknown"
 
         fields.append(field)
 
-    return brewery.metadata.FieldList(fields)
+    return FieldList(fields)
 
 def default_store(url=None, connectable=None, schema=None):
     """Gets a default store for connectable or URL. If store does not exist
     one is created and added to shared default store pool."""
 
     if url and connectable:
-        raise ArgumentError("Only one of url or connectable should be " \
+        raise ArgumentError("Only one of URL or connectable should be " \
                             "specified, not both")
 
     if url:
@@ -164,6 +165,35 @@ def default_store(url=None, connectable=None, schema=None):
 
     return store
 
+def _postgres_copy_from(self, connection, table, stream, is_csv=True,
+                         null_string=None, delimiter=None):
+    """Loads data from file-like object `stream` into a `table`."""
+    connection = engine.raw_connection()
+
+    cursor = connection.cursor()
+
+    preparer = sqlalchemy.sql.compiler.IdentifierPreparer("postgres")
+    table_name = format_table(table, use_schema=True)
+
+    options = []
+
+    if is_csv:
+        options.append("CSV")
+    if null_string:
+        options.append("NULL '%s'" % null_string)
+    if delimiter:
+        options.append("DELIMITER '%s'" % delimiter)
+
+    if options:
+        options_string = "WITH "+" ".join(options)
+    else:
+        options_string = ""
+
+    sql = "COPY %s FROM STDIN %s" % (table_name, options_string)
+
+    cursor.copy_expert(sql, stream)
+    cursor.close()
+    connection.commit()
 
 class SQLDataStore(object):
     """Holds context of SQL store operations."""
@@ -189,6 +219,8 @@ class SQLDataStore(object):
 
         self.metadata = sqlalchemy.MetaData(bind=self.connectable)
         self.schema = schema
+        self.logger = get_logger()
+
 
     def close(self):
         """Closes data store."""
@@ -205,16 +237,13 @@ class SQLDataStore(object):
 
         objects = []
         for table in tables:
-            obj = SQLDataObject(table=table, connectable=self.connectable,
-                                schema=self.schema, store=self)
+            obj = SQLTable(table=table, schema=self.schema, store=self)
             objects.append(obj)
 
         return objects
 
     def get_object(self, name):
-        # FIXME: allow creation of sources and targets based on argument
-        obj = SQLDataSource(table=name, connectable=self.connectable,
-                            schema=self.schema, store=self)
+        obj = SQLTable(table=name, schema=self.schema, store=self)
         return obj
 
     def create(self, name, fields, replace=False, from_obj=None, schema=None,
@@ -224,7 +253,7 @@ class SQLDataStore(object):
         table = self.create_table(name, fields=fields, replace=replace,
                                   from_obj=from_obj, schema=schema,
                                   id_column=id_column)
-        return SQLDataTarget(store=self, table=table, fields=fields,
+        return SQLTable(store=self, table=table, fields=fields,
                                 schema=schema)
 
     def create_table(self, name, fields, replace=False, from_obj=None, schema=None,
@@ -289,7 +318,7 @@ class SQLDataStore(object):
         """Creates a table using ``CREATE TABLE ... AS SELECT ...``. The
         `from_obj` should have SQL selectable compatible representation."""
 
-        source = selectable_from_object(from_obj, self.store)
+        source = from_obj.selectable()
         statement = CreateTableAsSelect(table, source)
         self.connectable.execute(statement)
         return self.table(name=table, autoload=True)
@@ -329,262 +358,198 @@ class SQLDataStore(object):
 
     def execute(self, statement, *args, **kwargs):
         """Executes `statement` in store's connectable"""
+        # TODO: Place logging here
+        # self.logger.debug("SQL: %s" % str(statement))
         return self.connectable.execute(statement, *args, **kwargs)
 
-def selectable_from_object(obj, store):
-    """Returns SQL selectable statement from object `obj` compatible with
-    store `store`."""
-    if not hasattr(obj, "store"):
-        raise DataObjectError("Object %s does not look like SQL data object - "
-                              "it has no store attribute" % str(obj))
-    if obj.store != store:
-        raise DataObjectError("Can not get selectable from object in different store.")
 
-    reps = obj.representations()
+class SQLDataObject(DataObject):
+    def __init__(self, store=None, schema=None):
+        """Initializes new `SQLDataObject`. `store` might be a `SQLDataStore`
+        object, a URL string or SQLAlchemy connectable object. If it is
+        not a concrete store, then default store for that URL/connectable is
+        created and/or reused if already exists. `schema` is a database schema
+        for this object. It might be different from `store`'s schema."""
 
-    if "sql_table" in reps:
-        selectable = obj.sql_table().select()
-    elif "sql_statement" in reps:
-        selectable = obj.sql_statement()
-    else:
-        raise Exception("Object %s does not have SQL selectable compatible "
-                        "representation (table or statement)" % obj)
-
-    return selectable
-
-class SQLDataSource(DataObject):
-    """docstring for ClassName
-    """
-    def __init__(self, url=None,connectable=None,
-                        table=None, statement=None, schema=None,
-                        store=None, **options):
-        """Creates a relational database data object.
-
-        Attributes:
-
-        * `url`: SQLAlchemy URL - either this or connection should be specified
-        * `connectable`: SQLAlchemy database connectable (engine or
-          connection) - either this or url should be specified
-        * `table`: table name
-        * `statement`: SQL statement to be used as a data source (not
-          supported yet)
-        * `options`: SQL alchemy connect() options
-        * `store`: SQL data store the object belongs to
-
-        If `store` is not provided, then default store is used for given
-        connectable or URL. If no store exists, one is created.
-        """
-        # FIXME: URL should be depreciated in favor of data store
-
-        super(SQLDataSource, self).__init__()
-
-        if table is None and statement is None:
-            raise ArgumentError("Either table name or statement should be " \
-                                 "provided for SQL data source")
-        if not options:
-            options = {}
-
-        if store:
+        if isinstance(store, SQLDataStore):
             self.store = store
+        elif isinstance(store, basestring):
+            self.store = default_store(url=store, schema=schema)
         else:
-            self.store = default_store(url=url, connectable=connectable,
-                                        schema=schema)
-
-        if isinstance(table, basestring):
-            self.table = self.store.table(table, schema=schema, autoload=True)
-        else:
-            self.table = table
-
-        if table is not None:
-            self.name = self.table.name
-        else:
-            self.name = None
-
-        if statement is not None:
-            self.statement = statement
-        else:
-            self.statement = self.table
+            self.store = default_store(connectable=store, schema=schema)
 
         self.schema = schema
-        self.options = options
-
-        self._reflect_fields()
-
-    def _reflect_fields(self):
-        """Get fields from a table. Field types are normalized to the Brewery
-        data types. Analytical type is set according to a default conversion
-        dictionary."""
-
-        if self.table is not None:
-            selectable = self.table
-        else:
-            selectable = self.statement
-
-        fields = []
-
-        for column in selectable.columns:
-            field = brewery.Field(name=column.name)
-            field.concrete_storage_type = column.type
-
-            for conv in _sql_to_brewery_types:
-                if issubclass(column.type.__class__, conv[0]):
-                    field.storage_type = conv[1]
-                    field.analytical_type = conv[2]
-                    break
-
-            field.storage_type = field.storage_type or "unknown"
-            field.analytical_type = field.analytical_type or "unknown"
-
-            fields.append(field)
-
-        self.fields = brewery.FieldList(fields)
 
     def can_compose(self, obj):
-        return isinstance(obj, SQLDataSource) and self.store == obj.store
-
-    def rows(self):
-        if self.table is not None:
-            return iter(self.table.select().execute())
-        else:
-            return iter(self.statement.execute())
-
-    def sql_statement(self):
-        return self.statement
-
-    def sql_table(self):
-        return self.table
+        return isinstance(obj, SQLDataObject) and self.store == obj.store
 
     def records(self):
         # SQLAlchemy result is dict-like object where values can be accessed
         # by field names as well, so we just return the same iterator
         return self.rows()
 
+    def __iter__(self):
+        return self.rows()
+
+
+class SQLStatement(SQLDataObject):
+    def __init__(self, statement, store, fields=None, schema=None):
+        """Creates a relational database data object.
+
+        Attributes:
+
+        * `statement`: SQL statement to be used as a data source
+        * `store`: SQL data store the object belongs to. Might be a
+          `SQLDataStore` instance, URL string or a connectable object.
+        * `schema` - database schema, if different than schema of `store`
+        * `fields` - list of fields that override automatic field reflection
+          from the statement
+
+        If `store` is not provided, then default store is used for given
+        connectable or URL. If no store exists, one is created.
+        """
+
+        super(SQLStatement, self).__init__(store=store, schema=schema)
+
+        self.statement = statement
+        try:
+            self.name = statement.name
+        except AttributeError:
+            schema_label = "%s_" % schema if schema else ""
+            self.name = "anonymous_statement_%s%d" % (schema_label, id(self))
+
+        self.statement = statement
+
+        if fields:
+            self.fields = fields
+        else:
+            self.fields = reflect_fields(statement)
+
     def as_target(self):
-        """Returns target representation of the source table"""
-        return SQLDataTarget(store=self.store,
-                             schema=self.schema,
-                             table=self.table,
-                             fields=self.fields)
+        raise DataObjectError("SQL statement (%s) can not be used "
+                                "as target object" % self.name)
+    def __len__(self):
+        """Returns number of rows selected by the statement."""
+        statement = self.statement.count()
+        return self.store.connectable.scalar(statement)
+
+    def rows(self):
+        return iter(self.statement.execute())
+
+    def selectable(self):
+        return self.statement
+
+    def sql_statement(self):
+        return self.statement
 
     def representations(self):
         """Return list of possible object representations"""
-        if self.table is not None:
-            return ["rows", "records", "sql_statement", "sql_table"]
-        else:
-            return ["rows", "records", "sql_statement"]
+        return ["rows", "records", "sql_statement"]
 
-    def __len__(self):
-        """Returns number of rows in a table"""
-        if self.table is not None:
-            statement = self.table.count()
-        else:
-            statement = self.statement.count()
-        result = self.store.connectable.scalar(statement)
-        return result
-
-class SQLDataTarget(object):
+class SQLTable(SQLDataObject):
     """docstring for ClassName
     """
-    def __init__(self, connectable=None, url=None, store=None,
-                    table=None, schema=None, truncate=False,
-                    create=False, replace=False, id_key_name=None,
-                    buffer_size=None, fields=None, **options):
-        """Creates a relational database data target stream.
+    def __init__(self, table, store, fields=None, schema=None,
+                 create=False, replace=False, truncate=False,
+                 id_key_name=None, buffer_size=None):
+        """Creates a relational database data object.
 
-        :Attributes:
-            * `url`: SQLAlchemy URL - either this or connection should be specified
-            * `connection`: SQLAlchemy database connection or engine - either
-              this or url should be specified
-            * `table`: table name
-            * `truncate`: whether truncate table or not
-            * `create`: whether create table on initialize() or not
-            * `replace`: Set to True if creation should replace existing table
-              or not, otherwise initialization will fail on attempt to create
-              a table which already exists.
-            * `options`: other SQLAlchemy connect() options
-            * `id_key_name`: name of the auto-increment key. If specified,
-              then key column is created.
-            * `buffer_size`: size of INSERT buffer - how many records are
-              collected before they are inserted using multi-insert statement.
-              Default is 1000
-            * `fields`: fieldlist for a new table
+        Attributes:
 
-        Note: avoid auto-detection when you are reading from remote URL stream.
+        * `table`: table name
+        * `store`: SQL data store the object belongs to
+        * `fields`: fieldlist for a new table
+        * `truncate`: if `True` table will be truncated upon initiaization
+        * `create`: if `True` then table will be created during object
+          initialization. Default is `False` and exception is raised when
+          table does not exist.
+        * `replace`:  if `True` and `create` is requested, then existing table
+          will be dropped and created as new.
+        * `id_key_name`: name of the auto-increment key during table creation.
+            If specified, then key column is created, otherwise no key column
+            is created.
+        * `buffer_size`: size of buffer for table INSERTs - how many records
+          are collected before they are inserted using multi-insert statement.
+          Default is 1000.
 
         """
-        if fields is None:
-            raise ArgumentError("No fields specified for SQL target.")
 
-        if not options:
-            options = {}
+        super(SQLTable, self).__init__(store=store, schema=schema)
 
-        self._buffer = []
+        self.fields = None
 
-        if store:
-            self.store = store
-        else:
-            self.store = default_store(url=url, connectable=connectable,
-                                        schema=schema)
-        self.schema = schema
-        self.options = options
-        self.replace = replace
-        self.create = create
-        self.fields = fields
-        # FIXME: make use of this
-        self.concrete_field_map = {}
+        if create:
+            if fields is None:
+                raise ArgumentError("No fields specified for new table")
 
-        self.id_key_name = id_key_name
-
-        if buffer_size:
-            self.buffer_size = buffer_size
-        else:
-            self.buffer_size = 1000
-
-        # Initialize
-        if self.create:
+            self.fields = fields
             self.table = self.store.create_table(table, self.fields,
-                                                 replace=self.replace,
-                                                 schema=self.schema,
-                                                 id_column=self.id_key_name)
+                                                 replace=replace,
+                                                 schema=schema,
+                                                 id_column=id_key_name)
+            # FIXME: reflect concrete storage types
         else:
-            self.table = self.store.table(table, schema=schema, autoload=True)
+            if isinstance(table, basestring):
+                self.table = self.store.table(table, schema=schema, autoload=True)
+            else:
+                self.table = table
 
-        self.table_name = self.table.name
+            if not self.fields:
+                self.fields = reflect_fields(self.table)
+
+        self.name = self.table.name
 
         if truncate:
             self.table.delete().execute()
 
-        if not self.fields:
-            self.fields = fields_from_table(self.table)
+        self._field_names = self.fields.names()
 
-        self.field_names = self.fields.names()
-
-        self.insert_command = self.table.insert()
-
-    def as_source(self):
-        """Returns source representation of the target table"""
-        return SQLDataSource(store=self.store,
-                             schema=self.schema,
-                             table=self.table,
-                             fields=self.fields)
-
-    def __del__(self):
-        """Closes the stream, flushes buffered data"""
-        # self.flush()
+        # Bulk INSERT buffer (if backends supports bulk inserts)
+        self.buffer_size = buffer_size
+        self._insert_buffer = []
+        self.insert_statement = self.table.insert()
+        # SQL Statement representation
 
     def rows(self):
-        raise IsNotSourceError("SQLDataTarget is not a source. "
-                                "Use 'as_source()' to convert it.")
-    def __iter__(self):
-        return self.rows()
+        return iter(self.table.select().execute())
+
+    def representations(self):
+        """Return list of possible object representations"""
+        return ["rows", "records", "sql_statement", "sql_table"]
+
+    def selectable(self):
+        return self.table.select()
+
+    def sql_statement(self):
+        return self.table
+
+    def sql_table(self):
+        return self.table
+
+    def __len__(self):
+        """Returns number of rows in a table"""
+        statement = self.table.count()
+        result = self.store.connectable.scalar(statement)
+        return result
+
+    def truncate(self):
+        if self.table is None:
+            raise RepresentationError("Can not truncate: "
+                                      "SQL object is a statement not a table")
+        self.store.execute(self.table.delete())
 
     def append(self, row):
         # FIXME: remove this once SQLAlchemy will allow list based multi-insert
-        row = dict(zip(self.fields.names(), row))
+        row = dict(zip(self._field_names, row))
 
-        self._buffer.append(row)
-        if len(self._buffer) >= self.buffer_size:
+        self._insert_buffer.append(row)
+        if len(self._insert_buffer) >= self.buffer_size:
             self.flush()
+
+    def flush(self):
+        if self._insert_buffer:
+            self.store.execute(self.insert_statement, self._insert_buffer)
+            self._insert_buffer = []
 
     def append_from(self, obj):
         """Appends data from object `obj` which might be a `DataObject`
@@ -604,24 +569,17 @@ class SQLDataTarget(object):
         * after insert of all rows of `rows` representation
         """
 
-        try:
-            reprs = obj.representations()
-        except AttributeError:
-            reprs = ["rows"]
+        reprs = obj.representations()
 
-        if obj.store == self.store and \
-                ("sql_table" in reprs or "sql_statement" in reprs):
+        if self.can_compose(obj):
             # Flush all data that were added through append() to preserve
             # insertion order (just in case)
             self.flush()
 
             # Preare INSERT INTO ... SELECT ... statement
-            source = selectable_from_object(obj, self.store)
+            source = obj.selectable()
             statement = InsertFromSelect(self.table, source)
-            # statement = statement.execution_options(autocommit=True)
-            # statement = str(statement)
             self.store.execute(statement)
-
 
         elif "rows" in reprs:
             # Assumption: all data objects with "rows" representation
@@ -636,14 +594,3 @@ class SQLDataTarget(object):
             raise RepresentationError(
                             "Incopatible representations '%s'", (reprs, ) )
 
-    def truncate(self):
-        if self.table is None:
-            raise RepresentationError("Can not truncate: "
-                                      "SQL object is a statement not a table")
-        self.store.execute(self.table.delete())
-
-    def flush(self):
-        if self._buffer:
-            insert = self.table.insert()
-            self.store.execute(insert, self._buffer)
-            self._buffer = []

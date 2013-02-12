@@ -35,7 +35,7 @@ class TransformTestCase(unittest.TestCase):
         s = transform.TransformationSource(None, fields=self.fields)
         t = transform.TransformationTarget()
         t["id"] = 10
-        self.assertIsInstance(t.output["id"], transform.ValueElement)
+        self.assertIsInstance(t.output["id"], transform.LiteralElement)
         self.assertEqual(10, t.output["id"].value)
 
         t["id"] = s

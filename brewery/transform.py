@@ -187,8 +187,8 @@ class CompiledTransformation(object):
         for trans in self.transformations:
             first = trans[0]
             value = first(row, None)
-            for element in trans:
-
+#            for element in trans:
+# FIXME: continue HERE!!!!!
 
 class TransformationFunction(object):
     def __init__(self, fields, source, missing_value=None):
@@ -282,6 +282,8 @@ class TransformationCompiler(object):
         # s["name"].function(to_date)
         # s.function("")
         # s.lookup("")
+        # s[]
+
         result = OrderedDict()
 
         for key, element in self.target.output.items():
@@ -323,3 +325,4 @@ class TransformationCompiler(object):
             actions = []
 
         t = MissingValueTransformation()
+

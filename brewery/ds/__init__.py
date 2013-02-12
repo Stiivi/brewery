@@ -11,8 +11,12 @@ from brewery.ds.html_target import *
 
 # Backward Compatibility
 from ..objects.text import CSVDataSource, CSVDataTarget
-from ..objects.sql import SQLDataSource, SQLDataTarget
+from ..objects.sql import SQLTable
 from ..objects.xls_objects import *
+
+# FIXME: backward compatibility
+SQLDataSource = SQLTable
+SQLDataTarget = SQLTable
 
 __all__ = (
     "Field",

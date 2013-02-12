@@ -44,14 +44,14 @@ class SQLOperationsTestCase(OperationsBaseTestCase):
         self.assertEqual(len(self.data), len(self.source))
 
     def test_distinct(self):
-        statement = self.source.statement
+        statement = self.source.sql_statement()
         statement = ops.sql.distinct(statement, ["id"])
         result = self.execute(statement)
         self.assertEqual(4, len(result))
 
     def test_field_filter(self):
         ff = brewery.FieldFilter(keep=["id"])
-        statement = self.source.statement
+        statement = self.source.sql_statement()
         statement = ops.sql.field_filter(statement, self.source.fields, ff)
         out = self.execute(statement)
 

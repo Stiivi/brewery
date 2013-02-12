@@ -20,7 +20,7 @@ type_mapping = {
 	"POSTGRES_UNKNOWN": "text"
 }
 
-def mdb_tool(tool_name, args, tools_path=None):
+def mdb_tool(tool_name, args, tools_path=None, universal_newlines=False):
     tool = "mdb-" + tool_name
     if tools_path:
         tool_path = os.path.join(tools_path, tool)
@@ -31,7 +31,8 @@ def mdb_tool(tool_name, args, tools_path=None):
     if not os.path.exists(tool_path):
         raise Exception('mdb tool %s could not be found' % tool_path)
 
-    return subprocess.Popen([tool_path] + args, stdout=subprocess.PIPE)
+    return subprocess.Popen([tool_path] + args, stdout=subprocess.PIPE,
+            universal_newlines=universal_newlines)
 
 
 class MDBDataStore(DataStore):
@@ -125,8 +126,8 @@ class MDBDataSource(DataObject):
 
     def rows(self):
         pipe = mdb_tool("export",
-                        ['-H', '-D%d/%m/%y', self.mdb_file, self.name],
-                        self.tools_path)
+                        ['-H', '-b', 'raw', '-D%d/%m/%y', self.mdb_file, self.name],
+                        self.tools_path, universal_newlines=True)
 
         source = CSVDataSource(pipe.stdout, self.fields, encoding=self.encoding)
 

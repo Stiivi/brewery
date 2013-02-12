@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from .base import SourceNode
 from ..objects.base import IterableDataSource, IterableRecordsDataSource
 from ..objects.text import CSVDataSource
-from ..objects.sql import SQLDataSource
+from ..objects.sql import SQLTable
 from ..objects.xls_objects import XLSDataSource
 
 # FIXME: change this to data objects
@@ -417,7 +417,7 @@ class SQLSourceNode(SourceNode):
         self.source = None
 
     def evaluate(self, context, sources=None):
-         return SQLDataSource(*self.args, **self.kwargs)
+         return SQLTable(*self.args, **self.kwargs)
 
 
 class ESSourceNode(SourceNode):
