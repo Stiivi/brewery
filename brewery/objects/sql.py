@@ -200,7 +200,17 @@ class SQLDataStore(object):
 
     def __init__(self, url=None, connectable=None, schema=None,
             concrete_type_map=None):
-        """Opens a SQL data store"""
+        """Opens a SQL data store.
+
+        * `url` – connection URL (see SQLAlchemy documentation for more
+          information)
+        * `connectable` – a connection or an engine
+        * `schema` – default database schema
+        * `concrete_Type_map` – a dictionary where keys are generic storage
+          types and values are concrete storage types
+
+        Either `url` or `connectable` should be specified, but not both.
+        """
 
         if not url and not connectable:
             raise AttributeError("Either url or connectable should be provided" \
@@ -221,11 +231,6 @@ class SQLDataStore(object):
         self.schema = schema
         self.logger = get_logger()
 
-
-    def close(self):
-        """Closes data store."""
-        pass
-
     def objects(self, names=None):
         """Return list of tables and views.
 
@@ -243,12 +248,14 @@ class SQLDataStore(object):
         return objects
 
     def get_object(self, name):
+        """Returns a `SQLTable` object for a table with name `name`."""
+
         obj = SQLTable(table=name, schema=self.schema, store=self)
         return obj
 
     def create(self, name, fields, replace=False, from_obj=None, schema=None,
                id_column=None):
-        """Creates a table and returns `SQLTargetObject`. See `create_table()`
+        """Creates a table and returns `SQLTable`. See `create_table()`
         for more information"""
         table = self.create_table(name, fields=fields, replace=replace,
                                   from_obj=from_obj, schema=schema,
