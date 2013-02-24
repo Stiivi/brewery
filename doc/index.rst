@@ -3,8 +3,8 @@ Brewery - Data streaming, auditing and mining framework
 
 *Know what you have and learn what is happening to your data*
 
-Brewery is a stream-based data analysis and auditing framework with focus on
-understandability, auditability, usability and versatility.
+Brewery is a stream-based data processing, analysis and auditing framework
+with focus on understandability, auditability, usability and versatility.
 
 Contents:
 
@@ -14,7 +14,7 @@ Contents:
 	introduction
 	install
 	metadata
-	stores
+	objects
 	streams
 	node_reference
 	probes
@@ -27,13 +27,12 @@ Contact and Getting Help
 ------------------------
 
 If you have questions, problems or suggestions, you can send a message to 
-`Google group`_ or `write to me`_ (Stefan Urbanek - author).
+`Google group`_.
 
 Report bugs in `github issues`_ tracking
 
 .. _github issues: https://github.com/Stiivi/brewery/issues
 .. _Google group: http://groups.google.com/group/databrewery
-.. _write to me: stefan.urbanek@gmail.com
 
 There is an IRC channel ``#databrewery`` on server ``irc.freenode.net``.
 

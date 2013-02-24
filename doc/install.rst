@@ -1,13 +1,14 @@
-++++++++++++
+############
 Installation
-++++++++++++
+############
 
 Quick Start
 ===========
 
 Here are quick installation instructions for the impatient.
 
-Brewery is being developed for Python 2.7, reported to work on 2.6.
+Brewery is being developed for Python 2.7, reported to work on 2.6 however not
+supported.
 
 Satisfy soft dependencies that cover most of the use cases. For more
 information read below.::
@@ -45,24 +46,24 @@ The framework currently does not have any hard dependency on other packages.
 All dependencies are optional and you need to install the packages only if
 certain features are going to be used.
 
-+-------------------------+---------------------------------------------------------+
-|Package                  | Feature                                                 |
-+=========================+=========================================================+
-| sqlalchemy              | Streams from/to SQL databases. Source:                  |
-|                         | http://www.sqlalchemy.org                               |
-|                         | Recommended version is > 0.7                            |
-+-------------------------+---------------------------------------------------------+
-| gdata                   | Google data (spreadsheet) source/target                 |
-+-------------------------+---------------------------------------------------------+
-| xlrd                    | Reading MS Excel XLS Files. Source:                     |
-|                         | http://pypi.python.org/pypi/xlrd                        |
-+-------------------------+---------------------------------------------------------+
-| PyYAML                  | YAML directory data source/target. Source:              |
-|                         | http://pyyaml.org                                       |
-+-------------------------+---------------------------------------------------------+
-| pymongo                 | MongoDB streams and mongoaudit. Source:                 |
-|                         | http://www.mongodb.org/downloads                        |
-+-------------------------+---------------------------------------------------------+
++------------+--------------------------------------------+
+| Package    | Feature                                    |
++============+============================================+
+| sqlalchemy | Streams from/to SQL databases. Source:     |
+|            | http://www.sqlalchemy.org                  |
+|            | Recommended version is >= 0.7.4            |
++------------+--------------------------------------------+
+| gdata      | Google data (spreadsheet) source/target    |
++------------+--------------------------------------------+
+| xlrd       | Reading MS Excel XLS Files. Source:        |
+|            | http://pypi.python.org/pypi/xlrd           |
++------------+--------------------------------------------+
+| PyYAML     | YAML directory data source/target. Source: |
+|            | http://pyyaml.org                          |
++------------+--------------------------------------------+
+| pymongo    | MongoDB streams and mongoaudit. Source:    |
+|            | http://www.mongodb.org/downloads           |
++------------+--------------------------------------------+
 
 
 Customized Installation
@@ -80,3 +81,5 @@ Install::
 
     cd brewery
     python setup.py install
+
+

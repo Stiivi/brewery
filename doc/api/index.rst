@@ -4,8 +4,8 @@ Brewery API
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   datastores
-   quality
-   streams
+    datastores
+    quality
+    streams

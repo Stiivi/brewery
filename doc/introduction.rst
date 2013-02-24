@@ -1,6 +1,6 @@
-++++++++++++
+############
 Introduction
-++++++++++++
+############
 
 Brewery is a Python framework for data analysis and data quality measurement.
 Principle of the framework are streams of structured data that flow between
@@ -40,9 +40,12 @@ Modules
 
 The framework consists of several modules:
 
-* :mod:`metadata` – field types and field type operations, describe structure of data (available directly
-  from the `brewery` package namespace)
-* :mod:`ds` – structured data streams data sources and data targets
-* :mod:`streams` – data processing streams
+* *Metadata* – field types and field type operations, describe structure
+  of data. See :doc:`documentation<medatada>` or :doc:`reference<api/metadata>`
+* *Objects and Stores* – structured data streams data sources and data targets
+  See :doc:`documentation<objects>` or :doc:`reference<api/objects>`
+* *Streams* – data processing streams
+  See :doc:`documentation<streams>` or :doc:`reference<api/streams>`
 * nodes – analytical and processing stream nodes (see :doc:`/node_reference`)
-* :mod:`probes` – analytical and quality data probes
+* *Probes* – analytical and quality data probes
+  See :doc:`documentation<probes>` or :doc:`reference<api/probes>`
