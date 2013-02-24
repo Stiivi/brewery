@@ -36,7 +36,7 @@ def mdb_tool(tool_name, args, tools_path=None, universal_newlines=False):
 
 
 class MDBDataStore(DataStore):
-    def __init__(self, mdb_file, tools_path="/usr/bin"):
+    def __init__(self, mdb_file, tools_path=None):
         self.tools_path = tools_path
         self.mdb_file = mdb_file
         self._cached_objects = OrderedDict()
