@@ -13,7 +13,6 @@ __all__ = [
     "MissingPackage",
     "decamelize",
     "to_identifier",
-    "subclass_iterator",
     "get_backend",
     # FIXME: move these
     "coalesce_value",
@@ -106,30 +105,6 @@ class MissingPackage(object):
         raise MissingPackageError("Optional package '%s' is not installed. "
                                   "Please install the package%s%s%s" %
                                       (self.package, source, use, comment))
-
-def subclass_iterator(cls, _seen=None):
-    """
-    Generator over all subclasses of a given class, in depth first order.
-
-    Source: http://code.activestate.com/recipes/576949-find-all-subclasses-of-a-given-class/
-    """
-
-    if not isinstance(cls, type):
-        raise TypeError('_subclass_iterator must be called with '
-                        'new-style classes, not %.100r' % cls)
-
-    _seen = _seen or set()
-
-    try:
-        subs = cls.__subclasses__()
-    except TypeError: # fails only when cls is type
-        subs = cls.__subclasses__(cls)
-    for sub in subs:
-        if sub not in _seen:
-            _seen.add(sub)
-            yield sub
-            for sub in subclass_iterator(sub, _seen):
-                yield sub
 
 def decamelize(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', name)
