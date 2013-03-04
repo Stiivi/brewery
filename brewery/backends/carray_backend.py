@@ -1,4 +1,9 @@
-import carray
+try:
+    import carray
+except ImportError:
+    from brewery.common import MissingPackage
+    sqlalchemy = MissingPackage("carray")
+    carray = ()
 
 storage_type_map = {
             "integer": "i",
