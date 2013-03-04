@@ -70,7 +70,7 @@ class MDBDataStore(DataStore):
                 #   line with field definitions found
                 if m_fields:
                     field_name = m_fields.group('name').strip('"')
-                    concrete_type = m_fields.group('type')
+                    concrete_type = m_fields.group('type').upper()
                     field_type = type_mapping.get(concrete_type)
                     field = Field(name=field_name,
                                     storage_type=field_type,
