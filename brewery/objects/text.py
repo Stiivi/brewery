@@ -124,7 +124,7 @@ class UnicodeWriter:
         for row in rows:
             self.writerow(row)
 
-class CSVDataSource(DataObject):
+class CSVSource(DataObject):
     def __init__(self, resource, read_header=True, dialect=None,
             delimiter=None, encoding=None, sample_size=1024, skip_rows=None,
             empty_as_null=True, fields=None, infer_fields=False):
@@ -364,7 +364,7 @@ class CSVDataSource(DataObject):
         for row in self.reader:
             yield dict(zip(fields, row))
 
-class CSVDataTarget(DataObject):
+class CSVTarget(DataObject):
     def __init__(self, resource, write_headers=True, truncate=True,
                  encoding="utf-8", dialect=None,fields=None, **kwds):
         """Creates a CSV data target
@@ -395,6 +395,8 @@ class CSVDataTarget(DataObject):
                                     dialect=self.dialect, **self.kwds)
 
         if self.write_headers:
+            if not self.fields:
+                raise BreweryError("No fields provided")
             self.writer.writerow(self.fields.names())
 
         self.field_names = self.fields.names()
@@ -410,4 +412,7 @@ class CSVDataTarget(DataObject):
         for row in obj:
             self.append(row)
 
+# FIXME: Backward name compatibility
+CSVDataTarget = CSVTarget
+CSVDataSource = CSVSource
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .base import Node
@@ -137,9 +136,10 @@ class AppendNode(Node):
 class MergeNode(Node):
     """Merge two or more streams (join).
 
-    Inputs are joined in a star-like fashion: one input is considered master and others are
-    details adding information to the master. By default master is the first input.
-    Joins are specified as list of tuples: (`input_tag`, `master_input_key`, `other_input_key`).
+    Inputs are joined in a star-like fashion: one input is considered master
+    and others are details adding information to the master. By default master
+    is the first input.  Joins are specified as list of tuples: (`input_tag`,
+    `master_input_key`, `other_input_key`).
 
     Following configuration code shows how to add region and category details:
 

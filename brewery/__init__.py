@@ -5,6 +5,7 @@ from .errors import *
 import brewery.backends
 import brewery.objects
 import brewery.transform
+import brewery.resource
 
 __version__ = "0.11"
 

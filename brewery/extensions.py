@@ -16,17 +16,24 @@ def initialize_namespace(name, objects=None, root_class=None, suffix=None):
     else:
         base = {}
 
-    base.update(objects)
+    if objects:
+        base.update(objects)
     _namespaces[name] = base
     return base
 
 def collect_subclasses(parent, suffix=None):
     """Collect all subclasses of `parent` and return a dictionary where keys
-    are decamelized class names transformed to identifiers and with
-    `suffix` removed."""
+    are object names. Obect name is decamelized class names transformed to
+    identifiers and with `suffix` removed. If a class has class attribute
+    `_object_name` then the attribute is used as name."""
+
     subclasses = {}
     for c in subclass_iterator(parent):
-        name = to_identifier(decamelize(c.__name__))
+        if hasattr(c, "_object_name"):
+            name = getattr(c, "_object_name")
+        else:
+            name = to_identifier(decamelize(c.__name__))
+
         if suffix and name.endswith(suffix):
             name = name[:-len(suffix)]
         subclasses[name] = c

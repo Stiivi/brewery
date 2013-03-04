@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ..common import *
+from ..extensions import *
 
 __all__ = (
     "create_node",

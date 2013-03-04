@@ -1,6 +1,8 @@
 """Data Stores"""
 
 from ..ops.iterator import as_records
+from ..errors import *
+from ..extensions import *
 
 __all__ = [
         "DataStore",
@@ -11,7 +13,9 @@ __all__ = [
         "RowListDataObject",
         "IterableRecordsDataSource",
 
-        "shared_representations"
+        "shared_representations",
+        "data_object",
+        "open_store"
         ]
 
 _data_stores = {
@@ -20,18 +24,33 @@ _data_stores = {
             "mdb":"brewery.objects.mdb.MDBDataStore"
         }
 
-def open_datastore(type_, **options):
+def open_store(type_, **options):
     """Opens datastore of `type`."""
 
-    backend = get_backend(type_)
+    ns = get_namespace("store_types")
+    if not ns:
+        ns = initialize_namespace("store_types", root_class=DataStore,
+                                suffix="_store")
 
-    return backend.open_store(**options)
+    try:
+        factory = ns[type_]
+    except KeyError:
+        raise BreweryError("Unable to find factory for store of type %s" %
+                                type_)
+    return factory(**options)
 
-data_object_types = [
-            "rows", # iterator of rows
-            "sql_statement"   # SQLAlchemy statement object
-            "sql_table" # SQLAlchemy table object
-        ]
+def data_object(type_, *args, **kwargs):
+    ns = get_namespace("object_types")
+    if not ns:
+        ns = initialize_namespace("store_types", root_class=DataObject,
+                                suffix=None)
+    print "OBJECT NS: %s" % (ns.keys(), )
+    try:
+        factory = ns[type_]
+    except KeyError:
+        raise BreweryError("Unable to find factory for object of type %s" %
+                                type_)
+    return factory(*args, **kwargs)
 
 
 class DataObject(object):
@@ -179,6 +198,8 @@ def shared_representations(objects):
     return reps
 
 class IterableDataSource(DataObject):
+    _object_name = "iterable"
+
     def __init__(self, iterable, fields):
         """Create a data object that wraps an iterable."""
         self.fields = fields
@@ -205,6 +226,8 @@ class IterableDataSource(DataObject):
         return as_records(self.iterable, self.fields)
 
 class IterableRecordsDataSource(IterableDataSource):
+    _object_name = "iterable_records"
+
     def rows(self):
         names = [str(field) for field in self.fields]
         for record in self.iterable:
@@ -214,6 +237,8 @@ class IterableRecordsDataSource(IterableDataSource):
         return iter(self.iterable)
 
 class RowListDataObject(DataObject):
+    _object_name = "list"
+
     def __init__(self, fields, data=None):
         """Create a data object that wraps an iterable. The object is dumb,
         does not perform any field checking, accepts anything passed to it.
