@@ -10,6 +10,15 @@ from ..common import open_resource
 from collections import defaultdict
 from ..probes import probe_type
 from ..errors import *
+import os.path
+
+__all__ = (
+        "CSVSource",
+        "CSVTarget",
+        # Depreciated
+        "CSVDataSource",
+        "CSVDataTarget"
+        )
 
 class UTF8Recoder(object):
     """
@@ -32,16 +41,21 @@ class UTF8Recoder(object):
 def to_bool(value):
     """Return boolean value. Convert string to True when "true", "yes" or "on"
     """
-    return bool(value) or lower(value) in ["true", "yes", "on"]
+    if isinstance(value, basestring):
+        value = value.lower()
+        return value in ["1", "true", "yes", "on"] and value != "0"
+    else:
+        return bool(value)
 
-storage_conversion = {
+_default_type_converters = {
     "unknown": None,
     "string": None,
     "text": None,
     "integer": int,
     "float": float,
     "boolean": to_bool,
-    "date": None
+    "date": None,
+    "time": None
 }
 
 class UnicodeReader:
@@ -50,14 +64,19 @@ class UnicodeReader:
     which is encoded in the given encoding.
     """
 
-    def __init__(self, f, dialect="excel", encoding="utf-8", empty_as_null=False, **kwds):
+    def __init__(self, f, dialect="excel", encoding="utf-8", empty_as_null=False,
+                 type_converters=None, **kwds):
         f = UTF8Recoder(f, encoding)
         self.reader = csv.reader(f, dialect=dialect, **kwds)
+        self.type_converters = type_converters or _default_type_converters
         self.converters = []
         self.empty_as_null = empty_as_null
 
     def set_fields(self, fields):
-        self.converters = [storage_conversion[f.storage_type] for f in fields]
+        try:
+            self.converters = [self.type_converters[f.storage_type] for f in fields]
+        except KeyError as e:
+            raise BreweryError("Unknown conversion: %s" % e)
 
         if not any(self.converters):
             self.converters = None
@@ -124,10 +143,27 @@ class UnicodeWriter:
         for row in rows:
             self.writerow(row)
 
+class CSVStore(DataStore):
+    def __init__(self, path, extension=".csv", **kwargs):
+        super(CSVStore, self).__init__()
+        self.path = path
+        self.extension = extension
+        self.kwargs = kwargs
+
+    def get_object(self, name):
+        """Returns a CSVSource object with filename constructed from store's
+        path and extension"""
+        if not name.endswith(self.extension):
+            name = name + self.extension
+        path = os.path.join(self.path, name)
+        return CSVSource(path, **self.kwargs)
+
+
 class CSVSource(DataObject):
     def __init__(self, resource, read_header=True, dialect=None,
             delimiter=None, encoding=None, sample_size=1024, skip_rows=None,
-            empty_as_null=True, fields=None, infer_fields=False):
+            empty_as_null=True, fields=None, infer_fields=False,
+            type_converters=None):
         """Creates a CSV data source stream.
 
         :Attributes:
@@ -147,6 +183,8 @@ class CSVSource(DataObject):
               prevent loading huge CSV files at once.
             * `skip_rows`: number of rows to be skipped. Default: ``None``
             * `empty_as_null`: treat empty strings as ``Null`` values
+            * `type_converters`: dictionary of converters (functions). It has
+              to cover all knowd types.
 
         Note: avoid auto-detection when you are reading from remote URL
         stream.
@@ -174,6 +212,9 @@ class CSVSource(DataObject):
          1  1  0 - ignore header, use fields
          1  1  1 - ERROR
         """
+        # FIXME: loosen requirement for type_converters to contain all known
+        # types
+
         self.file = None
 
         if not any((fields, read_header, infer_fields)):
@@ -198,6 +239,7 @@ class CSVSource(DataObject):
         self.fields = fields
         self.do_infer_fields = infer_fields
         self.sample_size = sample_size
+        self.type_converters = type_converters
 
         self._initialize()
 
@@ -238,7 +280,7 @@ class CSVSource(DataObject):
         # self.reader = csv.reader(handle, **self.reader_args)
         self.reader = UnicodeReader(self.file, encoding=self.encoding,
                                     empty_as_null=self.empty_as_null,
-                                    **args)
+                                    type_converters=self.type_converters, **args)
 
         if self.do_infer_fields:
             self.fields = self.infer_fields()

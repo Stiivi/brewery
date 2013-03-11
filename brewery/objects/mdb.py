@@ -5,7 +5,8 @@ from collections import defaultdict, OrderedDict
 
 from ..metadata import *
 from .base import *
-from .text import CSVDataSource
+from .text import CSVSource
+from ..errors import *
 
 # type mapping from csv file to sqlalchemy type
 type_mapping = {
@@ -36,10 +37,11 @@ def mdb_tool(tool_name, args, tools_path=None, universal_newlines=False):
 
 
 class MDBDataStore(DataStore):
-    def __init__(self, mdb_file, tools_path=None):
+    def __init__(self, mdb_file, tools_path=None, encoding=None):
         self.tools_path = tools_path
         self.mdb_file = mdb_file
         self._cached_objects = OrderedDict()
+        self.encoding = encoding
         # TODO: raise exception when the mdb_file does not exist
         # Or ... should we? What about a "promise" that it will exist at the
         # time it will be needed?
@@ -112,7 +114,10 @@ class MDBDataSource(DataObject):
         self.tools_path = tools_path
         self.name = name
         self.store = store
-        self.encoding = encoding
+        if store:
+            self.encoding = encoding or store.encoding
+        else:
+            self.encoding = encoding
         self.fields = fields
 
         if not fields:
@@ -129,7 +134,8 @@ class MDBDataSource(DataObject):
                         ['-H', '-b', 'raw', '-D%d/%m/%y', self.mdb_file, self.name],
                         self.tools_path, universal_newlines=True)
 
-        source = CSVDataSource(pipe.stdout, self.fields, encoding=self.encoding)
+        source = CSVSource(pipe.stdout, fields=self.fields, read_header=False,
+                               encoding=self.encoding)
 
         for row in source.rows():
             # Treat empty strings as NULLs
