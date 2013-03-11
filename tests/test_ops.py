@@ -108,9 +108,10 @@ class IteratorOperationsTestCase(OperationsBaseTestCase):
             result = ops.iterator.left_inner_join(master, [detail2], [])
             resul = list(result)
 
-        with self.assertRaises(ArgumentError):
+        with self.assertRaisesRegext(ArgumentError, "No details"):
             result = ops.iterator.left_inner_join(master, [], [])
             resul = list(result)
+
 class TransformationTestCase(unittest.TestCase):
     def setUp(self):
         self.row = [1, "janko", "ulica"]
