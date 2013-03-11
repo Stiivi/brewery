@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Iterator based operations."""
+"""Iterator composing operations."""
 from ..metadata import *
 from ..common import get_logger
 from ..errors import *
@@ -147,6 +147,39 @@ def field_filter(iterator, fields, field_filter):
     row_filter = field_filter.row_filter(fields)
     return itertools.imap(row_filter, iterator)
 
+def to_dict(iterator, fields, key=None):
+    """Returns dictionary constructed from the iterator. `fields` are
+    iterator's fields, `key` is name of a field or list of fields that will be
+    used as a simple key or composite key.
+
+    If no `key` is provided, then the first field is used as key.
+
+    Keys are supposed to be unique.
+
+    .. warning::
+
+        This method consumes whole iterator. Might be very costly on large
+        datasets.
+    """
+
+    if not key:
+        index = 0
+        indexes = None
+    elif isinstance(key, basestring):
+        index = fields.index(key)
+        indexes = None
+    else:
+        indexes = fields.indexes(key)
+
+    if indexes is None:
+        d = dict( (row[index], row) for row in iterator)
+    else:
+        for row in iterator:
+            print "ROW: %s" % (row, )
+            key_value = (row[index] for index in indexes)
+            d[key_value] = row
+
+    return d
 
 def left_inner_join(master, details, joins):
     """Creates left inner master-detail join (star schema) where `master` is an
@@ -229,40 +262,6 @@ def string_strip(iterator, fields, strip_fields=None, chars=None):
                 row[index] = value.strip(chars)
         yield row
 
-def to_dict(iterator, fields, key=None):
-    """Returns dictionary constructed from the iterator. `fields` are
-    iterator's fields, `key` is name of a field or list of fields that will be
-    used as a simple key or composite key.
-
-    If no `key` is provided, then the first field is used as key.
-
-    Keys are supposed to be unique.
-
-    .. warning::
-
-        This method consumes whole iterator. Might be very costly on large
-        datasets.
-    """
-
-    if not key:
-        index = 0
-        indexes = None
-    elif isinstance(key, basestring):
-        index = fields.index(key)
-        indexes = None
-    else:
-        indexes = fields.indexes(key)
-
-    if indexes is None:
-        d = dict( (row[index], row) for row in iterator)
-    else:
-        for row in iterator:
-            print "ROW: %s" % (row, )
-            key_value = (row[index] for index in indexes)
-            d[key_value] = row
-
-    return d
-
 def basic_audit(iterable, fields, distinct_threshold):
     """Performs basic audit of fields in `iterable`. Returns a list of
     dictionaries with keys:
@@ -328,7 +327,11 @@ class CopyValueTransformation(object):
         self.source_index = fields.index(source)
         self.missing_value = missing_value
     def __call__(self, row):
-        return row[self.source_index] or self.missing_value
+        result = row[self.source_index]
+        if result is not None:
+            return result
+        else:
+            return self.missing_value
 
 class SetValueTransformation(object):
     def __init__(self, value):
@@ -364,7 +367,10 @@ class FunctionTransformation(object):
             args = list(itertools.compress(row, self.mask))
             result = self.function(*args, **self.args)
 
-        return result or self.missing_value
+        if result is not None:
+            return result
+        else:
+            return self.missing_value
 
 def compile_transformation(transformation, fields):
     """Returns an ordered dictionary of transformations where keys are target
