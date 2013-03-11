@@ -85,6 +85,32 @@ class IteratorOperationsTestCase(OperationsBaseTestCase):
         col = [[r[0]] for r in self.data]
         self.assertEqual(col, out)
 
+    def test_left_join(self):
+        master = [ (1, "apple", "fruit"),
+                    (2, "bannana", "fruit"),
+                    (3, "orange", "fruit"),
+                    (4, "carrot", "vegetable"),
+                    (5, "cucumber", "vegetable")]
+        detail1 = [ (1, 10), (2, 20), (3, 30) ]
+        detail2 = [ ("fruit", "sweet"), ("vegetable", "meh") ]
+
+        result = ops.iterator.left_inner_join(master, [detail1], [(0,0)])
+        result = list(result)
+        self.assertEqual(3, len(result))
+        self.assertTrue(all(len(row) == 5 for row in result))
+
+        result = ops.iterator.left_inner_join(master, [detail2], [(2,0)])
+        result = list(result)
+        self.assertEqual(5, len(result))
+        self.assertTrue(all(len(row) == 5 for row in result))
+
+        with self.assertRaisesRegexp(ArgumentError, "should be a join"):
+            result = ops.iterator.left_inner_join(master, [detail2], [])
+            resul = list(result)
+
+        with self.assertRaises(ArgumentError):
+            result = ops.iterator.left_inner_join(master, [], [])
+            resul = list(result)
 class TransformationTestCase(unittest.TestCase):
     def setUp(self):
         self.row = [1, "janko", "ulica"]
@@ -182,4 +208,5 @@ def test_suite():
 
 if __name__ == '__main__':
     unittest.main()
+
 

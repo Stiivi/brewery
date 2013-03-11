@@ -2,6 +2,7 @@
 """Iterator based operations."""
 from ..metadata import *
 from ..common import get_logger
+from ..errors import *
 from .. import probes
 import itertools
 import functools
@@ -146,6 +147,52 @@ def field_filter(iterator, fields, field_filter):
     row_filter = field_filter.row_filter(fields)
     return itertools.imap(row_filter, iterator)
 
+
+def left_inner_join(master, details, joins):
+    """Creates left inner master-detail join (star schema) where `master` is an
+    iterator if the "bigger" table `details` are details. `joins` is a list of
+    tuples `(master, detail)` where the master is index of master key and
+    detail is index of detail key to be matched.
+
+    If `inner` is `True` then inner join is performed. That means that only
+    rows from master that have corresponding details are returned.
+
+    .. warning::
+
+        all detail iterators are consumed and result is held in memory. Do not
+        use for large datasets.
+    """
+
+    maps = []
+
+    if not details:
+        raise ArgumentError("No details provided, nothing to join")
+
+    if len(details) != len(joins):
+        raise ArgumentError("For every detail there should be a join "
+                            "(%d:%d)." % (len(details), len(joins)))
+
+    for detail, join in zip(details, joins):
+        # FIXME: do not use list comprehension here for better error handling
+        detail_dict = dict( (row[join[1]], row) for row in detail )
+        maps.append(detail_dict)
+
+    for master_row in master:
+        row = list(master_row)
+        match = True
+
+        for detail, join in zip(maps, joins):
+            key = master_row[join[0]]
+            try:
+                detail_row = detail[key]
+                row += detail_row
+            except KeyError:
+                match = False
+                break
+
+        if match:
+            yield row
+
 def text_substitute(iterator, fields, field, substitutions):
     """Substitute field using text substitutions"""
     # Compile patterns
@@ -181,6 +228,40 @@ def string_strip(iterator, fields, strip_fields=None, chars=None):
             if value:
                 row[index] = value.strip(chars)
         yield row
+
+def to_dict(iterator, fields, key=None):
+    """Returns dictionary constructed from the iterator. `fields` are
+    iterator's fields, `key` is name of a field or list of fields that will be
+    used as a simple key or composite key.
+
+    If no `key` is provided, then the first field is used as key.
+
+    Keys are supposed to be unique.
+
+    .. warning::
+
+        This method consumes whole iterator. Might be very costly on large
+        datasets.
+    """
+
+    if not key:
+        index = 0
+        indexes = None
+    elif isinstance(key, basestring):
+        index = fields.index(key)
+        indexes = None
+    else:
+        indexes = fields.indexes(key)
+
+    if indexes is None:
+        d = dict( (row[index], row) for row in iterator)
+    else:
+        for row in iterator:
+            print "ROW: %s" % (row, )
+            key_value = (row[index] for index in indexes)
+            d[key_value] = row
+
+    return d
 
 def basic_audit(iterable, fields, distinct_threshold):
     """Performs basic audit of fields in `iterable`. Returns a list of
