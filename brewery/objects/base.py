@@ -3,6 +3,9 @@
 from ..ops.iterator import as_records
 from ..errors import *
 from ..extensions import *
+from .. import ops
+from ..util import *
+from ..metadata import *
 
 __all__ = [
         "DataStore",
@@ -24,7 +27,7 @@ _data_stores = {
             "mdb":"brewery.objects.mdb.MDBDataStore"
         }
 
-def open_store(type_, **options):
+def open_store(type_, *args, **kwargs):
     """Opens datastore of `type`."""
 
     ns = get_namespace("store_types")
@@ -37,14 +40,14 @@ def open_store(type_, **options):
     except KeyError:
         raise BreweryError("Unable to find factory for store of type %s" %
                                 type_)
-    return factory(**options)
+    return factory(*args, **kwargs)
 
 def data_object(type_, *args, **kwargs):
     ns = get_namespace("object_types")
     if not ns:
         ns = initialize_namespace("store_types", root_class=DataObject,
                                 suffix=None)
-    print "OBJECT NS: %s" % (ns.keys(), )
+
     try:
         factory = ns[type_]
     except KeyError:
@@ -61,7 +64,7 @@ class DataObject(object):
         return ["rows"]
 
     def is_compatible(self, obj, required=None, ignored=None):
-        """Reeturns `True` when the receiver and the `object` share
+        """Returns `True` when the receiver and the `object` share
         representations. `required` contains list of representations that at
         least one of them is required. If not present, then returns `False`.
         `ignored` is a list of representations that are not relevant for the
@@ -77,6 +80,7 @@ class DataObject(object):
 
         return len(reprs) > 0
 
+    @required
     def can_compose(self, obj):
         """Returns `True` when any of the representations can be naturally
         (without a proxy) composed by any of the representations of `obj` to
@@ -98,9 +102,11 @@ class DataObject(object):
         raise NotImplementedError
 
     def flush(self):
-        """Flushes oustanding data"""
+        """Flushes oustanding data. Default implementation does nothing.
+        Subclasses might implement this method if necessary."""
         pass
 
+    @experimental
     def dup(self, copies=1):
         """Returns `copies` duplicates of the object. This method does not
         create physical copy of the object, just returns duplicate Python
@@ -188,6 +194,25 @@ class DataObject(object):
         than once yielding the same result. Default is `False`"""
         return False
 
+    @required
+    def filter(self, keep=None, drop=None, rename=None):
+        """Returns an object with filtered fields"""
+        return NotImplementedError
+
+    def as_dict(self, key=None):
+        """Returns a dictionary-like representation of the receiver. `key` is
+        a list of fields or field names that will be used as a lookup key.
+
+        Default implementation iterates through whole data object and creates
+        the dictionary. This might be very costly on large datasets.
+
+        ... warning::
+
+            This method might change/move.
+        """
+
+        return ops.iterator.to_dict(self.rows(), self.fields, key)
+
 def shared_representations(objects):
     """Returns representations that are shared by all `objects`"""
     objects = objects.values()
@@ -224,6 +249,22 @@ class IterableDataSource(DataObject):
 
     def records(self):
         return as_records(self.iterable, self.fields)
+
+
+    def filter(self, keep=None, drop=None, rename=None):
+        """Returns another iterable data source with filtered fields"""
+
+        ffilter = FieldFilter(keep=keep, drop=drop, rename=rename)
+        fields = ffilter.filter(self.fields)
+
+        if keep or drop:
+            iterator = ops.iterator.field_filter(self.iterable, self.fields,
+                                                 ffilter)
+        else:
+            # No need to filter if we are just renaming, reuse the iterator
+            iterator = self.iterable
+
+        return IterableDataSource(iterator, fields)
 
 class IterableRecordsDataSource(IterableDataSource):
     _object_name = "iterable_records"
@@ -266,19 +307,6 @@ class RowListDataObject(DataObject):
 
     def truncate(self):
         self.data = []
-
-# FIXME: remove this
-class TargetDataObject(DataObject):
-    def append(self, row):
-        raise IsNotSourceError
-    def append_from(self, obj):
-        raise IsNotSourceError
-    def truncate(self):
-        raise IsNotSourceError
-
-class SourceDataObject(DataObject):
-    def rows(self):
-        raise IsNotTargetError
 
 class DataStore(object):
     def __init__(self, **options):

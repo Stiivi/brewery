@@ -269,6 +269,7 @@ class FieldList(object):
         """Appends a field to the list. This method requires `field` to be
         instance of `Field`"""
 
+        # FIXME: depreciated: FieldList should be immutable
         field = to_field(field)
         self._fields.append(field)
         self._field_dict[field.name] = field

@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+# Common brewery functions and classes - related to data processing or process
+# management
+#
+# For language utility functions see module util
+
 import re
 import sys
 import urllib2
