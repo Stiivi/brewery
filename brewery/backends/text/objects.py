@@ -4,12 +4,13 @@
 import csv
 import codecs
 import cStringIO
-from .base import *
-from ..metadata import *
-from ..common import open_resource
+from ...objects import *
+from ...metadata import *
+from ...common import open_resource
 from collections import defaultdict
-from ..probes import probe_type
-from ..errors import *
+from ...probes import probe_type
+from ...errors import *
+from ...stores import DataStore
 import os.path
 
 __all__ = (

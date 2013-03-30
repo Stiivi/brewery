@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from .base import *
-from ..errors import *
-from ..common import get_logger
-from ..metadata import Field, FieldList
+from ...objects import *
+from ...errors import *
+from ...common import get_logger
+from ...metadata import Field, FieldList
+from ...stores import DataStore
 
 __all__ = (
         "SQLDataStore",
@@ -195,8 +196,10 @@ def _postgres_copy_from(self, connection, table, stream, is_csv=True,
     cursor.close()
     connection.commit()
 
-class SQLDataStore(object):
+class SQLDataStore(DataStore):
     """Holds context of SQL store operations."""
+
+    _object_name = "sql"
 
     def __init__(self, url=None, connectable=None, schema=None,
             concrete_type_map=None):

@@ -7,6 +7,7 @@ from ..metadata import *
 from .base import *
 from .text import CSVSource
 from ..errors import *
+from ..stores import DataStore
 
 # type mapping from csv file to sqlalchemy type
 type_mapping = {

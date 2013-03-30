@@ -10,9 +10,9 @@ from brewery.ds.yaml_dir_streams import *
 from brewery.ds.html_target import *
 
 # Backward Compatibility
-from ..objects.text import CSVDataSource, CSVDataTarget
-from ..objects.sql import SQLTable
-from ..objects.xls_objects import *
+from ..backends.text import CSVDataSource, CSVDataTarget
+from ..backends.sql import SQLTable
+from ..backends.xls import *
 
 # FIXME: backward compatibility
 SQLDataSource = SQLTable

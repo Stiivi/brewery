@@ -1,6 +1,6 @@
 """Data probes"""
 
-import common
+from .common import to_identifier
 import re
 import datetime
 
@@ -10,9 +10,8 @@ __all__ = [
     "StatisticsProbe",
     "DistinctProbe",
     "StorageTypeProbe",
-    "MultiProbe",
-    "CompletenessProbe",
-    "probe_types"
+    "ProbeSet",
+    "CompletenessProbe"
 ]
 
 def probe_type(string, date_format="%Y-%m-%dT%H:%M:%S.Z"):
@@ -75,7 +74,7 @@ class ProbeSet(object):
     def to_dict(self):
         d = {}
         for probe in self.probes:
-            name = common.to_identifier(common.decamelize(probe.__class__.__name__))
+            name = to_identifier(decamelize(probe.__class__.__name__))
             re.sub('_probe$', name, '')
             d[name] = probe.to_dict()
 
