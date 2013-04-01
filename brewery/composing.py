@@ -3,7 +3,7 @@
 
 from .errors import *
 from .metadata import *
-from .objects.base import *
+from .objects import *
 from . import ops
 from .util import *
 

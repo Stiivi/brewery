@@ -20,8 +20,8 @@ __all__ = [
 def data_object(type_, *args, **kwargs):
     ns = get_namespace("object_types")
     if not ns:
-        ns = initialize_namespace("store_types", root_class=DataObject,
-                                suffix=None)
+        ns = initialize_namespace("object_types", root_class=DataObject,
+                                    suffix=None)
 
     try:
         factory = ns[type_]
@@ -198,7 +198,7 @@ def shared_representations(objects):
     return reps
 
 class IterableDataSource(DataObject):
-    _object_name = "iterable"
+    _ns_object_name = "iterable"
 
     def __init__(self, iterable, fields):
         """Create a data object that wraps an iterable."""
@@ -242,7 +242,7 @@ class IterableDataSource(DataObject):
         return IterableDataSource(iterator, fields)
 
 class IterableRecordsDataSource(IterableDataSource):
-    _object_name = "iterable_records"
+    _ns_object_name = "iterable_records"
 
     def rows(self):
         names = [str(field) for field in self.fields]
@@ -253,7 +253,7 @@ class IterableRecordsDataSource(IterableDataSource):
         return iter(self.iterable)
 
 class RowListDataObject(DataObject):
-    _object_name = "list"
+    _ns_object_name = "list"
 
     def __init__(self, fields, data=None):
         """Create a data object that wraps an iterable. The object is dumb,

@@ -3,11 +3,17 @@ import subprocess
 import re
 from collections import defaultdict, OrderedDict
 
-from ..metadata import *
-from .base import *
-from .text import CSVSource
-from ..errors import *
-from ..stores import DataStore
+from ...metadata import *
+from ...objects import *
+from ...errors import *
+from ...stores import DataStore
+from ..text import CSVSource
+
+
+__all__ = (
+    "MDBDataStore",
+    "MDBDataSource"
+)
 
 # type mapping from csv file to sqlalchemy type
 type_mapping = {
@@ -38,6 +44,8 @@ def mdb_tool(tool_name, args, tools_path=None, universal_newlines=False):
 
 
 class MDBDataStore(DataStore):
+    _ns_object_name = "mdb"
+
     def __init__(self, mdb_file, tools_path=None, encoding=None):
         self.tools_path = tools_path
         self.mdb_file = mdb_file

@@ -29,8 +29,8 @@ def collect_subclasses(parent, suffix=None):
 
     subclasses = {}
     for c in subclass_iterator(parent):
-        if hasattr(c, "_object_name"):
-            name = getattr(c, "_object_name")
+        if hasattr(c, "_ns_object_name"):
+            name = getattr(c, "_ns_object_name")
         else:
             name = to_identifier(decamelize(c.__name__))
 

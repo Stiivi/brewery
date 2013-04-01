@@ -199,7 +199,7 @@ def _postgres_copy_from(self, connection, table, stream, is_csv=True,
 class SQLDataStore(DataStore):
     """Holds context of SQL store operations."""
 
-    _object_name = "sql"
+    _ns_object_name = "sql"
 
     def __init__(self, url=None, connectable=None, schema=None,
             concrete_type_map=None):
@@ -604,3 +604,5 @@ class SQLTable(SQLDataObject):
             raise RepresentationError(
                             "Incopatible representations '%s'", (reprs, ) )
 
+    def probe(self, probeset):
+        return probe_table(self, probeset)
