@@ -161,6 +161,57 @@ class CSVStore(DataStore):
 
 
 class CSVSource(DataObject):
+    """Comma separated values text file as a data source."""
+
+    _brewery_info = {
+        "attributes": [
+            {
+                "name":"resource",
+                "description": "file name, URL or a file handle with CVS data"
+            },
+            {
+                "name":"fields",
+                "description": "fields in the file. Should be set if read_header "
+                               "or infer_fields is false"
+            },
+            {
+                "name":"fields",
+                "description": "flag determining whether first line contains "
+                                "header or not. ``True`` by default."
+            },
+            {
+                "name":"encoding",
+                "description":"file encoding"
+            },
+            {
+                "name":"read_header",
+                "description":"flag whether file header is read or not"
+            },
+            {
+                "name":"infer_fields",
+                "description":"Try to determine number and data type of fields "
+                              "This option requires the resource to be seek-able. "
+                              "Very likely does not work on remote streams."
+            },
+            {
+                "name":"sample_size",
+                "description":"Number of rows to read for type detection."
+            },
+            {
+                "name":"skip_rows",
+                "description":"number of rows to be skipped"
+            },
+            {
+                "name": "empty_as_null",
+                "description": "Treat emtpy strings as NULL values"
+            },
+            {
+                "name": "type_converters",
+                "description": "dictionary of data type converters"
+            }
+        ]
+    }
+
     def __init__(self, resource, read_header=True, dialect=None,
             delimiter=None, encoding=None, sample_size=1024, skip_rows=None,
             empty_as_null=True, fields=None, infer_fields=False,
@@ -408,6 +459,33 @@ class CSVSource(DataObject):
             yield dict(zip(fields, row))
 
 class CSVTarget(DataObject):
+    """Comma separated values text file as a data target."""
+
+    _brewery_info = {
+        "attributes": [
+            {
+                "name":"resource",
+                "description": "Filename or URL"
+            },
+            {
+                "name": "write_headers",
+                "description": "Flag whether first row will contain field names"
+            },
+            {
+                "name": "truncate",
+                "description": "If `True` (default) then target file is truncated"
+            },
+            {
+                "name": "encoding",
+                "description": "file character encoding"
+            },
+            {
+                "name": "fields",
+                "description": "data fields"
+            }
+        ]
+    }
+
     def __init__(self, resource, write_headers=True, truncate=True,
                  encoding="utf-8", dialect=None,fields=None, **kwds):
         """Creates a CSV data target

@@ -1,3 +1,5 @@
+# -*- Encoding: utf8 -*-
+
 """Data Objects"""
 
 from .ops.iterator import as_records
@@ -18,6 +20,24 @@ __all__ = [
         ]
 
 def data_object(type_, *args, **kwargs):
+    """Returns a data object of specified type. Arguments are passed to
+    respective data object factory.
+
+    Available data objects:
+
+    * sql_table
+    * sql_statement
+    * csv_source
+    * csv_target
+    * iterable
+    * iterable_records
+    * row_list
+    * mdb_source
+
+    For more information please refer to the documentation of data objects.
+    """
+
+
     ns = get_namespace("object_types")
     if not ns:
         ns = initialize_namespace("object_types", root_class=DataObject,
@@ -198,7 +218,18 @@ def shared_representations(objects):
     return reps
 
 class IterableDataSource(DataObject):
+    """Wrapped Python iterator that serves as data source. The iterator should
+    yield "rows" – list of values according to `fields` """
+
     _ns_object_name = "iterable"
+
+    _brewery_info = {
+        "attributes": [
+            {"name":"iterable", "description": "Python iterable object"},
+            {"name":"fields", "description":"fields of the iterable"}
+        ]
+    }
+
 
     def __init__(self, iterable, fields):
         """Create a data object that wraps an iterable."""
@@ -242,7 +273,17 @@ class IterableDataSource(DataObject):
         return IterableDataSource(iterator, fields)
 
 class IterableRecordsDataSource(IterableDataSource):
+    """Wrapped Python iterator that serves as data source. The iterator should
+    yield "records" – dictionaries with keys as specified in `fields` """
+
     _ns_object_name = "iterable_records"
+
+    _brewery_info = {
+        "attributes": [
+            {"name":"iterable", "description": "Python iterable object"},
+            {"name":"fields", "description":"fields of the iterable"}
+        ]
+    }
 
     def rows(self):
         names = [str(field) for field in self.fields]
@@ -253,7 +294,20 @@ class IterableRecordsDataSource(IterableDataSource):
         return iter(self.iterable)
 
 class RowListDataObject(DataObject):
+    """Wrapped Python list that serves as data source or data target. The list
+    content are "rows" – lists of values corresponding to `fields`.
+
+    If list is not provided, one will be created.
+    """
+
     _ns_object_name = "list"
+
+    _brewery_info = {
+        "attributes": [
+            {"name":"data", "description": "List object."},
+            {"name":"fields", "description":"fields of the iterable"}
+        ]
+    }
 
     def __init__(self, fields, data=None):
         """Create a data object that wraps an iterable. The object is dumb,

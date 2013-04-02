@@ -374,6 +374,8 @@ class SQLDataStore(DataStore):
 
 
 class SQLDataObject(DataObject):
+    _brewery_info = { "abstract": True }
+    
     def __init__(self, store=None, schema=None):
         """Initializes new `SQLDataObject`. `store` might be a `SQLDataStore`
         object, a URL string or SQLAlchemy connectable object. If it is
@@ -403,6 +405,18 @@ class SQLDataObject(DataObject):
 
 
 class SQLStatement(SQLDataObject):
+    """Object representing a SQL statement (from SQLAlchemy)."""
+
+    _brewery_info = {
+        "attributes": [
+            {"name":"statement", "description": "SQL statement"},
+            {"name":"store", "description":"SQL data store"},
+            {"name":"schema", "description":"default schema"},
+            {"name":"fields", "description":"statement fields (columns)"}
+        ],
+        "requirements": ["sqlalchemy"]
+    }
+
     def __init__(self, statement, store, fields=None, schema=None):
         """Creates a relational database data object.
 
@@ -457,8 +471,35 @@ class SQLStatement(SQLDataObject):
         return ["rows", "records", "sql_statement"]
 
 class SQLTable(SQLDataObject):
-    """docstring for ClassName
-    """
+    """Object representing a SQL database table or view (from SQLAlchemy)."""
+
+    _brewery_info = {
+        "attributes": [
+            {"name":"table", "description": "table name"},
+            {"name":"store", "description":"SQL data store"},
+            {"name":"schema", "description":"default schema"},
+            {"name":"fields", "description":"statement fields (columns)"},
+
+            {"name":"buffer_size", "description":"size of insert buffer"},
+            {
+                "name":"create", 
+                "description":"flag whether table is created",
+                "type":"boolean"
+            },
+            {
+                "name":"truncate", 
+                "description":"flag whether table is truncated",
+                "type":"boolean"
+            },
+            {
+                "name":"replace", 
+                "description":"flag whether table is replaced when created",
+                "type":"boolean"
+            },
+        ],
+        "requirements": ["sqlalchemy"]
+    }
+
     def __init__(self, table, store, fields=None, schema=None,
                  create=False, replace=False, truncate=False,
                  id_key_name=None, buffer_size=None):
