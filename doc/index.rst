@@ -11,17 +11,18 @@ Contents:
 .. toctree::
 	:maxdepth: 2
 
-	introduction
-	install
-	metadata
-	objects
-	streams
-	node_reference
-	probes
-	data_quality
-	tools
-	examples/index
-	notes
+    introduction
+    install
+    metadata
+    objects
+    object_reference
+    streams
+    node_reference
+    probes
+    data_quality
+    tools
+    examples/index
+    notes
 
 Contact and Getting Help
 ------------------------
