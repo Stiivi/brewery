@@ -61,7 +61,7 @@ class DataStore(object):
         raise NotImplementedError
 
     def __getitem__(self, name):
-        return get_object(self, name)
+        return self.get_object(name)
 
     def create(name, fields, replace=False, from_obj=None, temporary=False,
                **options):
