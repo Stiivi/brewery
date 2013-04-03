@@ -405,6 +405,13 @@ class SQLDataObject(DataObject):
     def __iter__(self):
         return self.rows()
 
+    def apply(self, function, *args, **kwargs):
+        """Returns a copy of the receiver with `function` applied on
+        receiver's main representation. All other arguments are passed to the
+        function."""
+
+        raise NotImplemented
+
 
 class SQLStatement(SQLDataObject):
     """Object representing a SQL statement (from SQLAlchemy)."""

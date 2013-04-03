@@ -5,6 +5,7 @@ from ..objects import *
 from ..dq.field_statistics import FieldStatistics
 from ..metadata import *
 import brewery.ops as ops
+from ..backends import sql
 import logging
 import itertools
 import functools
@@ -20,8 +21,11 @@ __all__ = [
             "SelectNode",
             "SelectRecordsNode",
             "AuditNode",
+            "DuplicatesNode",
             # FIXME: depreciate this name
             "FunctionSelectNode",
+            "SortNode",
+            "AsIteratorNode"
         ]
 
 class SampleNode(Node):
@@ -410,7 +414,7 @@ class DistinctNode(Node):
         "_array_status": "unported"
     }
 
-    def __init__(self, keys = None, discard = False):
+    def __init__(self, keys=None, discard=False):
         """Creates a node that will pass distinct records with given distinct fields.
 
         :Parameters:
@@ -461,6 +465,82 @@ class DistinctNode(Node):
             result = IterableDataSource(iterator, source.fields)
 
         return result
+
+class DuplicatesNode(Node):
+    node_info = {
+        "label" : "Duplicates Node",
+        "description" : "Find records with duplicate keys"
+    }
+
+    def __init__(self, keys=None, threshold=1,
+            count_column="record_count"):
+
+        super(DuplicatesNode, self).__init__()
+
+        self.keys = keys
+        self.threshold = threshold
+        self.count_column = count_column
+
+    def evaluate(self, context, sources):
+        source = sources[0]
+        if self.keys:
+            fields = FieldList(source.fields.fields(self.keys))
+        else:
+            fields = source.fields.copy()
+
+        fields.append(Field(self.count_column, "integer"))
+
+        # TODO: this construction should be in the backend
+        if "sql_statement" in source.representations():
+            statement = sql.duplicates(source.sql_statement(),
+                                        keys=self.keys,
+                                        threshold=self.threshold,
+                                        record_count_label=self.count_column)
+            result = sql.SQLStatement(statement, store=source.store,
+                                    fields=fields, schema=source.schema)
+            result.statement = statement
+
+            return result
+
+        else:
+            raise NotImplementedError
+
+# TODO: make this more generic
+class SortNode(Node):
+    node_info = {
+        "label" : "Sort Node",
+        "description" : "Sort records"
+    }
+
+    def __init__(self, order=None):
+
+        super(SortNode, self).__init__()
+
+        self.order = order
+
+    def evaluate(self, context, sources):
+        source = sources[0]
+        # Distill order
+        order_keys = []
+        for key in self.order:
+            if isinstance(key, Field) or isinstance(key, basestring):
+                order_key = (key, "asc")
+            else:
+                order_key = (key[0], key[1])
+            order_keys.append(order_key)
+
+        fields = source.fields.copy()
+
+        # TODO: this construction should be in the backend
+        if "sql_statement" in source.representations():
+            statement = sql.sort(source.sql_statement(), order_keys)
+            result = sql.SQLStatement(statement, store=source.store,
+                                    fields=fields, schema=source.schema)
+            result.statement = statement
+            return result
+
+        else:
+            raise NotImplementedError
 
 class AggregateNode(Node):
     """Aggregate"""
@@ -809,6 +889,14 @@ class SetSelectNode(Node):
 
         return result
 
+class AsIteratorNode(Node):
+    """Converts source into a python iterator - causes node evaulation"""
+    node_info = {}
+
+    def evaluate(self, context, sources):
+        source = sources[0]
+        return IterableDataSource(source.rows(), source.fields)
+
 class AuditNode(Node):
     """Node chcecks stream for empty strings, not filled values, number distinct values.
 
@@ -875,13 +963,13 @@ class AuditNode(Node):
 
     def evaluate(self, context, sources):
         source = sources[0]
-        fields = self.output_fields()
 
         if "sql_statement" in source.representations():
             raise NotImplementedError
         else:
-            stats = ops.iterator.basic_audit(iterable, fields)
-            output = IterableDataSource(stats, fields)
+            stats = ops.iterator.basic_audit(source.rows(), source.fields,
+                                             self.distinct_threshold)
+            output = IterableDataSource(stats, self.output_fields())
 
         return output
 

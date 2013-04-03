@@ -9,6 +9,7 @@ __all__ = [
             "field_filter",
             "duplicates",
             "duplicate_stats",
+            "sort"
         ]
 
 def distinct(statement, keys):
@@ -88,6 +89,29 @@ def duplicates(statement, keys=None, threshold=1,
                                    having=condition)
 
     return result
+
+def sort(statement, orders):
+    """Returns a ordered SQL statement. `orders` should be a list of
+    two-element tuples `(field, order)`"""
+
+    # Each attribute mentioned in the order should be present in the selection
+    # or as some column from joined table. Here we get the list of already
+    # selected columns and derived aggregates
+
+    columns = []
+    for field, order in orders:
+        column = statement.c[str(field)]
+        order = order.lower()
+        if order.startswith("asc"):
+            column = column.asc()
+        elif order.startswith("desc"):
+            column = column.desc()
+        else:
+            raise ValueError("Unknown order %s for column %s") % (order, column)
+
+    columns.append(column)
+
+    return statement.order_by(*columns)
 
 # TODO: make this brewery-level method on top of data object
 def duplicate_stats(statement, fields=None, threshold=1):

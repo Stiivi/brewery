@@ -2,7 +2,35 @@
 
 from ...nodes import *
 
-class SQLTableTargetNode(TargetNode):
+class SQLSourceNode(Node):
+    """Source node that reads from a sql table.
+    """
+    node_info = {
+        "label" : "SQL Source",
+        "icon": "sql_source_node",
+        "description" : "Read data from a sql table.",
+        "attributes" : [
+            {
+                 "name": "uri",
+                 "description": "SQLAlchemy URL"
+            },
+            {
+                 "name": "table",
+                 "description": "table name",
+            },
+        ]
+    }
+    def __init__(self, *args, **kwargs):
+        super(SQLSourceNode, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.source = None
+
+    def evaluate(self, context, sources=None):
+         return SQLTable(*self.args, **self.kwargs)
+
+
+class SQLTableTargetNode(Node):
     """Feed data rows into a relational database table.
     """
     node_info = {

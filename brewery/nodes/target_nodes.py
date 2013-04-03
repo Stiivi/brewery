@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from .base import TargetNode
+from .base import Node
 from ..ops.iterator import as_records
 # from ..ds.csv_streams import CSVDataTarget
 import sys
 
-class DataObjectTarget(TargetNode):
+class DataObjectTarget(Node):
     """Generic data object target. Wraps existing target version of `DataObject`
     and appends data from the source.
 
@@ -28,7 +28,7 @@ class DataObjectTarget(TargetNode):
     }
 
     def __init__(self, target):
-        super(DataObjectTargetNode, self).__init__()
+        super(DataObjectNode, self).__init__()
         self.target = target
 
     def evaluate(self, context, sources):
@@ -43,7 +43,7 @@ class DataStreamTarget(DataObjectTarget):
         logger.warn("DataStreamTarget is depreciated, use DataObjectTarget "
                     "instead")
 
-class RowListTargetNode(TargetNode):
+class RowListNode(Node):
     """Target node that stores data from input in a list of rows (as tuples).
 
     To get list of fields, ask for `output_fields`.
@@ -61,7 +61,7 @@ class RowListTargetNode(TargetNode):
     }
 
     def __init__(self, data=None):
-        super(RowListTargetNode, self).__init__()
+        super(RowListNode, self).__init__()
         if data is not None:
             self.data = data
         else:
@@ -79,7 +79,7 @@ class RowListTargetNode(TargetNode):
         else:
             self.data = list(source.rows())
 
-class RecordListTargetNode(TargetNode):
+class RecordListNode(Node):
     """Target node that stores data from input in a list of records (dictionary objects)
     object.
 
@@ -98,7 +98,7 @@ class RecordListTargetNode(TargetNode):
         ]
     }
     def __init__(self, data=None):
-        super(RecordListTargetNode, self).__init__()
+        super(RecordListNode, self).__init__()
         if data is not None:
             self.data = data
         else:
@@ -118,7 +118,7 @@ class RecordListTargetNode(TargetNode):
         else:
             self.data = list(iterator)
 
-class CSVTargetNode(TargetNode):
+class CSVNode(Node):
     """Node that writes rows into a comma separated values (CSV) file.
 
     :Attributes:
@@ -147,7 +147,7 @@ class CSVTargetNode(TargetNode):
     }
 
     def __init__(self, resource = None, *args, **kwargs):
-        super(CSVTargetNode, self).__init__()
+        super(CSVNode, self).__init__()
         self.resource = resource
         self.args = args
         self.kwargs = kwargs
@@ -163,7 +163,7 @@ class CSVTargetNode(TargetNode):
         self.target.flush()
 
 
-class FormattedPrinterNode(TargetNode):
+class FormattedPrinterNode(Node):
     """Target node that will print output based on format.
 
     Refer to the python formatting guide:
@@ -309,7 +309,7 @@ class FormattedPrinterNode(TargetNode):
             if self.close_handle:
                 self.handle.close()
 
-class PrettyPrinterNode(TargetNode):
+class PrettyPrinterNode(Node):
     """Target node that will pretty print output as a table.
     """
 

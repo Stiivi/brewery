@@ -10,9 +10,7 @@ __all__ = (
     "node_catalogue",
     "get_node_info",
     "NodeFinished",
-    "Node",
-    "SourceNode",
-    "TargetNode"
+    "Node"
 )
 
 # FIXME: temporary dictionary to record displayed warnings about __node_info__
@@ -88,7 +86,7 @@ def node_catalogue():
 
     return catalogue
 
-def node_subclasses(root, abstract = False):
+def node_subclasses(root, abstract=False):
     """Get all subclasses of node.
 
     :Parameters:
@@ -294,24 +292,4 @@ class Node(object):
                                         (attribute, str(type(self))))
             else:
                 setattr(self, attribute, value)
-
-class SourceNode(Node):
-    """Abstract class for all source nodes
-
-    .. abstract_node
-
-    """
-    def __init__(self):
-        super(SourceNode, self).__init__()
-
-
-class TargetNode(Node):
-    """Abstract class for all target nodes
-
-    .. abstract_node
-
-    """
-    def __init__(self):
-        super(TargetNode, self).__init__()
-        self.fields = None
 

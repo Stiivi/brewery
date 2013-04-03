@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from .base import SourceNode
+from .base import Node
 from ..objects import IterableDataSource, IterableRecordsDataSource
 
 from ..backends.sql import SQLTable
@@ -12,7 +12,7 @@ from ..ds.elasticsearch_streams import ESDataSource
 from ..ds.gdocs_streams import GoogleSpreadsheetDataSource
 from ..ds.yaml_dir_streams import YamlDirectoryDataSource
 
-class RowListSourceNode(SourceNode):
+class RowListSourceNode(Node):
     """Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
     object."""
 
@@ -42,7 +42,7 @@ class RowListSourceNode(SourceNode):
         return IterableDataSource(self.data, self.fields)
 
 
-class RecordListSourceNode(SourceNode):
+class RecordListSourceNode(Node):
     """Source node that feeds records (dictionary objects) from a list (or any other iterable)
     object."""
 
@@ -73,7 +73,7 @@ class RecordListSourceNode(SourceNode):
     def evaluate(self, context, sources=None):
         return IterableRecordsDataSource(self.data, self.fields)
 
-class DataObjectSourceNode(SourceNode):
+class DataObjectSourceNode(Node):
     """Generic data object source. Wraps a :mod:`brewery.objects` objects,
     output is the wrapped object.
 
@@ -94,21 +94,14 @@ class DataObjectSourceNode(SourceNode):
         ]
     }
 
-    def __init__(self, stream):
-        super(StreamSourceNode, self).__init__()
-        self.obj = obj
+    def __init__(self, source):
+        super(DataObjectSourceNode, self).__init__()
+        self.source = source
 
     def evaluate(self, context, sources=None):
-        return self.obj
+        return self.source
 
-# FIXME: remove this
-class StreamSourceNode(DataObjectSourceNode):
-    def __init__(self, stream):
-        super(StreamSourceNode, self).__init__(stream)
-        logger = get_logger()
-        logger.warn("StreamSourceNode is depreciated, use DataObjectSourceNode")
-
-class XLSSourceNode(SourceNode):
+class XLSSourceNode(Node):
     """Source node that reads Excel XLS files.
 
     It is recommended to configure node fields before running. If you do not do so, fields are
@@ -157,7 +150,7 @@ class XLSSourceNode(SourceNode):
         return XLSDataSource(*self.args, **self.kwargs)
 
 
-class YamlDirectorySourceNode(SourceNode):
+class YamlDirectorySourceNode(Node):
     """Source node that reads data from a directory containing YAML files.
 
     The data source reads files from a directory and treats each file as single record. For example,
@@ -224,7 +217,7 @@ class YamlDirectorySourceNode(SourceNode):
     def finalize(self):
         self.stream.finalize()
 
-class GoogleSpreadsheetSourceNode(SourceNode):
+class GoogleSpreadsheetSourceNode(Node):
     """Source node that reads Google Spreadsheet.
 
     You should provide either spreadsheet_key or spreadsheet_name, if more than one spreadsheet with
@@ -322,35 +315,7 @@ class GoogleSpreadsheetSourceNode(SourceNode):
         self.stream.finalize()
 
 
-class SQLSourceNode(SourceNode):
-    """Source node that reads from a sql table.
-    """
-    node_info = {
-        "label" : "SQL Source",
-        "icon": "sql_source_node",
-        "description" : "Read data from a sql table.",
-        "attributes" : [
-            {
-                 "name": "uri",
-                 "description": "SQLAlchemy URL"
-            },
-            {
-                 "name": "table",
-                 "description": "table name",
-            },
-        ]
-    }
-    def __init__(self, *args, **kwargs):
-        super(SQLSourceNode, self).__init__()
-        self.args = args
-        self.kwargs = kwargs
-        self.source = None
-
-    def evaluate(self, context, sources=None):
-         return SQLTable(*self.args, **self.kwargs)
-
-
-class ESSourceNode(SourceNode):
+class ESSourceNode(Node):
     """Source node that reads from an ElasticSearch index.
 
     See ElasticSearch home page for more information:
@@ -424,7 +389,7 @@ class ESSourceNode(SourceNode):
     def finalize(self):
         self.stream.finalize()
 
-class GeneratorFunctionSourceNode(SourceNode):
+class GeneratorFunctionSourceNode(Node):
     """Source node uses a callable to generate records."""
 
     node_info = {

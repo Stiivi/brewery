@@ -5,6 +5,7 @@ from .graph import *
 from .common import get_backend, get_logger
 from .metadata import *
 from .nodes.base import node_dictionary
+from .nodes.source_nodes import DataObjectSourceNode
 from collections import namedtuple
 
 __all__ = [
@@ -18,17 +19,12 @@ NodeContext = namedtuple("NodeContext",
 
 class Stream(Graph):
 
-    def __init__(self, nodes=None, connections=None, backend=None):
+    def __init__(self, nodes=None, connections=None):
         super(Stream, self).__init__(nodes, connections)
 
         # FIXME: use factory
         self.field_arrays = {}
         self.log = get_logger()
-
-        if backend:
-            self.backend = get_backend(backend)
-        else:
-            self.backend = get_backend("default")
 
     def fork(self):
         """Creates a construction fork of the stream. Used for constructing
@@ -208,7 +204,7 @@ class StreamFork(object):
         # TODO: if there is specific node class that can wrap the source, then
         # use it
         obj = obj.as_source()
-        self += DataObjectSource(obj)
+        self += DataObjectSourceNode(obj)
         return self
 
     def target(self, store, name, **ops):
@@ -217,7 +213,7 @@ class StreamFork(object):
         # TODO: if there is specific node class that can wrap the target, then
         # use it
         obj = obj.as_target()
-        self += DataObjectTarget(obj)
+        self += DataObjectTargetNode(obj)
         return self
 
     def set_name(self, name):

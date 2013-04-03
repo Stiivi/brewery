@@ -118,6 +118,7 @@ def decamelize(name):
 def to_identifier(name):
     return re.sub(r' ', r'_', name).lower()
 
+# FIXME: depreciated
 def register_backend(backend_name, backend):
     """Registers `backend` under `backend_name`.
 
@@ -127,6 +128,7 @@ def register_backend(backend_name, backend):
 
     _backends[backend_name] = backend
 
+# FIXME: depreciated
 def get_backend(backend_name):
     """Finds the backend with name `backend_name`. First try to find backend
     relative to the brewery.backends.* then search full path. """
