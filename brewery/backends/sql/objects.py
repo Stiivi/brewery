@@ -108,7 +108,9 @@ def concrete_storage_type(field, type_map={}, dialect=None):
 
         if not concrete_type:
             raise ValueError("unable to find concrete storage type for field '%s' "
-                             "of type '%s'" % (field.name, field.storage_type))
+                                "of type '%s' (concrete: %s)" \
+                            % (field.name, field.storage_type,
+                                field.concrete_storage_type))
 
     return concrete_type
 
@@ -375,7 +377,7 @@ class SQLDataStore(DataStore):
 
 class SQLDataObject(DataObject):
     _brewery_info = { "abstract": True }
-    
+
     def __init__(self, store=None, schema=None):
         """Initializes new `SQLDataObject`. `store` might be a `SQLDataStore`
         object, a URL string or SQLAlchemy connectable object. If it is

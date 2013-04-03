@@ -5,10 +5,11 @@ __all__ = [
             "distinct",
             "distinct_rows",
             "append",
-            "sample"
+            "sample",
+            "field_filter",
+            "duplicates",
+            "duplicate_stats",
         ]
-
-"toto je text"
 
 def distinct(statement, keys):
     """Returns a statement that selects distinct values for `keys`"""
@@ -60,8 +61,43 @@ def field_filter(statement, fields, field_filter):
 
     return statement
 
-def unique(statement, keys):
-    """Returns a statement that selects only unique rows for `keys`"""
-    raise NotImplementedError
 
+def duplicates(statement, keys=None, threshold=1,
+               record_count_label="__record_count"):
+    """Returns a statement that selects duplicate rows based on `keys`.
+    `threshold` is lowest number of duplicates that has to be present to be
+    returned. By default `threshold` is 1. If no keys are specified, then all
+    columns are considered."""
+
+    if not threshold or threshold < 1:
+        raise ValueError("Threshold should be at least 1 "
+                         "meaning 'at least one duplcate'.")
+
+    if keys:
+        group = [statement.c[str(field)] for field in keys]
+    else:
+        group = list(statement.columns)
+
+    counter = sqlalchemy.func.count("*").label(record_count_label)
+    selection = group + [counter]
+    condition = counter > threshold
+
+    result = sql.expression.select(selection,
+                                   from_obj=statement,
+                                   group_by=group,
+                                   having=condition)
+
+    return result
+
+# TODO: make this brewery-level method on top of data object
+def duplicate_stats(statement, fields=None, threshold=1):
+    """Return duplicate statistics of a `statement`"""
+    count_label = "__record_count"
+    dups = duplicates(statement, fields, threshold, count_label)
+    dups = dups.alias("duplicates")
+
+    counter = sqlalchemy.func.count("*").label("record_count")
+    group = dups.c[count_label]
+    result = sqlalchemy.sql.expression.select([counter, group], from_obj=dups, group_by=[group])
+    return result
 
