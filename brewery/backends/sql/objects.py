@@ -204,7 +204,8 @@ class SQLDataStore(DataStore):
     _ns_object_name = "sql"
 
     def __init__(self, url=None, connectable=None, schema=None,
-            concrete_type_map=None):
+            concrete_type_map=None, reuse_engine=False,
+            sqlalchemy_options=None):
         """Opens a SQL data store.
 
         * `url` – connection URL (see SQLAlchemy documentation for more
@@ -213,6 +214,7 @@ class SQLDataStore(DataStore):
         * `schema` – default database schema
         * `concrete_Type_map` – a dictionary where keys are generic storage
           types and values are concrete storage types
+        * `sqlalchemy_options` – options passed to `create_engine()`
 
         Either `url` or `connectable` should be specified, but not both.
         """
@@ -227,7 +229,9 @@ class SQLDataStore(DataStore):
             self.connectable = connectable
             self.should_close = False
         else:
-            self.connectable = sqlalchemy.create_engine(url)
+            sqlalchemy_options = sqlalchemy_options or {}
+            self.connectable = sqlalchemy.create_engine(url,
+                    **sqlalchemy_options)
             self.should_close = True
 
         self.concrete_type_map = concrete_type_map or concrete_sql_type_map
@@ -257,6 +261,16 @@ class SQLDataStore(DataStore):
 
         obj = SQLTable(table=name, schema=self.schema, store=self)
         return obj
+
+    def statement(self, statement, fields=None):
+        """Returns a statement object belonging to this store"""
+        if not fields:
+            fields = reflect_fields(statement)
+
+        return SQLStatement(statement=statement,
+                            store=self,
+                            fields=fields,
+                            schema=self.schema)
 
     def create(self, name, fields, replace=False, from_obj=None, schema=None,
                id_column=None):
@@ -374,7 +388,6 @@ class SQLDataStore(DataStore):
         # self.logger.debug("SQL: %s" % str(statement))
         return self.connectable.execute(statement, *args, **kwargs)
 
-
 class SQLDataObject(DataObject):
     _brewery_info = { "abstract": True }
 
@@ -395,7 +408,18 @@ class SQLDataObject(DataObject):
         self.schema = schema
 
     def can_compose(self, obj):
-        return isinstance(obj, SQLDataObject) and self.store == obj.store
+        """Returns `True` if `obj` can be composed with the receiver – that
+        is, whether the target object is also a SQL object within same
+        engine"""
+
+        if not isinstance(obj, SQLDataObject):
+            return False
+        if not hasattr(obj, "store"):
+            return False
+        if self.store.connectable == obj.store.connectable:
+            return True
+        else:
+            return False
 
     def records(self):
         # SQLAlchemy result is dict-like object where values can be accessed
@@ -632,6 +656,8 @@ class SQLTable(SQLDataObject):
         reprs = obj.representations()
 
         if self.can_compose(obj):
+            self.store.logger.debug("append_from: composing into %s" %
+                                                                self.name)
             # Flush all data that were added through append() to preserve
             # insertion order (just in case)
             self.flush()
@@ -642,6 +668,8 @@ class SQLTable(SQLDataObject):
             self.store.execute(statement)
 
         elif "rows" in reprs:
+            self.store.logger.debug("append_from: appending rows into %s" %
+                                                                self.name)
             # Assumption: all data objects with "rows" representation
             # implement Python iteraotr protocol
             for row in obj.rows():
