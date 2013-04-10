@@ -337,3 +337,4 @@ class RowListDataObject(DataObject):
     def truncate(self):
         self.data = []
 
+

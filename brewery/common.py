@@ -14,25 +14,18 @@ __all__ = [
     "logger_name",
     "get_logger",
     "create_logger",
+
     "IgnoringDictionary",
     "MissingPackage",
+
     "decamelize",
     "to_identifier",
-    "get_backend",
+
     # FIXME: move these
     "coalesce_value",
     "collapse_record",
     "expand_record"
 ]
-
-# FIXME: this is for array orientation
-backend_aliases = {
-            "default":"python_array",
-            "python":"python_array",
-            "carray":"carray_backend"
-        }
-
-_backends = { }
 
 logger_name = "brewery"
 logger = None
@@ -59,7 +52,6 @@ def create_logger():
 
     if __debug__:
         logger.setLevel(logging.DEBUG)
-
 
     return logger
 

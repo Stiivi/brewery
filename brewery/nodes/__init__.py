@@ -6,6 +6,8 @@ from .record_nodes import *
 from .field_nodes import *
 from .source_nodes import *
 from .target_nodes import *
+from ..backends.sql.nodes import *
+from ..backends.text.nodes import *
 
 __all__ = [
 

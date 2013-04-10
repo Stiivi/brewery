@@ -515,17 +515,17 @@ class SQLTable(SQLDataObject):
 
             {"name":"buffer_size", "description":"size of insert buffer"},
             {
-                "name":"create", 
+                "name":"create",
                 "description":"flag whether table is created",
                 "type":"boolean"
             },
             {
-                "name":"truncate", 
+                "name":"truncate",
                 "description":"flag whether table is truncated",
                 "type":"boolean"
             },
             {
-                "name":"replace", 
+                "name":"replace",
                 "description":"flag whether table is replaced when created",
                 "type":"boolean"
             },
