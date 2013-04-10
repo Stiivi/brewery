@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import base
-from brewery import dq
+from ...objects import *
+from ...base.legacy import FieldTypeProbe, expand_record
 import time
-from brewery.common import expand_record
 
 try:
     from pyes.es import ES
@@ -12,7 +11,7 @@ except ImportError:
     from brewery.common import MissingPackage
     pyes = MissingPackage("pyes", "ElasticSearch streams", "http://www.elasticsearch.org/")
 
-class ESDataSource(base.DataSource):
+class ESDataSource(DataObject):
     """docstring for ClassName
     """
     def __init__(self, document_type, database=None, host=None, port=None,
@@ -66,7 +65,7 @@ class ESDataSource(base.DataSource):
                     continue
 
                 if not full_key in probes:
-                    probe = dq.FieldTypeProbe(full_key)
+                    probe = FieldTypeProbe(full_key)
                     probes[full_key] = probe
                     keys.append(full_key)
                 else:

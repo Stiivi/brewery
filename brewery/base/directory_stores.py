@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import base
+from ..objects import *
 import string
 import os
 import shutil
 
 try:
     import yaml
-except:
-    from brewery.common import MissingPackage
+except ImportError:
+    from ..common import MissingPackage
     yaml = MissingPackage("PyYAML", "YAML directory data source/target", "http://pyyaml.org/")
 
-class YamlDirectoryDataSource(base.DataSource):
+class YamlDirectoryDataObject(DataObject):
     """docstring for ClassName
     """
     def __init__(self, path, extension="yml", expand=False, filename_field=None):
@@ -44,9 +44,6 @@ class YamlDirectoryDataSource(base.DataSource):
         self.filename_field = filename_field
         self.extension = extension
 
-    def initialize(self):
-        pass
-
     def records(self):
         files = os.listdir(self.path)
 
@@ -77,7 +74,7 @@ class YamlDirectoryDataSource(base.DataSource):
             yield row
 
 
-class YamlDirectoryDataTarget(base.DataTarget):
+class YamlDirectoryDataTarget(DataObject):
     """docstring for YamlDirectoryDataTarget
     """
     def __init__(self, path, filename_template="record_${__index}.yml", expand=False,
@@ -105,6 +102,7 @@ class YamlDirectoryDataTarget(base.DataTarget):
         self.expand = expand
         self.truncate = truncate
 
+    # FIXME: remove initialze() method
     def initialize(self):
         self.template = string.Template(self.filename_template)
         self.index = self.filename_start_index

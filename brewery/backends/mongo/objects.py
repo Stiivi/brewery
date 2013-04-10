@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import base
-import brewery.dq
+from ...objects import *
+from ...metadata import *
+from ...base.legacy import FieldTypeProbe, expand_record, collapse_record
 
 try:
     import pymongo
@@ -10,7 +11,7 @@ except ImportError:
     from brewery.common import MissingPackage
     pymongo = MissingPackage("pymongo", "MongoDB streams", "http://www.mongodb.org/downloads/")
 
-class MongoDBDataSource(base.DataSource):
+class MongoDBDataSource(DataObject):
     """docstring for ClassName
     """
     def __init__(self, collection, database=None, host=None, port=None,
@@ -67,7 +68,7 @@ class MongoDBDataSource(base.DataSource):
                     continue
 
                 if not full_key in probes:
-                    probe = brewery.dq.FieldTypeProbe(full_key)
+                    probe = FieldTypeProbe(full_key)
                     probes[full_key] = probe
                     keys.append(full_key)
                 else:
@@ -81,7 +82,7 @@ class MongoDBDataSource(base.DataSource):
 
         for key in keys:
             probe = probes[key]
-            field = base.Field(probe.field)
+            field = Field(probe.field)
 
             storage_type = probe.unique_storage_type
             if not storage_type:
@@ -184,7 +185,7 @@ class MongoDBRecordIterator(object):
         else:
             return collapse_record(record)
 
-class MongoDBDataTarget(base.DataTarget):
+class MongoDBDataTarget(DataObject):
     """docstring for ClassName
     """
     def __init__(self, collection, database=None, host=None, port=None,
@@ -238,6 +239,6 @@ class MongoDBDataTarget(base.DataTarget):
             record = dict(zip(self.field_names, obj))
 
         if self.expand:
-            record = base.expand_record(record)
+            record = expand_record(record)
 
         self.collection.insert(record)

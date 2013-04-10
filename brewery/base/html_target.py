@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import base
+from ..objects import *
 
-class SimpleHTMLDataTarget(base.DataTarget):
+class SimpleHTMLDataTarget(DataObject):
     def __init__(self, resource, html_header = True, html_footer = None, 
                  write_headers = True, table_attributes = None,
                 ):
@@ -49,6 +49,7 @@ class SimpleHTMLDataTarget(base.DataTarget):
         else:
             self.html_footer = ""
         
+    # FIXME: remove initialze() method
     def initialize(self):
         self.handle, self.close_file = base.open_resource(self.resource, "w")
 
