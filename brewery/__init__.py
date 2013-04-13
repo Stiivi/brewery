@@ -2,7 +2,7 @@ from .metadata import *
 from .errors import *
 from .objects import *
 from .common import *
-from .environment import *
+from .workspace import *
 # from .stores import *
 # from .stream import *
 # import brewery.objects
@@ -12,9 +12,9 @@ from .environment import *
 __version__ = "0.11"
 
 __all__ = []
+__all__ += errors.__dict__.keys()
 __all__ += common.__all__
 __all__ += metadata.__all__
 __all__ += objects.__all__
-__all__ += errors.__all__
-__all__ += environment.__all__
+__all__ += workspace.__all__
 

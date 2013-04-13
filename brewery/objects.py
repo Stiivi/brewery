@@ -2,7 +2,8 @@
 
 """Data Objects"""
 
-from .ops.iterator import as_records
+# FIXME: add this
+# from .ops.iterator import as_records
 from .errors import *
 from .extensions import *
 from . import ops

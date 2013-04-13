@@ -3,12 +3,12 @@
 from ..metadata import *
 from ..common import get_logger
 from ..errors import *
-from .. import probes
 import itertools
 import functools
 from collections import OrderedDict, namedtuple
 
 # FIXME: add cheaper version for already sorted data
+# FIXME: BasicAuditProbe was removed
 
 def as_records(iterator, fields):
     """Returns iterator of dictionaries where keys are defined in fields."""

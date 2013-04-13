@@ -8,7 +8,8 @@ from ...objects import *
 from ...metadata import *
 from ...common import open_resource
 from collections import defaultdict
-from ...probes import probe_type
+# FIXME: add this
+# from ...probes import probe_type
 from ...errors import *
 from ...stores import DataStore
 import os.path

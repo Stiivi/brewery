@@ -1,7 +1,7 @@
-from ..nodes import SourceNode
+from ...nodes import Node
 from .objects import CSVDataSource
 
-class CSVSourceNode(SourceNode):
+class CSVSourceNode(Node):
     """Source node that reads comma separated file from a filesystem or a remote URL.
 
     It is recommended to configure node fields before running. If you do not do so, fields are

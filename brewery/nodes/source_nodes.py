@@ -4,14 +4,6 @@ from __future__ import absolute_import
 from .base import Node
 from ..objects import IterableDataSource, IterableRecordsDataSource
 
-from ..backends.sql import SQLTable
-from ..backends.xls import XLSDataSource
-
-# FIXME: change this to data objects
-from ..ds.elasticsearch_streams import ESDataSource
-from ..ds.gdocs_streams import GoogleSpreadsheetDataSource
-from ..ds.yaml_dir_streams import YamlDirectoryDataSource
-
 class RowListSourceNode(Node):
     """Source node that feeds rows (list/tuple of values) from a list (or any other iterable)
     object."""

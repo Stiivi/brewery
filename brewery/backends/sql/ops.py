@@ -1,5 +1,6 @@
 import sqlalchemy
 from sqlalchemy import sql
+from ...operations import signature
 
 __all__ = [
             "distinct",
@@ -12,6 +13,7 @@ __all__ = [
             "sort"
         ]
 
+@signature("sql_statement")
 def distinct(statement, keys):
     """Returns a statement that selects distinct values for `keys`"""
 
@@ -19,6 +21,7 @@ def distinct(statement, keys):
     statement = sql.expression.select(cols, from_obj=statement, group_by=cols)
     return statement
 
+@signature("sql_statement")
 def distinct_rows(statement, keys):
     """Returns a statement that selects whole rows with distinct values for
     `keys`"""
@@ -32,11 +35,13 @@ def distinct_rows(statement, keys):
     full = distinct.join(statement)
     return statement
 
+@signature("sql_statement[]")
 def append(statements):
     """Returns a statement with sequentialy concatenated results of the
     `statements`. Statements are chained using ``UNION``."""
     return sqlalchemy.sql.expression.union(*statements)
 
+@signature("sql_statement")
 def sample(statement, value, mode="first"):
     """Returns a sample. `statement` is expected to be ordered."""
 
@@ -45,6 +50,7 @@ def sample(statement, value, mode="first"):
     else:
         raise Exception("Unknown sample mode '%s'" % mode)
 
+@signature("sql_statement")
 def field_filter(statement, fields, field_filter):
     """Returns a statement with fields according to the field filter"""
     columns = []
@@ -63,6 +69,7 @@ def field_filter(statement, fields, field_filter):
     return statement
 
 
+@signature("sql_statement")
 def duplicates(statement, keys=None, threshold=1,
                record_count_label="__record_count"):
     """Returns a statement that selects duplicate rows based on `keys`.
@@ -90,6 +97,7 @@ def duplicates(statement, keys=None, threshold=1,
 
     return result
 
+@signature("sql_statement")
 def sort(statement, orders):
     """Returns a ordered SQL statement. `orders` should be a list of
     two-element tuples `(field, order)`"""
@@ -114,6 +122,7 @@ def sort(statement, orders):
     return statement.order_by(*columns)
 
 # TODO: make this brewery-level method on top of data object
+@signature("sql_statement")
 def duplicate_stats(statement, fields=None, threshold=1):
     """Return duplicate statistics of a `statement`"""
     count_label = "__record_count"

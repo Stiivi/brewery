@@ -2,10 +2,9 @@
 from __future__ import absolute_import
 from .base import Node
 from ..objects import *
-from ..dq.field_statistics import FieldStatistics
+from ..base.legacy import FieldStatistics
 from ..metadata import *
 import brewery.ops as ops
-from ..backends import sql
 import logging
 import itertools
 import functools

@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from .base import Node
-from ..ops.iterator import as_records
+from ..base.iterator import as_records
 # from ..ds.csv_streams import CSVDataTarget
 import sys
 

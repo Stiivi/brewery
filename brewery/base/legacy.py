@@ -1,6 +1,16 @@
 # -*- Encoding: utf8 -*-
 """Homeless legacy brewery code lives here. It will be relocated, changed or pruned."""
 
+__all__ = (
+        "FieldTypeProbe",
+        "expand_record",
+        "collapse_record",
+        "FieldStatistics"
+        )
+
+# FIXME: remove this
+FieldStatistics = None
+
 class FieldTypeProbe(object):
     """Probe for guessing field data type
 
