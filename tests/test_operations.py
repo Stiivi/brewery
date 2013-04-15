@@ -78,5 +78,35 @@ class OperationsBaseTestCase(unittest.TestCase):
         with self.assertRaises(OperationError):
             match_operation("unary", obj_sql, obj_sql)
 
+    def test_comparison(self):
+        sig1 = Signature("a", "b", "c")
+        sig2 = Signature("a", "b", "c")
+        sig3 = Signature("a", "b")
+
+        self.assertTrue(sig1 == sig1)
+        self.assertTrue(sig1 == sig2)
+        self.assertFalse(sig1 == sig3)
+
+        self.assertTrue(sig1 == ["a", "b", "c"])
+        self.assertFalse(sig1 == ["a", "b"])
+
+    def test_delete(self):
+        om = OperationMap()
+        obj = DummyDataObject(["rows"])
+
+        om.add("unary", unary, Signature("rows"))
+        om.add("unary", default, Signature("*"))
+
+        match = om.match("unary", obj)
+        self.assertEqual(unary, match)
+
+        om.remove("unary", ["rows"])
+        match = om.match("unary", obj)
+        self.assertEqual(default, match)
+
+        om.remove("unary")
+        with self.assertRaises(OperationError):
+            match_operation("unary", obj)
+
 if __name__ == "__main__":
     unittest.main()

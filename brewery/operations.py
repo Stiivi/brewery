@@ -11,7 +11,10 @@ __all__ = (
             "signature_match",
             "operation",
             "match_operation",
-            "extract_representations"
+            "extract_representations",
+            "remove_operation",
+            "Signature",
+            "OperationMap"
         )
 
 
@@ -30,6 +33,19 @@ class Signature(object):
 
     def __len__(self):
         return len(self.signature)
+
+    def __eq__(self, obj):
+        """Signatures can be compared to lists or tuples of strings"""
+
+        if isinstance(obj, Signature):
+            return self.signature == obj.signature
+        elif isinstance(obj, (list, tuple)):
+            return self.signature == tuple(obj)
+        else:
+            return False
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
 
     def matches(self, *arguments):
         """returns `True` if the signature matches representations of
@@ -101,19 +117,33 @@ def extract_representations(*objects):
     return representations
 
 class OperationMap(object):
-    def __init__(self, operations=None):
+    def __init__(self):
         """Creates a map of operations and their signatures"""
         super(OperationMap, self).__init__()
-
         self.operations = defaultdict(list)
-        if operations:
-            for op in operations:
-                self.add(op)
 
-    def add(self, o):
+    def add(self, name, fn, sig):
         """Adds an operation"""
+        o = Operation(name, fn, sig)
         print "Adding operation %s(%s) as %s" % (o.name, o.signature, o.func)
         self.operations[o.name].append(o)
+
+    def remove(self, name, signature=None):
+        """Removes all operations with `name` and `signature`. If no
+        `signature` is specified, then all operations with given name are
+        removed."""
+
+        operations = self.operations.get(name)
+        if not operations:
+            return
+        elif not signature:
+            del self.operations[name]
+
+        print "=== DELETING %s with %s" % (name, signature)
+        print "--- has %s ops" % len(operations)
+        newops = [op for op in operations if op.signature != signature]
+        print "--- new %s ops" % len(newops)
+        self.operations[name] = newops
 
     def match(self, name, *objlist):
         """Returns a matching function for given data objects as arguments.
@@ -161,6 +191,9 @@ def match_operation(name, *objlist):
     `signature`"""
     return _default_map.match(name, *objlist)
 
+def remove_operation(name, signature=None):
+    _default_map.remove(name, signature)
+
 _default_map = OperationMap()
 
 def operation(*signature, **kwargs):
@@ -170,8 +203,7 @@ def operation(*signature, **kwargs):
         name = options.pop("name", fn.__name__)
 
         sig = Signature(*signature)
-        operation = Operation(name, fn, sig)
-        _default_map.add(operation)
+        _default_map.add(name, fn, sig)
         return fn
     return decorator
 
