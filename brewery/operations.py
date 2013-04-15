@@ -10,13 +10,12 @@ __all__ = (
             "common_representations",
             "signature_match",
             "operation",
-            "match_operation",
             "extract_representations",
+            "lookup_operation",
             "remove_operation",
             "Signature",
-            "OperationMap"
+            "OperationKernel"
         )
-
 
 Operation = namedtuple("Operation", ["name", "func", "signature"])
 
@@ -116,19 +115,23 @@ def extract_representations(*objects):
 
     return representations
 
-class OperationMap(object):
+class OperationKernel(object):
     def __init__(self):
-        """Creates a map of operations and their signatures"""
-        super(OperationMap, self).__init__()
+        """Creates an operation kernel"""
+        super(OperationKernel, self).__init__()
         self.operations = defaultdict(list)
+        self._retry_count = 10
 
-    def add(self, name, fn, sig):
-        """Adds an operation"""
+    def register_operation(self, name, fn, sig):
+        """Registers an operation `fn` with `name` and signature `sig`."""
+        if isinstance(sig, (list, tuple)):
+            sig = Signature(sig)
+
         o = Operation(name, fn, sig)
-        print "Adding operation %s(%s) as %s" % (o.name, o.signature, o.func)
+        # print "Adding operation %s(%s) as %s" % (o.name, o.signature, o.func)
         self.operations[o.name].append(o)
 
-    def remove(self, name, signature=None):
+    def remove_operation(self, name, signature=None):
         """Removes all operations with `name` and `signature`. If no
         `signature` is specified, then all operations with given name are
         removed."""
@@ -138,23 +141,17 @@ class OperationMap(object):
             return
         elif not signature:
             del self.operations[name]
+            return
 
-        print "=== DELETING %s with %s" % (name, signature)
-        print "--- has %s ops" % len(operations)
         newops = [op for op in operations if op.signature != signature]
-        print "--- new %s ops" % len(newops)
         self.operations[name] = newops
 
-    def match(self, name, *objlist):
+    def lookup_operation(self, name, *objlist):
         """Returns a matching function for given data objects as arguments.
 
         Note: If the match does not fit your expectations, it is recommended
         to pefrom explicit object conversion to an object with desired
         representation.
-
-
-        Rules:
-            * ...
         """
 
         # Get all signatures registered for the operation
@@ -168,9 +165,7 @@ class OperationMap(object):
                                                                         name)
 
         representations = extract_representations(*objlist)
-        print "--- REPS: %s" % (representations, )
 
-        print "--- OPS: %s" % (operations, )
         match = None
         for op in operations:
             if op.signature.matches(*representations):
@@ -185,16 +180,69 @@ class OperationMap(object):
                              " (representations: %s)" %
                                 (name, representations))
 
+    def get_operation(self, name, signature):
+        """Returns an operation with given name and signature"""
+        # Get all signatures registered for the operation
+        try:
+            operations = self.operations[name]
+        except KeyError:
+            raise OperationError("Unknown operation '%s'" % name)
 
-def match_operation(name, *objlist):
+        for op in operations:
+            if op.signature == signature:
+                return op
+        raise OperationError("No operation '%s' with signature '%s'" %
+                                    (name, signature))
+    def __getattr__(self, name):
+        try:
+            op = self.operations[name]
+        except KeyError:
+            raise OperationError("Unknown operation '%s'" % name)
+
+        argc = len(op[0])
+        return _KernelOperation(self, name, argc)
+
+class _KernelOperation(object):
+    def __init__(self, kernel, name, argc):
+        self.name = name
+        self.kernel = kernel
+        self.retry_count = kernel._retry_count
+        self.argc = argc
+
+    def __call__(self, *args, **kwargs):
+        match_objects = args[0:self.argc]
+        func = self.kernel.lookup_operation(self.name, *match_objects)
+        try:
+            result = func(*args, **kwargs)
+        except RetryOperation as e:
+            result = self._retry(e.signature, args, kwargs)
+
+        return result
+
+    def _retry(self, signature, args, kwargs):
+        success = False
+        result = None
+        for i in xrange(0, self.retry_count):
+            op = self.kernel.get_operation(self.name, signature)
+            try:
+                result = op.func(*args, **kwargs)
+                success = True
+                break
+            except RetryOperation as e:
+                signature = e.signature
+        if not success:
+            raise RetryError("Operation retried too many times "
+                                 "(allowed: %d)" % self.retry_count)
+        return result
+def lookup_operation(name, *objlist):
     """Returns an operation from default map that matches `name` and
     `signature`"""
-    return _default_map.match(name, *objlist)
+    return _default_kernel.lookup_operation(name, *objlist)
 
 def remove_operation(name, signature=None):
-    _default_map.remove(name, signature)
+    _default_kernel.remove_operation(name, signature)
 
-_default_map = OperationMap()
+_default_kernel = OperationKernel()
 
 def operation(*signature, **kwargs):
     """Marks a function as an operation and registers it."""
@@ -203,7 +251,7 @@ def operation(*signature, **kwargs):
         name = options.pop("name", fn.__name__)
 
         sig = Signature(*signature)
-        _default_map.add(name, fn, sig)
+        _default_kernel.register_operation(name, fn, sig)
         return fn
     return decorator
 

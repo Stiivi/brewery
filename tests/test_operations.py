@@ -14,11 +14,25 @@ def binary(left, right):
     pass
 
 class DummyDataObject(DataObject):
-    def __init__(self, reps=None):
+    def __init__(self, reps=None, data=None):
         self.reps = reps or []
+        self.data = data
 
     def representations(self):
         return self.reps
+
+class TextObject(DataObject):
+    def __init__(self, string):
+        self.string = string
+
+    def representations(self):
+        return ["rows", "text"]
+
+    def rows(self):
+        return iter(string)
+
+    def text(self):
+        return self.string
 
 class OperationsBaseTestCase(unittest.TestCase):
     def test_basic_match(self):
@@ -63,20 +77,22 @@ class OperationsBaseTestCase(unittest.TestCase):
         self.assertEqual( [(["rows", "sql"],True)], extr)
 
     def test_match(self):
+        k = OperationKernel()
+
         obj_sql = DummyDataObject(["rows", "sql"])
         obj_rows = DummyDataObject(["rows"])
 
-        operation("sql")(unary)
-        operation("*", name="unary")(default)
+        k.register_operation("unary", unary, Signature("sql"))
+        k.register_operation("unary", default, Signature("*"))
 
-        match = match_operation("unary", obj_sql)
+        match = k.lookup_operation("unary", obj_sql)
         self.assertEqual(unary, match)
 
         with self.assertRaises(OperationError):
-            match_operation("foo", obj_sql)
+            k.lookup_operation("foo", obj_sql)
 
         with self.assertRaises(OperationError):
-            match_operation("unary", obj_sql, obj_sql)
+            k.lookup_operation("unary", obj_sql, obj_sql)
 
     def test_comparison(self):
         sig1 = Signature("a", "b", "c")
@@ -91,22 +107,72 @@ class OperationsBaseTestCase(unittest.TestCase):
         self.assertFalse(sig1 == ["a", "b"])
 
     def test_delete(self):
-        om = OperationMap()
+        k = OperationKernel()
         obj = DummyDataObject(["rows"])
 
-        om.add("unary", unary, Signature("rows"))
-        om.add("unary", default, Signature("*"))
+        k.register_operation("unary", unary, Signature("rows"))
+        k.register_operation("unary", default, Signature("*"))
 
-        match = om.match("unary", obj)
+        match = k.lookup_operation("unary", obj)
         self.assertEqual(unary, match)
 
-        om.remove("unary", ["rows"])
-        match = om.match("unary", obj)
+        k.remove_operation("unary", ["rows"])
+        match = k.lookup_operation("unary", obj)
         self.assertEqual(default, match)
 
-        om.remove("unary")
+        k.remove_operation("unary")
         with self.assertRaises(OperationError):
-            match_operation("unary", obj)
+            k.lookup_operation("unary", obj)
+
+    def test_running(self):
+        def func_text(obj):
+            text = obj.text()
+            return list(text.upper())
+
+        def func_rows(obj):
+            rows = obj.rows()
+            text = "".join(rows)
+            return list(text.upper())
+
+        k = OperationKernel()
+        k.register_operation("upper", func_text, Signature("text"))
+        k.register_operation("upper", func_rows, Signature("rows"))
+
+        obj = TextObject("windchimes")
+
+        result = k.upper(obj)
+        self.assertEqual(list("WINDCHIMES"), result)
+        # func = om.match("upper")
+
+    def test_retry(self):
+        def join_sql(l, r):
+            if l.data == r.data:
+                return "SQL"
+            else:
+                raise RetryOperation(["sql", "rows"])
+
+        def join_iter(l, r):
+            return "ITERATOR"
+
+        def endless(l, r):
+            raise RetryOperation(["sql", "sql"])
+
+        local = DummyDataObject(["sql", "rows"], "local")
+        remote = DummyDataObject(["sql", "rows"], "remote")
+
+        k = OperationKernel()
+        k.register_operation("join", join_sql, Signature("sql", "sql"))
+        k.register_operation("join", join_iter, Signature("sql", "rows"))
+
+        result = k.join(local, local)
+        self.assertEqual(result, "SQL")
+
+        result = k.join(local, remote)
+        self.assertEqual(result, "ITERATOR")
+
+        k.register_operation("endless", endless, Signature("sql", "sql"))
+        with self.assertRaises(RetryError):
+            result = k.endless(local, local)
 
 if __name__ == "__main__":
     unittest.main()
