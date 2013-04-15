@@ -1,32 +1,176 @@
 # -*- Encoding: utf8 -*-
 """DataObject operations"""
+from .errors import *
+from .objects import *
 from collections import defaultdict, namedtuple
+import itertools
 # Inspired by sqlalchemy.sql.expression._FunctionGenerator from SQLAlchemy
+
+__all__ = (
+            "common_representations",
+            "signature_match",
+            "operation",
+            "match_operation",
+            "extract_representations"
+        )
 
 
 Operation = namedtuple("Operation", ["name", "func", "signature"])
 
+"""Representations of an argument"""
+ArgRepresentation = namedtuple("ArgRepresentation", ["reprs", "is_list"])
+
+class Signature(object):
+    def __init__(self, *signature):
+        """Creates an operation signature"""
+        self.signature = tuple(signature)
+
+    def __getitem__(self, index):
+        return self.signature[index]
+
+    def __len__(self):
+        return len(self.signature)
+
+    def matches(self, *arguments):
+        """returns `True` if the signature matches representations of
+        `arguments` which is list of extracted representations from objects.
+        Otherwise returns `False`.
+
+        Use as: `signature.matches(extracted_representations(*objects))`.
+        """
+
+        if len(arguments) != len(self.signature):
+            return False
+
+        for sig, arg in zip(self.signature, arguments):
+            if not signature_match(sig, arg.reprs, arg.is_list):
+                return False
+        return True
+
+    def __hash__(self):
+        return hash(self.replist)
+
+
+def signature_match(sig, reps, is_list=False):
+    """ Determines whether representations `reps` match single argument
+    signature `sig`.
+
+    Rules:
+
+    * "repr" matches only representation ``repr``
+    * "*" matches any representation
+    * "*[]" matches list of objects with any representation"
+    * "repr[]" matches list of objects with representation ``repr``
+    """
+
+    if sig.endswith("[]"):
+        sig_is_list = True
+        sig = sig[0:-2]
+    else:
+        sig_is_list = False
+
+    if sig_is_list != is_list:
+        return False
+    elif sig == "*":
+        return True
+    else:
+        return (sig in reps)
+
+def common_representations(*objects):
+    """Return list of common representations of `objects`"""
+    setlist = map(set, [o.representations() for o in objects])
+    return list(set.intersection(*setlist))
+
+def extract_representations(*objects):
+    """Extract representations of object arguments. Returns a list of tuples.
+    """
+    representations = []
+    # Get representations of objects
+    for obj in objects:
+        if isinstance(obj, DataObject):
+            objsig = ArgRepresentation(obj.representations(), False)
+            representations.append(objsig)
+        elif isinstance(obj, (list, tuple)):
+            common = common_representations(*obj)
+            rep = ArgRepresentation(common, True)
+            representations.append(rep)
+        else:
+            raise ArgumentError("Unknown type of operation argument "\
+                                "%s" % type(obj))
+
+    return representations
+
 class OperationMap(object):
-    def __init__(self, operations = None):
-        self.operations = operations or []
+    def __init__(self, operations=None):
+        """Creates a map of operations and their signatures"""
+        super(OperationMap, self).__init__()
+
+        self.operations = defaultdict(list)
+        if operations:
+            for op in operations:
+                self.add(op)
 
     def add(self, o):
         """Adds an operation"""
         print "Adding operation %s(%s) as %s" % (o.name, o.signature, o.func)
-        self.operations.append(o)
+        self.operations[o.name].append(o)
 
-    def match(self, *args, **kwargs):
-        """Returns a matching function for given arguments"""
-        pass
+    def match(self, name, *objlist):
+        """Returns a matching function for given data objects as arguments.
+
+        Note: If the match does not fit your expectations, it is recommended
+        to pefrom explicit object conversion to an object with desired
+        representation.
+
+
+        Rules:
+            * ...
+        """
+
+        # Get all signatures registered for the operation
+        try:
+            operations = self.operations[name]
+        except KeyError:
+            raise OperationError("Unknown operation '%s'" % name)
+
+        if not operations:
+            raise OperationError("No known signatures for operation '%s'" %
+                                                                        name)
+
+        representations = extract_representations(*objlist)
+        print "--- REPS: %s" % (representations, )
+
+        print "--- OPS: %s" % (operations, )
+        match = None
+        for op in operations:
+            if op.signature.matches(*representations):
+                match = op
+                break
+
+        if match:
+            return match.func
+
+        # FIXME: remove objlist
+        raise OperationError("No matching signature found for operation '%s' "
+                             " (representations: %s)" %
+                                (name, representations))
+
+
+def match_operation(name, *objlist):
+    """Returns an operation from default map that matches `name` and
+    `signature`"""
+    return _default_map.match(name, *objlist)
 
 _default_map = OperationMap()
 
-def signature(*signature, **kwargs):
+def operation(*signature, **kwargs):
     """Marks a function as an operation and registers it."""
     def decorator(fn):
         options = dict(kwargs)
         name = options.pop("name", fn.__name__)
-        operation = Operation(name, fn, signature)
+
+        sig = Signature(*signature)
+        operation = Operation(name, fn, sig)
         _default_map.add(operation)
         return fn
     return decorator
