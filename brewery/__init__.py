@@ -4,7 +4,8 @@ from .objects import *
 from .common import *
 from .workspace import *
 from .operations import *
-# from .stores import *
+# FIXME: rename to store
+from .stores import *
 # from .stream import *
 # import brewery.objects
 # import brewery.transform
@@ -19,4 +20,5 @@ __all__ += metadata.__all__
 __all__ += objects.__all__
 __all__ += operations.__all__
 __all__ += workspace.__all__
+__all__ += stores.__all__
 
