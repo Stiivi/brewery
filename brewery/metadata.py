@@ -5,6 +5,9 @@ import functools
 import re
 from .errors import *
 import inspect
+import warnings
+from .common import get_logger
+
 # from collections import OrderedDict
 
 __all__ = [
@@ -136,9 +139,8 @@ class Field(object):
           values in the dataset for given field
         * `info` – user specific field information, might contain formatting
           information for example
-        * `origin` – object that provides contents for the field (for example
-          another field)
-        * `owner` – object owning the field (for example: a node)
+        * `origin` – field or field list from which this field was derived
+        * `owner` – object responsible for creation of this field
     """
 
     attributes = ["name", "storage_type", "analytical_type",
@@ -153,6 +155,8 @@ class Field(object):
     def __init__(self, *args, **kwargs):
         super(Field,self).__init__()
 
+        # FIXME: revise the necessity of freezing a field (I would prefer it
+        # to be immutable after creation -- Stiivi)
         object.__setattr__(self, "_frozen", False)
 
         not_set = set(self.attributes)
@@ -234,7 +238,7 @@ class Field(object):
 
 class FieldList(object):
     """List of fields"""
-    def __init__(self, fields=None):
+    def __init__(self, *args):
         """
         Create a list of :class:`Field` objects from a list of strings, dictionaries or tuples
 
@@ -258,6 +262,14 @@ class FieldList(object):
         self._field_dict = {}
         self._field_names = []
 
+        if len(args) == 1 and isinstance(args, (list, tuple, FieldList)):
+            # FIXME: Depreciate this
+            warnings.warn("FieldList now accepts fields (descriptions) as "
+                          "arguments instead of one list argument")
+            fields = args[0]
+            logger = get_logger()
+        else:
+            fields = args
         if fields:
             # Convert input to Field instances
             # This is convenience, so one can pass list of strsings, for example
@@ -377,11 +389,13 @@ class FieldList(object):
 
         return field in self._fields
 
-    def __iconcat__(self, array):
+    def __iadd__(self, array):
         for field in array:
             self.append(field)
 
-    def __concat__(self, array):
+        return self
+
+    def __add__(self, array):
         fields = self.copy()
         fields += array
         return fields
@@ -406,7 +420,7 @@ class FieldList(object):
         else:
             return FieldList(self._fields)
 
-    def clone(self, fields=None, origin=None, freeze=False):
+    def clone(self, fields=None, origin=None, owner=None, freeze=False):
         """Creates a copy of the list and copy of the fields. Copied fields
         are unfrozen and origin is set to the cloned field, if not
         specified otherwise. If `freeze` is true, then newly created
