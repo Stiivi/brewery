@@ -24,6 +24,9 @@ class ArgumentError(BreweryError):
     """Raised when whong argument is passed to a function"""
     pass
 
+class RetryError(BreweryError):
+    """Raised when some attempt was retried too many times"""
+    pass
 #
 # DataObject and DataStore errors
 #
@@ -53,6 +56,20 @@ class RepresentationError(DataObjectError):
     """Raised when requested unknown, invalid or not available
     representation"""
     pass
+
+#
+# Operations errors
+#
+
+class OperationError(BreweryError):
+    """Raised when operation is not found or is mismatched"""
+    pass
+
+class RetryOperation(Exception):
+    """Raised within operation to signal to the kernel that it should try
+    another operation with different signature."""
+    def __init__(self, signature):
+        self.signature = signature
 
 #
 # Other errors
