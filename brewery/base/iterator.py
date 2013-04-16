@@ -3,6 +3,8 @@
 from ..metadata import *
 from ..common import get_logger
 from ..errors import *
+from ..operations import operation
+from ..objects import *
 import itertools
 import functools
 from collections import OrderedDict, namedtuple
@@ -10,19 +12,39 @@ from collections import OrderedDict, namedtuple
 # FIXME: add cheaper version for already sorted data
 # FIXME: BasicAuditProbe was removed
 
-def as_records(iterator, fields):
+def iterator(func):
+    """Wraps a function that provides an operation returning an iterator.
+    Assumes same fields as first argument object"""
+    @functools.wraps(func)
+    def decorator(*args, **kwargs):
+        fields = args[0].fields
+        result = func(*args, **kwargs)
+        return IterableDataSource(result, fields)
+
+    return decorator
+
+@operation("rows")
+@iterator
+def as_records(obj):
     """Returns iterator of dictionaries where keys are defined in fields."""
 
-    names = [str(field) for field in fields]
-    for row in iterator:
+    names = [str(field) for field in obj.fields]
+    for row in obj:
         yield dict(zip(names, row))
 
-def distinct(iterator, fields, keys, is_sorted=False):
+@operation("rows")
+@iterator
+def distinct(iterator, keys=None, is_sorted=False):
     """Return distinct `keys` from `iterator`. `iterator` does
     not have to be sorted. If iterator is sorted by the keys and `is_sorted`
     is ``True`` then more efficient version is used."""
 
-    row_filter = FieldFilter(keep=keys).row_filter(fields)
+    fields = iterator.fields
+    if keys:
+        row_filter = FieldFilter(keep=keys).row_filter(fields)
+    else:
+        row_filter = FieldFilter().row_filter(fields)
+
     if is_sorted:
         last_key = object()
 
@@ -43,13 +65,15 @@ def distinct(iterator, fields, keys, is_sorted=False):
                 distinct_values.add(key_tuple)
                 yield row
 
-def unique(iterator, fields, keys, discard=False):
+@operation("rows")
+@iterator
+def unique(iterator, keys, discard=False):
     """Return rows that are unique by `keys`. If `discard` is `True` then the
     action is reversed and duplicate rows are returned."""
 
     # FIXME: add is_sorted version
 
-    row_filter = FieldFilter(keep=keys).row_filter(fields)
+    row_filter = FieldFilter(keep=keys).row_filter(iterator.fields)
 
     distinct_values = set()
 
@@ -71,6 +95,8 @@ def append(iterators):
     """Appends iterators"""
     return itertools.chain(*iterators)
 
+@operation("rows")
+@iterator
 def sample(iterator, value, discard=False, mode="first"):
     """Returns sample from the iterator. If `mode` is ``first`` (default),
     then `value` is number of first records to be returned. If `mode` is
@@ -91,11 +117,14 @@ def sample(iterator, value, discard=False, mode="first"):
     else:
         raise Exception("Unknown sample mode '%s'" % mode)
 
-def select(iterator, fields, predicate, arg_fields, discard=False, kwargs=None):
+@operation("rows")
+@iterator
+def select(iterator, predicate, arg_fields, discard=False, kwargs=None):
     """Returns an interator selecting fields where `predicate` is true.
     `predicate` should be a python callable. `arg_fields` are names of fields
     to be passed to the function (in that order). `kwargs` are additional key
     arguments to the predicate function."""
+    fields = iterator.fields
     indexes = fields.indexes(arg_fields)
     row_filter = FieldFilter(keep=arg_fields).row_filter(fields)
 
@@ -105,10 +134,14 @@ def select(iterator, fields, predicate, arg_fields, discard=False, kwargs=None):
         if (flag and not discard) or (not flag and discard):
             yield row
 
-def select_from_set(iterator, fields, field, values, discard=False):
+@operation("rows")
+@iterator
+def select_from_set(iterator, field, values, discard=False):
     """Select rows where value of `field` belongs to the set of `values`. If
     `discard` is ``True`` then the matching rows are discarded instead
     (operation is inverted)."""
+
+    fields = iterator.fields
     index = fields.index(field)
 
     # Convert the values to more efficient set
@@ -121,7 +154,9 @@ def select_from_set(iterator, fields, field, values, discard=False):
 
     return itertools.ifilter(predicate, iterator)
 
-def select_records(iterator, fields, predicate, discard=False, kwargs=None):
+@operation("records")
+@iterator
+def select_records(iterator, predicate, discard=False, kwargs=None):
     """Returns an interator selecting fields where `predicate` is true.
     `predicate` should be a python callable. `arg_fields` are names of fields
     to be passed to the function (in that order). `kwargs` are additional key
@@ -134,18 +169,27 @@ def select_records(iterator, fields, predicate, discard=False, kwargs=None):
         if (flag and not discard) or (not flag and discard):
             yield record
 
+@operation("rows")
+@operation("records")
+@iterator
 def discard_nth(iterator, step):
     """Discards every step-th item from `iterator`"""
+    print "ITERATOR: %s STEP %s" % (iterator, step)
     for i, value in enumerate(iterator):
-        if i % value != 0:
+        if i % step != 0:
             yield value
 
-def field_filter(iterator, fields, field_filter):
+@operation("rows")
+def field_filter(iterator, field_filter):
     """Filters fields in `iterator` according to the `field_filter`.
     `iterator` should be a rows iterator and `fields` is list of iterator's
     fields."""
-    row_filter = field_filter.row_filter(fields)
-    return itertools.imap(row_filter, iterator)
+    row_filter = field_filter.row_filter(iterator.fields)
+
+    iterator = itertools.imap(row_filter, iterator)
+    new_fields = field_filter.filter(iterator.fields)
+
+    return IterableDataSource(iterator, new_fields)
 
 def to_dict(iterator, fields, key=None):
     """Returns dictionary constructed from the iterator. `fields` are
@@ -181,6 +225,8 @@ def to_dict(iterator, fields, key=None):
 
     return d
 
+# FIXME: requires new fields
+@operation("rows", "rows[]")
 def left_inner_join(master, details, joins):
     """Creates left inner master-detail join (star schema) where `master` is an
     iterator if the "bigger" table `details` are details. `joins` is a list of
@@ -196,18 +242,34 @@ def left_inner_join(master, details, joins):
         use for large datasets.
     """
 
+    result = _left_inner_join_iterator(master, details, joins)
+
+    out_fields = master.fields
+    for detail in details:
+        out_fields += detail.fields
+
+    return IterableDataSource(result, out_fields)
+
+def _left_inner_join_iterator(master, details, joins):
+    """Simple iterator implementation of the left inner join"""
+
     maps = []
 
     if not details:
         raise ArgumentError("No details provided, nothing to join")
 
+    if not joins:
+        raise ArgumentError("No joins specified")
+
     if len(details) != len(joins):
         raise ArgumentError("For every detail there should be a join "
                             "(%d:%d)." % (len(details), len(joins)))
 
+    djoins = []
     for detail, join in zip(details, joins):
         # FIXME: do not use list comprehension here for better error handling
-        detail_dict = dict( (row[join[1]], row) for row in detail )
+        index = detail.fields.index(join[1])
+        detail_dict = dict( (row[index], row) for row in detail )
         maps.append(detail_dict)
 
     for master_row in master:
@@ -215,7 +277,8 @@ def left_inner_join(master, details, joins):
         match = True
 
         for detail, join in zip(maps, joins):
-            key = master_row[join[0]]
+            index = master.fields.index(join[0])
+            key = master_row[index]
             try:
                 detail_row = detail[key]
                 row += detail_row
@@ -226,9 +289,12 @@ def left_inner_join(master, details, joins):
         if match:
             yield row
 
-def text_substitute(iterator, fields, field, substitutions):
+@operation("rows")
+@iterator
+def text_substitute(iterator, field, substitutions):
     """Substitute field using text substitutions"""
     # Compile patterns
+    fields = iterator.fields
     substitutions = [(re.compile(patt), r) for (patt, r) in subsitutions]
     index = fields.index(field)
     for row in iterator:
@@ -241,11 +307,14 @@ def text_substitute(iterator, fields, field, substitutions):
 
         yield row
 
-def string_strip(iterator, fields, strip_fields=None, chars=None):
+@operation("rows")
+@iterator
+def string_strip(iterator, strip_fields=None, chars=None):
     """Strip characters from `strip_fields` in the iterator. If no
     `strip_fields` is provided, then it strips all `string` or `text` storage
     type objects."""
 
+    fields = iterator.fields
     if not strip_fields:
         strip_fields = []
         for field in fields:
@@ -262,7 +331,9 @@ def string_strip(iterator, fields, strip_fields=None, chars=None):
                 row[index] = value.strip(chars)
         yield row
 
-def basic_audit(iterable, fields, distinct_threshold):
+@operation("rows")
+@iterator
+def basic_audit(iterable, distinct_threshold):
     """Performs basic audit of fields in `iterable`. Returns a list of
     dictionaries with keys:
 
@@ -275,8 +346,7 @@ def basic_audit(iterable, fields, distinct_threshold):
       to None if there are more distinct values than `distinct_threshold`.
     """
 
-    if not fields:
-        raise Exception("No fields to audit")
+    fields = iterable.fields
 
     stats = []
     for field in fields:
@@ -318,105 +388,6 @@ def basic_audit(iterable, fields, distinct_threshold):
 #                         "both none at the same time.")
 #
 
-
-#####################
-# Transformations
-
-class CopyValueTransformation(object):
-    def __init__(self, fields, source, missing_value=None):
-        self.source_index = fields.index(source)
-        self.missing_value = missing_value
-    def __call__(self, row):
-        result = row[self.source_index]
-        if result is not None:
-            return result
-        else:
-            return self.missing_value
-
-class SetValueTransformation(object):
-    def __init__(self, value):
-        self.value = value
-    def __call__(self, row):
-        return self.value
-
-class MapTransformation(object):
-    def __init__(self, fields, mapping, source, missing_value=None):
-        self.source_index = fields.index(source)
-        self.missing_value = missing_value
-        self.mapping = mapping
-    def __call__(self, row):
-        return self.mapping.get(row[self.source_index], self.missing_value)
-
-class FunctionTransformation(object):
-    def __init__(self, fields, function, source, args, missing_value=None):
-        self.function = function
-        if isinstance(source, basestring):
-            self.source_index = fields.index(source)
-            self.mask = None
-        else:
-            self.source_index = None
-            self.mask = fields.mask(source)
-
-        self.args = args or {}
-        self.missing_value = missing_value
-
-    def __call__(self, row):
-        if self.source_index:
-            result = self.function(row[self.source_index], **self.args)
-        else:
-            args = list(itertools.compress(row, self.mask))
-            result = self.function(*args, **self.args)
-
-        if result is not None:
-            return result
-        else:
-            return self.missing_value
-
-def compile_transformation(transformation, fields):
-    """Returns an ordered dictionary of transformations where keys are target
-    fields and values are transformation callables which accept a row of
-    structure `fields` as an input argument."""
-    out = OrderedDict()
-
-    for t in transformation:
-        target = t[0]
-        if len(t) == 1:
-            out[target] = CopyValueTransformation(fields, target)
-            continue
-        desc = t[1]
-        # ("target", None) - no trasformation, just copy the field
-        if desc is None:
-            out[target] = CopyValueTransformation(fields, target)
-            continue
-        elif isinstance(desc, basestring):
-            out[target] = CopyValueTransformation(fields, desc)
-            continue
-
-        action = desc.get("action")
-        source = desc.get("source", target)
-        if not action or action == "copy":
-            out[target] = CopyValueTransformation(fields, source,
-                                                    desc.get("missing_value"))
-        elif action == "function":
-            out[target] = FunctionTransformation(fields, desc.get("function"),
-                                                 source,
-                                                 desc.get("args"),
-                                                 desc.get("missing_value"))
-        elif action == "map":
-            out[target] = MapTransformation(fields, desc.get("map"),
-                                                 source,
-                                                 desc.get("missing_value"))
-        elif action == "set":
-            out[target] = SetValueTransformation(desc.get("value"))
-
-    return functools.partial(transform, out.values())
-
-def transform(transformations, row):
-    """Transforms `row` with structure `input_fields` according to
-    transformations which is a list of Transformation objects."""
-
-    out = [trans(row) for trans in transformations]
-    return out
 
 ###
 # Simple and naive aggregation in Python

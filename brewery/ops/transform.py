@@ -4,6 +4,106 @@ from .common import get_logger, to_identifier, decamelize
 from .metadata import *
 from collections import OrderedDict
 
+#####################
+# Transformations – from iterators
+# FIXME: requires rewrite
+
+class CopyValueTransformation(object):
+    def __init__(self, fields, source, missing_value=None):
+        self.source_index = fields.index(source)
+        self.missing_value = missing_value
+    def __call__(self, row):
+        result = row[self.source_index]
+        if result is not None:
+            return result
+        else:
+            return self.missing_value
+
+class SetValueTransformation(object):
+    def __init__(self, value):
+        self.value = value
+    def __call__(self, row):
+        return self.value
+
+class MapTransformation(object):
+    def __init__(self, fields, mapping, source, missing_value=None):
+        self.source_index = fields.index(source)
+        self.missing_value = missing_value
+        self.mapping = mapping
+    def __call__(self, row):
+        return self.mapping.get(row[self.source_index], self.missing_value)
+
+class FunctionTransformation(object):
+    def __init__(self, fields, function, source, args, missing_value=None):
+        self.function = function
+        if isinstance(source, basestring):
+            self.source_index = fields.index(source)
+            self.mask = None
+        else:
+            self.source_index = None
+            self.mask = fields.mask(source)
+
+        self.args = args or {}
+        self.missing_value = missing_value
+
+    def __call__(self, row):
+        if self.source_index:
+            result = self.function(row[self.source_index], **self.args)
+        else:
+            args = list(itertools.compress(row, self.mask))
+            result = self.function(*args, **self.args)
+
+        if result is not None:
+            return result
+        else:
+            return self.missing_value
+
+def compile_transformation(transformation, fields):
+    """Returns an ordered dictionary of transformations where keys are target
+    fields and values are transformation callables which accept a row of
+    structure `fields` as an input argument."""
+    out = OrderedDict()
+
+    for t in transformation:
+        target = t[0]
+        if len(t) == 1:
+            out[target] = CopyValueTransformation(fields, target)
+            continue
+        desc = t[1]
+        # ("target", None) - no trasformation, just copy the field
+        if desc is None:
+            out[target] = CopyValueTransformation(fields, target)
+            continue
+        elif isinstance(desc, basestring):
+            out[target] = CopyValueTransformation(fields, desc)
+            continue
+
+        action = desc.get("action")
+        source = desc.get("source", target)
+        if not action or action == "copy":
+            out[target] = CopyValueTransformation(fields, source,
+                                                    desc.get("missing_value"))
+        elif action == "function":
+            out[target] = FunctionTransformation(fields, desc.get("function"),
+                                                 source,
+                                                 desc.get("args"),
+                                                 desc.get("missing_value"))
+        elif action == "map":
+            out[target] = MapTransformation(fields, desc.get("map"),
+                                                 source,
+                                                 desc.get("missing_value"))
+        elif action == "set":
+            out[target] = SetValueTransformation(desc.get("value"))
+
+    return functools.partial(transform, out.values())
+
+def transform(transformations, row):
+    """Transforms `row` with structure `input_fields` according to
+    transformations which is a list of Transformation objects."""
+
+    out = [trans(row) for trans in transformations]
+    return out
+
 class Transformation(object):
     def __init__(self, source, fields):
         """Creates a transformation object for single `source`"""

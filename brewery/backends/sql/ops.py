@@ -1,6 +1,7 @@
 import sqlalchemy
 from sqlalchemy import sql
-from ...operations import signature
+from ...operations import operation
+import functools
 
 __all__ = [
             "distinct",
@@ -13,7 +14,21 @@ __all__ = [
             "sort"
         ]
 
-@signature("sql_statement")
+
+def _unary(func):
+    @functools.wraps(func)
+    def decorator(*args, **kwargs):
+        obj = args[0]
+        args = args[1:]
+
+        result = func(obj.sql_statement, *args, **kwargs)
+
+        return obj.clone(statement=result)
+
+    return decorator
+
+@operation("sql")
+@_unary
 def distinct(statement, keys):
     """Returns a statement that selects distinct values for `keys`"""
 
@@ -21,7 +36,8 @@ def distinct(statement, keys):
     statement = sql.expression.select(cols, from_obj=statement, group_by=cols)
     return statement
 
-@signature("sql_statement")
+@operation("sql")
+@_unary
 def distinct_rows(statement, keys):
     """Returns a statement that selects whole rows with distinct values for
     `keys`"""
@@ -35,13 +51,15 @@ def distinct_rows(statement, keys):
     full = distinct.join(statement)
     return statement
 
-@signature("sql_statement[]")
+@operation("sql[]")
+# FIXME: use objects
 def append(statements):
     """Returns a statement with sequentialy concatenated results of the
     `statements`. Statements are chained using ``UNION``."""
     return sqlalchemy.sql.expression.union(*statements)
 
-@signature("sql_statement")
+@operation("sql")
+@_unary
 def sample(statement, value, mode="first"):
     """Returns a sample. `statement` is expected to be ordered."""
 
@@ -50,11 +68,14 @@ def sample(statement, value, mode="first"):
     else:
         raise Exception("Unknown sample mode '%s'" % mode)
 
-@signature("sql_statement")
-def field_filter(statement, fields, field_filter):
+@operation("sql")
+def field_filter(obj, field_filter):
     """Returns a statement with fields according to the field filter"""
+    statement = obj.sql_statement()
+
     columns = []
-    for field in fields:
+
+    for field in obj.fields:
         name = str(field)
         column = statement.c[name]
         if name in field_filter.rename:
@@ -65,39 +86,46 @@ def field_filter(statement, fields, field_filter):
     selection = row_filter(columns)
 
     statement = sql.expression.select(selection, from_obj=statement)
+    fields = field_filter.filter(fields)
 
-    return statement
+    result = obj.clone(statement=statement, fields=fields)
+    return result
 
 
-@signature("sql_statement")
-def duplicates(statement, keys=None, threshold=1,
+@operation("sql")
+def duplicates(obj, keys=None, threshold=1,
                record_count_label="__record_count"):
-    """Returns a statement that selects duplicate rows based on `keys`.
-    `threshold` is lowest number of duplicates that has to be present to be
-    returned. By default `threshold` is 1. If no keys are specified, then all
-    columns are considered."""
+    """Returns duplicate rows based on `keys`. `threshold` is lowest number of
+    duplicates that has to be present to be returned. By default `threshold`
+    is 1. If no keys are specified, then all columns are considered."""
 
     if not threshold or threshold < 1:
         raise ValueError("Threshold should be at least 1 "
                          "meaning 'at least one duplcate'.")
 
+    statement = obj.sql_statement()
+
     if keys:
         group = [statement.c[str(field)] for field in keys]
+        out_fields = FieldList(*keys)
     else:
         group = list(statement.columns)
+        out_fields = obj.fields.clone()
 
     counter = sqlalchemy.func.count("*").label(record_count_label)
     selection = group + [counter]
     condition = counter > threshold
 
-    result = sql.expression.select(selection,
+    statement = sql.expression.select(selection,
                                    from_obj=statement,
                                    group_by=group,
                                    having=condition)
 
+    out = obj.clone(statement=statement, fields=out_fields)
     return result
 
-@signature("sql_statement")
+@operation("sql")
+@_unary
 def sort(statement, orders):
     """Returns a ordered SQL statement. `orders` should be a list of
     two-element tuples `(field, order)`"""
@@ -121,16 +149,23 @@ def sort(statement, orders):
 
     return statement.order_by(*columns)
 
-# TODO: make this brewery-level method on top of data object
-@signature("sql_statement")
-def duplicate_stats(statement, fields=None, threshold=1):
+@operation("sql_statement")
+def duplicate_stats(obj, fields=None, threshold=1):
     """Return duplicate statistics of a `statement`"""
     count_label = "__record_count"
-    dups = duplicates(statement, fields, threshold, count_label)
-    dups = dups.alias("duplicates")
+    dups = duplicates(obj, threshold, count_label)
+    statement = dups.statement
+    statement = statement.alias("duplicates")
 
     counter = sqlalchemy.func.count("*").label("record_count")
-    group = dups.c[count_label]
-    result = sqlalchemy.sql.expression.select([counter, group], from_obj=dups, group_by=[group])
+    group = statement.c[count_label]
+    result_stat = sqlalchemy.sql.expression.select([counter, group],
+                                              from_obj=statement,
+                                              group_by=[group])
+
+    fields = dups.fields.clone()
+    fields.add(count_label)
+
+    result = obj.clone(statement=result_stat, fields=fields)
     return result
 

@@ -14,7 +14,9 @@ __all__ = (
             "lookup_operation",
             "remove_operation",
             "Signature",
-            "OperationKernel"
+            "OperationKernel",
+            # FIXME: rename
+            "_default_kernel"
         )
 
 Operation = namedtuple("Operation", ["name", "func", "signature"])
@@ -122,6 +124,17 @@ class OperationKernel(object):
         self.operations = defaultdict(list)
         self._retry_count = 10
 
+    def operation(self, *signature, **kwargs):
+        """Marks a function as an operation and registers it."""
+        def decorator(fn):
+            options = dict(kwargs)
+            name = options.pop("name", fn.__name__)
+
+            sig = Signature(*signature)
+            self.register_operation(name, fn, sig)
+            return fn
+        return decorator
+
     def register_operation(self, name, fn, sig):
         """Registers an operation `fn` with `name` and signature `sig`."""
         if isinstance(sig, (list, tuple)):
@@ -194,12 +207,11 @@ class OperationKernel(object):
         raise OperationError("No operation '%s' with signature '%s'" %
                                     (name, signature))
     def __getattr__(self, name):
-        try:
-            op = self.operations[name]
-        except KeyError:
+        if name not in self.operations:
             raise OperationError("Unknown operation '%s'" % name)
 
-        argc = len(op[0])
+        op = self.operations[name]
+        argc = len(op[0].signature)
         return _KernelOperation(self, name, argc)
 
 class _KernelOperation(object):
@@ -234,6 +246,7 @@ class _KernelOperation(object):
             raise RetryError("Operation retried too many times "
                                  "(allowed: %d)" % self.retry_count)
         return result
+
 def lookup_operation(name, *objlist):
     """Returns an operation from default map that matches `name` and
     `signature`"""
@@ -243,17 +256,7 @@ def remove_operation(name, signature=None):
     _default_kernel.remove_operation(name, signature)
 
 _default_kernel = OperationKernel()
-
-def operation(*signature, **kwargs):
-    """Marks a function as an operation and registers it."""
-    def decorator(fn):
-        options = dict(kwargs)
-        name = options.pop("name", fn.__name__)
-
-        sig = Signature(*signature)
-        _default_kernel.register_operation(name, fn, sig)
-        return fn
-    return decorator
+operation = _default_kernel.operation
 
 
 class _OperationApplicator(object):

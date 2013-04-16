@@ -76,7 +76,7 @@ class OperationsBaseTestCase(unittest.TestCase):
         extr = extract_representations([obj])
         self.assertEqual( [(["rows", "sql"],True)], extr)
 
-    def test_match(self):
+    def test_lookup(self):
         k = OperationKernel()
 
         obj_sql = DummyDataObject(["rows", "sql"])
@@ -93,6 +93,17 @@ class OperationsBaseTestCase(unittest.TestCase):
 
         with self.assertRaises(OperationError):
             k.lookup_operation("unary", obj_sql, obj_sql)
+
+    def test_lookup_additional_args(self):
+        def func(obj, value):
+            pass
+
+        k = OperationKernel()
+        k.register_operation("func", func, Signature("rows"))
+
+        obj = DummyDataObject(["rows"])
+
+        k.func(obj, 1)
 
     def test_comparison(self):
         sig1 = Signature("a", "b", "c")
