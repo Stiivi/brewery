@@ -55,9 +55,15 @@ def data_object(type_, *args, **kwargs):
 class DataObject(object):
     def representations(self):
         """Returns list of representation names of this data object. Default
-        implementation returns only `rows` as this representation should be
-        implemented by all data objects. """
-        return ["rows"]
+        implementation raises an exception, as subclasses are required to
+        implement this method.
+
+        Representations do not have to be known up front – they might depend
+        on various run-time conditions. Refer to particular object
+        documentation.
+        """
+        raise NotImplementedError("Subclasses are required to specify "
+                                  "representations of a data object.")
 
     def is_compatible(self, obj, required=None, ignored=None):
         """Returns `True` when the receiver and the `object` share
