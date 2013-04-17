@@ -15,7 +15,7 @@ __all__ = (
             "Signature",
             "OperationKernel",
             # FIXME: rename
-            "_default_kernel"
+            "kernel"
         )
 
 Operation = namedtuple("Operation", ["name", "func", "signature"])
@@ -264,13 +264,13 @@ class _KernelOperation(object):
 def lookup_operation(name, *objlist):
     """Returns an operation from default map that matches `name` and
     `signature`"""
-    return _default_kernel.lookup_operation(name, *objlist)
+    return kernel.lookup_operation(name, *objlist)
 
 def remove_operation(name, signature=None):
-    _default_kernel.remove_operation(name, signature)
+    kernel.remove_operation(name, signature)
 
-_default_kernel = OperationKernel()
-operation = _default_kernel.operation
+kernel = OperationKernel()
+operation = kernel.operation
 
 
 class _OperationApplicator(object):

@@ -1,6 +1,6 @@
 import sqlalchemy
 from sqlalchemy import sql
-from ...operations import operation
+from ...operations import operation, RetryOperation
 import functools
 
 __all__ = [
@@ -23,7 +23,7 @@ def _unary(func):
 
         result = func(obj.sql_statement, *args, **kwargs)
 
-        return obj.clone(statement=result)
+        return obj.clone_statement(statement=result)
 
     return decorator
 
@@ -88,7 +88,7 @@ def field_filter(obj, field_filter):
     statement = sql.expression.select(selection, from_obj=statement)
     fields = field_filter.filter(fields)
 
-    result = obj.clone(statement=statement, fields=fields)
+    result = obj.clone_statement(statement=statement, fields=fields)
     return result
 
 
@@ -121,7 +121,7 @@ def duplicates(obj, keys=None, threshold=1,
                                    group_by=group,
                                    having=condition)
 
-    out = obj.clone(statement=statement, fields=out_fields)
+    out = obj.clone_statement(statement=statement, fields=out_fields)
     return result
 
 @operation("sql")
@@ -176,7 +176,7 @@ def left_inner_join(master, details, joins):
                             "(%d:%d)." % (len(details), len(joins)))
 
     if not all(master.can_compose(detail) for detail in details):
-        raise RetryOperation("rows", "rows[]")
+        raise RetryOperation(["rows", "rows[]"])
 
     out_fields = master.fields
     for detail in details:
@@ -197,7 +197,7 @@ def left_inner_join(master, details, joins):
                                 from_obj=joined,
                                 use_labels=True)
 
-    return master.clone(statement=select)
+    return master.clone_statement(statement=select)
 
 @operation("sql_statement")
 def duplicate_stats(obj, fields=None, threshold=1):
@@ -216,6 +216,6 @@ def duplicate_stats(obj, fields=None, threshold=1):
     fields = dups.fields.clone()
     fields.add(count_label)
 
-    result = obj.clone(statement=result_stat, fields=fields)
+    result = obj.clone_statement(statement=result_stat, fields=fields)
     return result
 

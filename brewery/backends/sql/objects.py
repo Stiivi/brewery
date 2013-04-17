@@ -429,12 +429,20 @@ class SQLDataObject(DataObject):
     def __iter__(self):
         return self.rows()
 
-    def apply(self, function, *args, **kwargs):
-        """Returns a copy of the receiver with `function` applied on
-        receiver's main representation. All other arguments are passed to the
-        function."""
+    def clone_statement(self, statement=None, fields=None):
+        """Clone statement representation from the receiver. If `statement` or
+        `fields` are not specified, then they are copied from the receiver.
 
-        raise NotImplemented
+        Use this method in operations to create derived statements from the
+        receiver.
+        """
+        if statement is None:
+            statement = self.sql_statement()
+
+        fields = fields or self.fields.clone()
+        obj = SQLStatement(statement, self.store, fields=fields,
+                                    schema=self.schema)
+        return obj
 
 class SQLStatement(SQLDataObject):
     """Object representing a SQL statement (from SQLAlchemy)."""
