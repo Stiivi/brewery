@@ -8,9 +8,8 @@ import itertools
 
 __all__ = (
             "common_representations",
-            "signature_match",
             "operation",
-            "extract_representations",
+            "extract_signatures",
             "lookup_operation",
             "remove_operation",
             "Signature",
@@ -20,13 +19,12 @@ __all__ = (
         )
 
 Operation = namedtuple("Operation", ["name", "func", "signature"])
-
-"""Representations of an argument"""
-ArgRepresentation = namedtuple("ArgRepresentation", ["reprs", "is_list"])
+SignatureArgument = namedtuple("SignatureArgument", ["rep", "is_list"])
 
 class Signature(object):
     def __init__(self, *signature):
         """Creates an operation signature"""
+        self.arguments = tuple(signature_argument(arg) for arg in signature)
         self.signature = tuple(signature)
 
     def __getitem__(self, index):
@@ -49,73 +47,68 @@ class Signature(object):
         return not self.__eq__(obj)
 
     def matches(self, *arguments):
-        """returns `True` if the signature matches representations of
-        `arguments` which is list of extracted representations from objects.
-        Otherwise returns `False`.
-
-        Use as: `signature.matches(extracted_representations(*objects))`.
+        """Returns `True` if the signature matches signature of `arguments`.
+        `arguments` is a list of strings.
         """
 
         if len(arguments) != len(self.signature):
             return False
 
-        for sig, arg in zip(self.signature, arguments):
-            if not signature_match(sig, arg.reprs, arg.is_list):
+        arguments = (signature_argument(arg) for arg in arguments)
+
+        for mine, their in zip(self.arguments, arguments):
+            if mine.is_list != their.is_list:
+                return False
+            if mine.rep != "*" and mine.rep != their.rep:
                 return False
         return True
 
     def __hash__(self):
         return hash(self.replist)
 
+def signature_argument(rep):
+    """Converts representation to SignatureArgument object"""
+    if rep.endswith("[]"):
+        return SignatureArgument(rep[:-2], True)
+    else:
+        return SignatureArgument(rep, False)
 
-def signature_match(sig, reps, is_list=False):
-    """ Determines whether representations `reps` match single argument
-    signature `sig`.
+def signature_argument_match(signature, arg):
+    """Returns `True` if `arg` matches `signature`.
 
     Rules:
-
-    * "repr" matches only representation ``repr``
-    * "*" matches any representation
-    * "*[]" matches list of objects with any representation"
-    * "repr[]" matches list of objects with representation ``repr``
+        * ``rep`` matches ``rep`` and ``*``
+        * ``rep[]`` matches ``rep[]`` and ``*[]``
     """
 
-    if sig.endswith("[]"):
-        sig_is_list = True
-        sig = sig[0:-2]
-    else:
-        sig_is_list = False
+    if signature.endswith("[]"):
+        if not arg.endswith("[]"):
+            return
+        signature
 
-    if sig_is_list != is_list:
-        return False
-    elif sig == "*":
-        return True
-    else:
-        return (sig in reps)
 
 def common_representations(*objects):
     """Return list of common representations of `objects`"""
+    # FIXME: Preserve order of representations
     setlist = map(set, [o.representations() for o in objects])
     return list(set.intersection(*setlist))
 
-def extract_representations(*objects):
-    """Extract representations of object arguments. Returns a list of tuples.
-    """
-    representations = []
+def extract_signatures(*objects):
+    """Extract possible signatures."""
+
+    signatures = []
     # Get representations of objects
     for obj in objects:
         if isinstance(obj, DataObject):
-            objsig = ArgRepresentation(obj.representations(), False)
-            representations.append(objsig)
+            signatures.append(obj.representations())
         elif isinstance(obj, (list, tuple)):
             common = common_representations(*obj)
-            rep = ArgRepresentation(common, True)
-            representations.append(rep)
+            common = [sig + "[]" for sig in common]
+            signatures.append(common)
         else:
             raise ArgumentError("Unknown type of operation argument "\
                                 "%s" % type(obj))
-
-    return representations
+    return signatures
 
 class OperationKernel(object):
     def __init__(self):
@@ -177,12 +170,16 @@ class OperationKernel(object):
             raise OperationError("No known signatures for operation '%s'" %
                                                                         name)
 
-        representations = extract_representations(*objlist)
+        # Extract signatures from arguments
 
+        arg_signatures = extract_signatures(*objlist)
         match = None
-        for op in operations:
-            if op.signature.matches(*representations):
-                match = op
+        for arguments in itertools.product(*arg_signatures):
+            for op in operations:
+                if op.signature.matches(*arguments):
+                    match = op
+                    break
+            if match:
                 break
 
         if match:
@@ -191,10 +188,11 @@ class OperationKernel(object):
         # FIXME: remove objlist
         raise OperationError("No matching signature found for operation '%s' "
                              " (representations: %s)" %
-                                (name, representations))
+                                (name, arg_signatures))
 
     def get_operation(self, name, signature):
-        """Returns an operation with given name and signature"""
+        """Returns an operation with given name and signature. Requires exact
+        signature match."""
         # Get all signatures registered for the operation
         try:
             operations = self.operations[name]
@@ -214,6 +212,20 @@ class OperationKernel(object):
         argc = len(op[0].signature)
         return _KernelOperation(self, name, argc)
 
+    def debug_print_catalogue(self):
+        """Pretty prints the operation catalogue"""
+
+        print "== OPERATIONS =="
+        keys = self.operations.keys()
+        keys.sort()
+        for name in keys:
+            ops = self.operations[name]
+            print "* %s:" % name
+
+            for op in ops:
+                print "    - %s:%s" % (op.signature.signature, op.func)
+
+
 class _KernelOperation(object):
     def __init__(self, kernel, name, argc):
         self.name = name
@@ -227,6 +239,8 @@ class _KernelOperation(object):
         try:
             result = func(*args, **kwargs)
         except RetryOperation as e:
+            # print "--- operation %s failed. retrying with %s" % \
+            #                                    (self.name, e.signature)
             result = self._retry(e.signature, args, kwargs)
 
         return result

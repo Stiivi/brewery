@@ -436,7 +436,6 @@ class SQLDataObject(DataObject):
 
         raise NotImplemented
 
-
 class SQLStatement(SQLDataObject):
     """Object representing a SQL statement (from SQLAlchemy)."""
 
@@ -501,7 +500,22 @@ class SQLStatement(SQLDataObject):
 
     def representations(self):
         """Return list of possible object representations"""
-        return ["rows", "records", "sql_statement"]
+        return ["sql", "rows", "records"]
+
+    def columns(self, fields=None):
+        """Returns Column objects for `fields`. If no `fields` are specified,
+        then all columns are returned"""
+
+        if fields is None:
+            return self.statement.columns
+
+        cols = [self.statement.c[str(field)] for field in fields]
+
+        return cols
+
+    def column(self, field):
+        """Returns a column for field"""
+        return self.statement.c[str(field)]
 
 class SQLTable(SQLDataObject):
     """Object representing a SQL database table or view (from SQLAlchemy)."""
@@ -599,7 +613,7 @@ class SQLTable(SQLDataObject):
 
     def representations(self):
         """Return list of possible object representations"""
-        return ["rows", "records", "sql_statement", "sql_table"]
+        return ["sql_table", "sql", "records", "rows"]
 
     def selectable(self):
         return self.table.select()
@@ -684,3 +698,19 @@ class SQLTable(SQLDataObject):
 
     def probe(self, probeset):
         return probe_table(self, probeset)
+
+    def columns(self, fields=None):
+        """Returns Column objects for `fields`. If no `fields` are specified,
+        then all columns are returned"""
+
+        if fields is None:
+            return self.table.columns
+
+        cols = [self.table.c[str(field)] for field in fields]
+
+        return cols
+
+    def column(self, field):
+        """Returns a column for field"""
+        return self.table.c[str(field)]
+

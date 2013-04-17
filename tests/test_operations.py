@@ -29,29 +29,20 @@ class TextObject(DataObject):
         return ["rows", "text"]
 
     def rows(self):
-        return iter(string)
+        return iter(self.string)
 
     def text(self):
         return self.string
 
 class OperationsBaseTestCase(unittest.TestCase):
-    def test_basic_match(self):
-        self.assertTrue(signature_match("*", ["foo"]))
-        self.assertTrue(signature_match("foo", ["foo"]))
-        self.assertTrue(signature_match("foo", ["bar", "foo"]))
-        self.assertFalse(signature_match("foo", ["bar"]))
-    def test_list_match(self):
-        self.assertFalse(signature_match("*[]", ["foo"]))
-        self.assertFalse(signature_match("foo[]", ["foo"]))
-        self.assertFalse(signature_match("foo[]", ["bar", "foo"]))
+    def test_match(self):
+        self.assertTrue(Signature("sql").matches("sql"))
+        self.assertTrue(Signature("*").matches("sql"))
+        self.assertTrue(Signature("sql[]").matches("sql[]"))
+        self.assertTrue(Signature("*[]").matches("sql[]"))
 
-        self.assertFalse(signature_match("*", ["foo"],True))
-        self.assertFalse(signature_match("foo", ["foo"], True))
-        self.assertFalse(signature_match("foo", ["bar", "foo"], True))
-
-        self.assertTrue(signature_match("*[]", ["foo"], True))
-        self.assertTrue(signature_match("foo[]", ["foo"], True))
-        self.assertTrue(signature_match("foo[]", ["bar", "foo"], True))
+        self.assertFalse(Signature("sql").matches("rows"))
+        self.assertFalse(Signature("sql").matches("sql[]"))
 
     def test_common_reps(self):
         objs = [
@@ -68,18 +59,18 @@ class OperationsBaseTestCase(unittest.TestCase):
             ]
         self.assertEqual([], list(common_representations(*objs)))
 
-    def test_extract_representations(self):
+    def test_extract_signatures(self):
         obj = DummyDataObject(["rows", "sql"])
-        self.assertEqual( [(["rows", "sql"],False)], extract_representations(obj))
+        self.assertEqual( [["rows", "sql"]], extract_signatures(obj))
 
         obj = DummyDataObject(["rows", "sql"])
-        extr = extract_representations([obj])
-        self.assertEqual( [(["rows", "sql"],True)], extr)
+        extr = extract_signatures([obj])
+        self.assertEqual( [["rows[]", "sql[]"]], extr)
 
     def test_lookup(self):
         k = OperationKernel()
 
-        obj_sql = DummyDataObject(["rows", "sql"])
+        obj_sql = DummyDataObject(["sql"])
         obj_rows = DummyDataObject(["rows"])
 
         k.register_operation("unary", unary, Signature("sql"))
@@ -87,6 +78,9 @@ class OperationsBaseTestCase(unittest.TestCase):
 
         match = k.lookup_operation("unary", obj_sql)
         self.assertEqual(unary, match)
+
+        match = k.lookup_operation("unary", obj_rows)
+        self.assertEqual(default, match)
 
         with self.assertRaises(OperationError):
             k.lookup_operation("foo", obj_sql)
@@ -184,6 +178,30 @@ class OperationsBaseTestCase(unittest.TestCase):
         k.register_operation("endless", endless, Signature("sql", "sql"))
         with self.assertRaises(RetryError):
             result = k.endless(local, local)
+
+    def test_priority(self):
+        objsql = DummyDataObject(["sql", "rows"])
+        objrows = DummyDataObject(["rows", "sql"])
+
+        def fsql(obj):
+            pass
+        def frows(obj):
+            pass
+
+        k = OperationKernel()
+        k.register_operation("meditate", fsql, Signature("sql"))
+        k.register_operation("meditate", frows, Signature("rows"))
+
+        self.assertEqual(fsql, k.lookup_operation("meditate", objsql))
+        self.assertEqual(frows, k.lookup_operation("meditate", objrows))
+
+        # Reverse order of registration, expect the same result
+        k = OperationKernel()
+        k.register_operation("meditate", frows, Signature("rows"))
+        k.register_operation("meditate", fsql, Signature("sql"))
+
+        self.assertEqual(fsql, k.lookup_operation("meditate", objsql))
+        self.assertEqual(frows, k.lookup_operation("meditate", objrows))
 
 if __name__ == "__main__":
     unittest.main()

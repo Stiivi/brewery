@@ -149,6 +149,56 @@ def sort(statement, orders):
 
     return statement.order_by(*columns)
 
+@operation("sql", "sql[]")
+def left_inner_join(master, details, joins):
+    """Creates left inner master-detail join (star schema) where `master` is an
+    iterator if the "bigger" table `details` are details. `joins` is a list of
+    tuples `(master, detail)` where the master is index of master key and
+    detail is index of detail key to be matched.
+
+    If `inner` is `True` then inner join is performed. That means that only
+    rows from master that have corresponding details are returned.
+
+    .. warning::
+
+        all detail iterators are consumed and result is held in memory. Do not
+        use for large datasets.
+    """
+
+    if not details:
+        raise ArgumentError("No details provided, nothing to join")
+
+    if not joins:
+        raise ArgumentError("No joins specified")
+
+    if len(details) != len(joins):
+        raise ArgumentError("For every detail there should be a join "
+                            "(%d:%d)." % (len(details), len(joins)))
+
+    if not all(master.can_compose(detail) for detail in details):
+        raise RetryOperation("rows", "rows[]")
+
+    out_fields = master.fields
+    for detail in details:
+        out_fields += detail.fields
+
+    selection = list(master.columns())
+    joined = master.sql_statement()
+
+    for detail, join in zip(details, joins):
+        selection += detail.columns()
+        onclause = master.column(join[0]) == detail.column(join[1])
+
+        joined = sql.expression.join(joined,
+                                     detail.sql_statement(),
+                                     onclause=onclause)
+
+    select = sql.expression.select(selection,
+                                from_obj=joined,
+                                use_labels=True)
+
+    return master.clone(statement=select)
+
 @operation("sql_statement")
 def duplicate_stats(obj, fields=None, threshold=1):
     """Return duplicate statistics of a `statement`"""

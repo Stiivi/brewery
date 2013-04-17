@@ -166,9 +166,19 @@ class DataObject(object):
         """Appends data from object `obj` which might be a `DataObject`
         instance or an iterable. Default implementation uses iterable and
         calls `append()` for each element of the iterable.
+
+        This method executes the append instead of returning a composed
+        object. For object composition see `append` operation.
         """
         for row in iter(obj):
             self.append(row)
+
+    def append_from_iterable(self, iterator):
+        """Appends data from iterator which has same fields as the receiver.
+        This method actualy executes the append instead of returning a
+        composed object. For object composition see `append` operation"""
+        obj = IterableDataSource(iterator, self.fields)
+        self.append_from(obj)
 
     def initialize(self):
         """Backward compatibility with the ds module streams. Does nothing."""
