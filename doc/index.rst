@@ -3,7 +3,19 @@ Brewery - Data streaming, auditing and mining framework
 
 *Know what you have and learn what is happening to your data*
 
-Brewery is a stream-based data analysis and auditing framework with focus on
+.. warning::
+
+   Brewery was replaced by `Bubbles`_. This project is not maintained any
+   more (since June 2013).
+
+   See `Bubbles github`_ repository and `Bubbles project`_ page for more
+   information.
+
+.. _Bubbles: http://bubbles.databrewery.org
+.. _Bubbles project: http://bubbles.databrewery.org
+.. _Bubbles github: https://github.com/stiivi/bubbles
+
+Brewery was a stream-based data analysis and auditing framework with focus on
 understandability, auditability, usability and versatility.
 
 Contents:
