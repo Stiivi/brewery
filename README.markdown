@@ -3,12 +3,19 @@ Brewery
 
 Understandable data streaming, auditing and mining framework for Python.
 
-Project page: http://databrewery.org
+**NOTE: This project has been replaced by Bubbles (see below). Brewery is not
+maintained any more**
+
+Bubbles can be found at:
+
+Project page: http://bubbles.databrewery.org
+Github: https://github.com/stiivi/bubbles
+
 
 About
 -----
 
-Brewery is a python framework for:
+Brewery was a python framework for:
 
 * data streams - streaming structured data from various sources into various targets. Example of 
   existing streams: CSV, XLS, Google Spreadsheet, relational SQL database, MongoDB, directory with YAML
@@ -16,17 +23,17 @@ Brewery is a python framework for:
 * data quality monitoring
 * data mining (in the future)
 
-Focus is on understandability and transparency of the process.
+Focus was on understandability and transparency of the process.
 
 Installation
 ------------
 
-To install brewery framework type:
+To install original brewery framework type:
 
     pip install brewery
 
 
-To install brewery from sources, you can get it from Github: 
+To install original brewery from sources, you can get it from Github: 
 https://github.com/Stiivi/brewery
 
 More details about installation and requirements can be found at: 
